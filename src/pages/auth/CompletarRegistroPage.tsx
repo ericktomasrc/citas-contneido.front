@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import { IdCard, BookOpen, CreditCard, Info, Smartphone, DollarSign, Banknote,
-   Lock, Eye, EyeOff, Camera, MapPin, Upload, CheckCircle, UserCircle, Users, AlertCircle } from 'lucide-react';
+   Lock, Eye, EyeOff, Camera, MapPin, Upload, CheckCircle, UserCircle, Users, AlertCircle, 
+   Flag} from 'lucide-react';
 import { LiveCameraCapture } from '../../components/LiveCameraCapture';  
 import { completarRegistro } from '../../shared/api/authApi';
 import { Toast } from '../../components/Toast'; 
 import { ConfirmModal } from '../../components/ConfirmModal'; 
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
+import { LGBTIcon } from '@/components/SVG/LGBTIcon';
 
 export const CompletarRegistroPage = () => {
   const navigate = useNavigate();
@@ -47,6 +49,9 @@ export const CompletarRegistroPage = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [registroExitoso, setRegistroExitoso] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  const [codigoReferido, setCodigoReferido] = useState('');
+  const [generoInteresId, setGeneroInteresId] = useState<number | null>(null);
 
   const [toast, setToast] = useState<{
   show: boolean;
@@ -126,6 +131,9 @@ export const CompletarRegistroPage = () => {
   const validarPaso1 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    const esCreador = registrationData?.tipoUsuario === 2;
+    const esCliente = registrationData?.tipoUsuario === 1;
+
     if (!username.trim()) {
       newErrors.username = 'El nombre de usuario es obligatorio';
     } else if (username.length < 3) {
@@ -149,6 +157,10 @@ export const CompletarRegistroPage = () => {
     if (!generoSeleccionado) {
       newErrors.genero = 'Selecciona tu género';
     }
+
+     if (esCliente && !generoInteresId) {
+     newErrors.generoInteres = 'Selecciona qué género te interesa ver';
+  }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -282,11 +294,21 @@ const handleCancelRegistro = () => {
     formData.append('Nombre', nombre);
     formData.append('Apellidos', apellidos);
     formData.append('FechaNacimiento', fechaNacimiento);
-    formData.append('GeneroId', generoSeleccionado === 'M' ? '1' : '2');
+    formData.append('GeneroId', generoSeleccionado === 'M' ? '1' : (generoSeleccionado === 'F' ? '2' : '3'));
     formData.append('Password', password);
     formData.append('ConfirmarPassword', confirmarPassword);
     formData.append('Latitud', latitud.toString());
     formData.append('Longitud', longitud.toString());
+
+ // AGREGAR CÓDIGO DE REFERIDO (Solo Creadoras)
+  if (registrationData.tipoUsuario === 2 && codigoReferido) {
+    formData.append('CodigoQuienRecomendo', codigoReferido);
+  }
+  
+  //  AGREGAR GÉNERO DE INTERÉS (Solo Clientes)
+  if (registrationData.tipoUsuario === 1 && generoInteresId) {
+    formData.append('GeneroQueMeInteresaId', generoInteresId.toString());
+  }
     
     if (registrationData.tipoUsuario === 2) {
       formData.append('TipoDocumentoId', tipoDocumentoSeleccionado === 'DNI' ? '1' : tipoDocumentoSeleccionado === 'Pasaporte' ? '2' : '3');
@@ -477,55 +499,197 @@ const handleCancelRegistro = () => {
                 }`}
               />
               <ErrorMessage message={errors.fechaNacimiento} />
-            </div>
+            </div> 
 
-            {/* Género */}
+            {/* ✅ GÉNERO - AGREGAR OPCIÓN LGBTIQ+ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Género <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
+                {/* Masculino */}
                 <button
                   type="button"
                   onClick={() => {
                     setGeneroSeleccionado('M');
                     setErrors({ ...errors, genero: '' });
                   }}
-                  className={`p-4 border-2 rounded-lg transition flex items-center justify-center gap-3 ${
+                  className={`p-4 border-2 rounded-lg transition flex flex-col items-center justify-center gap-2 ${
                     generoSeleccionado === 'M'
-                      ? 'border-blue-500 bg-blue-100 shadow-md'
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
                       : errors.genero
                       ? 'border-red-500'
                       : 'border-gray-200 hover:border-blue-300'
                   }`}
                 >
-                  <UserCircle className={`w-6 h-6 ${generoSeleccionado === 'M' ? 'text-blue-600' : 'text-gray-500'}`} />
-                  <span className={`font-medium ${generoSeleccionado === 'M' ? 'text-blue-700' : 'text-gray-700'}`}>
+                  <UserCircle className={`w-8 h-8 ${generoSeleccionado === 'M' ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <span className={`font-medium text-sm ${generoSeleccionado === 'M' ? 'text-blue-700' : 'text-gray-700'}`}>
                     Masculino
                   </span>
                 </button>
+
+                {/* Femenino */}
                 <button
                   type="button"
                   onClick={() => {
                     setGeneroSeleccionado('F');
                     setErrors({ ...errors, genero: '' });
                   }}
-                  className={`p-4 border-2 rounded-lg transition flex items-center justify-center gap-3 ${
+                  className={`p-4 border-2 rounded-lg transition flex flex-col items-center justify-center gap-2 ${
                     generoSeleccionado === 'F'
-                      ? 'border-pink-500 bg-pink-100 shadow-md'
+                      ? 'border-pink-500 bg-pink-50 shadow-md'
                       : errors.genero
                       ? 'border-red-500'
                       : 'border-gray-200 hover:border-pink-300'
                   }`}
                 >
-                  <Users className={`w-6 h-6 ${generoSeleccionado === 'F' ? 'text-pink-600' : 'text-gray-500'}`} />
-                  <span className={`font-medium ${generoSeleccionado === 'F' ? 'text-pink-700' : 'text-gray-700'}`}>
+                  <Users className={`w-8 h-8 ${generoSeleccionado === 'F' ? 'text-pink-600' : 'text-gray-500'}`} />
+                  <span className={`font-medium text-sm ${generoSeleccionado === 'F' ? 'text-pink-700' : 'text-gray-700'}`}>
                     Femenino
                   </span>
+                </button> 
+
+                 {/*  LGBTIQ+ */}
+                <button
+                        type="button"
+                        onClick={() => {
+                          setGeneroSeleccionado('L');
+                          setErrors({ ...errors, genero: '' });
+                        }}
+                        className={`p-4 border-2 rounded-lg transition flex items-center justify-center gap-3 ${
+                          generoSeleccionado === 'L'
+                            ? 'border-purple-500 bg-purple-100 shadow-md'
+                            : errors.genero
+                            ? 'border-red-500'
+                            : 'border-gray-200 hover:border-purple-300'
+                        }`}
+                      >
+                        <Flag className={`w-6 h-6 ${generoSeleccionado === 'L' ? 'text-purple-600' : 'text-gray-500'}`} />
+                        <span className={`font-medium ${generoSeleccionado === 'L' ? 'text-purple-700' : 'text-gray-700'}`}>
+                          LGBTIQ+
+                        </span>
                 </button>
+
               </div>
               <ErrorMessage message={errors.genero} />
             </div>
+
+            {/* ✅ NUEVO: CÓDIGO DE REFERIDO (Solo para Creadoras) */}
+            {registrationData?.tipoUsuario === 2 && (
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
+                {/* <div className="flex items-start gap-3 mb-4">
+                  <div className="bg-green-500 rounded-full p-2">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-900 mb-1">
+                      ¡Gana S/. 10 por cada amiga que invites! 💰
+                    </h3>
+                    <p className="text-sm text-green-700">
+                      ¿Conoces a alguien que quiera ganar dinero? Comparte tu código y ambas ganan.
+                    </p>
+                  </div>
+                </div> */}
+                
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Código de quien te recomendó (Opcional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-green-600 font-mono">#</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={codigoReferido}
+                    onChange={(e) => setCodigoReferido(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                    className="w-full pl-10 pr-4 py-3 border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white font-mono"
+                    placeholder="Ej: ABC123"
+                    maxLength={10}
+                  />
+                </div>
+                <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Si te invitó una amiga, ingresa su código aquí
+                </p>
+              </div>
+            )}
+
+            {/* ✅ NUEVO: GÉNERO QUE ME INTERESA (Solo para Clientes) */}
+            {registrationData?.tipoUsuario === 1 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  ¿Qué te interesa ver? <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Mujeres */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneroInteresId(1);
+                      setErrors({ ...errors, generoInteres: '' });
+                    }}
+                    className={`p-4 border-2 rounded-lg transition flex flex-col items-center justify-center gap-2 ${
+                      generoInteresId === 1
+                        ? 'border-pink-500 bg-pink-50 shadow-md ring-2 ring-pink-200'
+                        : errors.generoInteres
+                        ? 'border-red-500'
+                        : 'border-gray-200 hover:border-pink-300 hover:bg-pink-50'
+                    }`}
+                  >
+                    <div className="text-3xl">👩</div>
+                    <span className={`font-medium text-sm ${generoInteresId === 1 ? 'text-pink-700' : 'text-gray-700'}`}>
+                      Mujeres
+                    </span>
+                  </button>
+
+                  {/* Hombres */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneroInteresId(2);
+                      setErrors({ ...errors, generoInteres: '' });
+                    }}
+                    className={`p-4 border-2 rounded-lg transition flex flex-col items-center justify-center gap-2 ${
+                      generoInteresId === 2
+                        ? 'border-blue-500 bg-blue-50 shadow-md ring-2 ring-blue-200'
+                        : errors.generoInteres
+                        ? 'border-red-500'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    <div className="text-3xl">👨</div>
+                    <span className={`font-medium text-sm ${generoInteresId === 2 ? 'text-blue-700' : 'text-gray-700'}`}>
+                      Hombres
+                    </span>
+                  </button>
+
+                  {/* LGBTIQ+ */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneroInteresId(3);
+                      setErrors({ ...errors, generoInteres: '' });
+                    }}
+                    className={`p-4 border-2 rounded-lg transition flex flex-col items-center justify-center gap-2 ${
+                      generoInteresId === 3
+                        ? 'border-purple-500 bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 shadow-md ring-2 ring-purple-200'
+                        : errors.generoInteres
+                        ? 'border-red-500'
+                        : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                    }`}
+                  >
+                    <div className="text-3xl">🏳️‍🌈</div>
+                    <span className={`font-medium text-sm ${generoInteresId === 3 ? 'text-purple-700' : 'text-gray-700'}`}>
+                      LGBTIQ+
+                    </span>
+                  </button>
+                </div>
+                <ErrorMessage message={errors.generoInteres} />
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  Esto nos ayuda a mostrarte contenido relevante para ti
+                </p>
+              </div>
+            )}
 
             {/* Botones */}
             <div className="flex justify-between items-center pt-4">
@@ -551,7 +715,7 @@ const handleCancelRegistro = () => {
           </div>
         )}
 
-{/* Step 2: Documento de Identidad (Solo Creadores) */}
+       {/* Step 2: Documento de Identidad (Solo Creadores) */}
         {currentStep === 2 && registrationData?.tipoUsuario === 2 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
