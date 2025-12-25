@@ -20,7 +20,7 @@ export const CompletarRegistroPage = () => {
   const [tipoDocumentoSeleccionado, setTipoDocumentoSeleccionado] = useState<string>(''); 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [fotoPerfil, setFotoPerfil] = useState<File | null>(null);  
+  const [fotoDocumento, setFotoDocumento] = useState<File | null>(null);  
   const [fotoEnVivo, setFotoEnVivo] = useState<Blob | null>(null);
   const [mostrarCamara, setMostrarCamara] = useState(false);  
   const [ubicacionObtenida, setUbicacionObtenida] = useState(false); 
@@ -300,7 +300,7 @@ const handleCancelRegistro = () => {
       if (bio) formData.append('Bio', bio);
     }
     
-    if (fotoPerfil) formData.append('FotoPerfil', fotoPerfil);
+    if (fotoDocumento) formData.append('FotoDocumento', fotoDocumento);
     if (fotoEnVivo) formData.append('FotoEnVivo', fotoEnVivo);
     
     try {
@@ -1011,7 +1011,7 @@ const handleCancelRegistro = () => {
               <p className="text-gray-600">Último paso para completar tu registro</p>
             </div>
 
-            {/* Foto de Perfil */}
+            {/* Foto de Documento */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Sube una foto Clara <span className="text-red-500">*</span>
@@ -1021,14 +1021,14 @@ const handleCancelRegistro = () => {
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  id="foto-perfil"
-                  onChange={(e) => setFotoPerfil(e.target.files?.[0] || null)}
+                  id="foto-Documento"
+                  onChange={(e) => setFotoDocumento(e.target.files?.[0] || null)}
                 />
-                <label htmlFor="foto-perfil" className="cursor-pointer">
-                  {fotoPerfil ? (
+                <label htmlFor="foto-Documento" className="cursor-pointer">
+                  {fotoDocumento ? (
                     <div>
                       <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                      <p className="text-sm text-green-600 font-medium mb-1">✓ {fotoPerfil.name}</p>
+                      <p className="text-sm text-green-600 font-medium mb-1">✓ {fotoDocumento.name}</p>
                       <p className="text-xs text-gray-500">Haz clic para cambiar</p>
                     </div>
                   ) : (
@@ -1053,11 +1053,11 @@ const handleCancelRegistro = () => {
               <button
                 type="button"
                 onClick={() => setMostrarCamara(true)}
-                disabled={!fotoPerfil}
+                disabled={!fotoDocumento}
                 className={`w-full p-6 border-2 rounded-lg transition ${
                   fotoEnVivo
                     ? 'border-green-500 bg-green-50'
-                    : fotoPerfil
+                    : fotoDocumento
                     ? 'border-gray-300 hover:border-primary-500 hover:bg-primary-50'
                     : 'border-gray-200 bg-gray-50 cursor-not-allowed'
                 }`}
@@ -1072,7 +1072,7 @@ const handleCancelRegistro = () => {
                     <>
                       <Camera className="w-12 h-12 text-gray-500" />
                       <p className="font-medium text-gray-700">
-                        {fotoPerfil ? 'Iniciar verificación facial' : 'Primero sube tu selfie'}
+                        {fotoDocumento ? 'Iniciar verificación facial' : 'Primero sube tu selfie'}
                       </p>
                     </>
                   )}
@@ -1145,7 +1145,7 @@ const handleCancelRegistro = () => {
                 <button
                   type="button"
                   onClick={handleCompletarClick} // ✅ CAMBIAR A handleCompletarClick
-                  disabled={!fotoPerfil || !fotoEnVivo || !ubicacionObtenida || cargando}
+                  disabled={!fotoDocumento || !fotoEnVivo || !ubicacionObtenida || cargando}
                   className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-pink-700 hover:to-purple-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cargando ? 'Procesando...' : 'Completar Registro'}

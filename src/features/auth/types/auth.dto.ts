@@ -19,7 +19,7 @@ export interface CompletarRegistroDto {
 }
 
 export interface VerificacionIdentidadDto {
-  fotoPerfil?: File;
+  fotoEnVivo?: File;
   fotoDocumento: File;
   latitud: number;
   longitud: number;

@@ -19,7 +19,7 @@ export interface User {
   rangoDistanciaKm: number;
   
   // Fotos
-  fotoPerfil?: string;
+  fotoEnVivo?: string;
   fotoDocumento?: string;
   
   isPremium: boolean;

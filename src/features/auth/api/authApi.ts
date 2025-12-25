@@ -32,8 +32,8 @@ export const authApi = {
   verificarIdentidad: async (data: VerificacionIdentidadDto) => {
     const formData = new FormData();
     
-    if (data.fotoPerfil) {
-      formData.append('fotoPerfil', data.fotoPerfil);
+    if (data.fotoEnVivo) {
+      formData.append('fotoEnVivo', data.fotoEnVivo);
     }
     formData.append('fotoDocumento', data.fotoDocumento);
     formData.append('latitud', data.latitud.toString());
