@@ -29,4 +29,83 @@ export const completarRegistro = async (formData: FormData) => {
     // Re-lanzar el error para que lo capture el try-catch del componente
     throw error;
   }
+}; 
+
+export const sendPasswordResetCode = async (email: string) => {
+  const response = await fetch(`${API_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  return response.json();
+};
+
+export const verifyPasswordResetCode = async (email: string, code: string) => {
+  const response = await fetch(`${API_URL}/auth/verify-reset-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code })
+  });
+  return response.json();
+};
+
+export const resetPassword = async (email: string, code: string, newPassword: string) => {
+  const response = await fetch(`${API_URL}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, newPassword })
+  });
+  return response.json();
+};
+
+export const solicitarRecuperacionPassword = async (email: string) => {
+  const response = await fetch(`${API_URL}/PasswordReset/solicitar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Error al solicitar recuperación');
+  }
+
+  return response.json();
+};
+
+export const verificarCodigoRecuperacion = async (email: string, codigo: string) => {
+  const response = await fetch(`${API_URL}/PasswordReset/verificar-codigo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, codigo })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Código inválido');
+  }
+
+  return response.json();
+};
+
+export const restablecerPassword = async (
+  email: string, 
+  codigo: string, 
+  nuevaPassword: string, 
+  confirmarPassword: string
+) => {
+  const response = await fetch(`${API_URL}/PasswordReset/restablecer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, codigo, nuevaPassword, confirmarPassword })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // ✅ Lanzar el mensaje que viene del backend
+    throw new Error(data.message || 'Error al restablecer contraseña');
+  }
+
+  return data;
 };

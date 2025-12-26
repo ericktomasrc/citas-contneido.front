@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom'; 
+
 export const LoginPage = () => {
+    const navigate = useNavigate();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8">
@@ -35,6 +39,12 @@ export const LoginPage = () => {
           >
             Iniciar Sesión
           </button>
+          <button
+  onClick={() => navigate('/recuperar-password')}
+  className="text-sm text-pink-600 hover:text-pink-700 font-medium"
+>
+  ¿Olvidaste tu contraseña?
+</button>
         </form>
       </div>
     </div>

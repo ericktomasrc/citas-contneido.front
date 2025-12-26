@@ -6,11 +6,13 @@ import { VerificarEmailPage } from '@pages/auth/VerificarEmailPage';
 import { SeleccionarTipoUsuarioPage } from '@pages/auth/SeleccionarTipoUsuarioPage';
 import { CompletarRegistroPage } from '@pages/auth/CompletarRegistroPage'; // ✅ NUEVO
 import { ROUTES } from '@shared/config/constants';
+import { RecuperarPasswordPage } from '../../pages/auth/RecuperarPasswordPage';
 
 export const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/recuperar-password" element={<RecuperarPasswordPage />} />
         <Route path={ROUTES.HOME} element={<HomePage />} />
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.REGISTER} element={<RegisterPage />} />

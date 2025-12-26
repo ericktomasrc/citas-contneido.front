@@ -7,8 +7,7 @@ import { LiveCameraCapture } from '../../components/LiveCameraCapture';
 import { completarRegistro } from '../../shared/api/authApi';
 import { Toast } from '../../components/Toast'; 
 import { ConfirmModal } from '../../components/ConfirmModal'; 
-import { ConfirmationDialog } from '../../components/ConfirmationDialog';
-import { LGBTIcon } from '@/components/SVG/LGBTIcon';
+import { ConfirmationDialog } from '../../components/ConfirmationDialog'; 
 
 export const CompletarRegistroPage = () => {
   const navigate = useNavigate();
@@ -307,7 +306,7 @@ const handleCancelRegistro = () => {
   
   //  AGREGAR GÉNERO DE INTERÉS (Solo Clientes)
   if (registrationData.tipoUsuario === 1 && generoInteresId) {
-    formData.append('GeneroQueMeInteresaId', generoInteresId.toString());
+    formData.append('GeneroQueMeInteresaId1', generoInteresId.toString());
   }
     
     if (registrationData.tipoUsuario === 2) {
@@ -618,7 +617,7 @@ const handleCancelRegistro = () => {
             {registrationData?.tipoUsuario === 1 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
-                  ¿Qué te interesa ver? <span className="text-red-500">*</span>
+                  ¿Inicialmente que te interesa ver? <span className="text-red-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {/* Mujeres */}
