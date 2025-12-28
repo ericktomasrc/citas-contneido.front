@@ -51,6 +51,8 @@ export const CompletarRegistroPage = () => {
 
   const [codigoReferido, setCodigoReferido] = useState('');
   const [generoInteresId, setGeneroInteresId] = useState<number | null>(null);
+  const [instagram, setInstagram] = useState('');
+  const [telegram, setTelegram] = useState('');
 
   const [toast, setToast] = useState<{
   show: boolean;
@@ -139,19 +141,52 @@ export const CompletarRegistroPage = () => {
       newErrors.username = 'Mínimo 3 caracteres';
     }
 
-    if (!nombre.trim()) {
+    if (esCreador && !nombre.trim()) {
       newErrors.nombre = 'El nombre es obligatorio';
     }
 
-    if (!apellidos.trim()) {
+    if (esCreador && !apellidos.trim()) {
       newErrors.apellidos = 'Los apellidos son obligatorios';
     }
 
-    if (!fechaNacimiento) {
-      newErrors.fechaNacimiento = 'La fecha de nacimiento es obligatoria';
-    } else if (calcularEdad(fechaNacimiento) < 18) {
-      newErrors.fechaNacimiento = 'Debes ser mayor de 18 años';
+  if (!fechaNacimiento || fechaNacimiento === '--') {
+    newErrors.fechaNacimiento = 'La fecha de nacimiento es obligatoria';
+  } else {
+    const [year, month, day] = fechaNacimiento.split('-');
+    
+    // Validar que todos los campos estén completos
+    if (!year || !month || !day) {
+      newErrors.fechaNacimiento = 'Por favor, ingresa una fecha válida';
+    } 
+    // Validar formato numérico
+    else if (isNaN(Number(year)) || isNaN(Number(month)) || isNaN(Number(day))) {
+      newErrors.fechaNacimiento = 'La fecha debe contener solo números';
     }
+    // Validar rangos básicos
+    else if (Number(day) < 1 || Number(day) > 31) {
+      newErrors.fechaNacimiento = 'El día debe estar entre 1 y 31';
+    } else if (Number(month) < 1 || Number(month) > 12) {
+      newErrors.fechaNacimiento = 'El mes debe estar entre 1 y 12';
+    } else if (Number(year) < 1900 || Number(year) > new Date().getFullYear()) {
+      newErrors.fechaNacimiento = 'El año no es válido';
+    }
+    // Validar que sea una fecha válida (no 31 de febrero)
+    else {
+      const fecha = new Date(Number(year), Number(month) - 1, Number(day));
+      
+      if (
+        fecha.getFullYear() !== Number(year) ||
+        fecha.getMonth() !== Number(month) - 1 ||
+        fecha.getDate() !== Number(day)
+      ) {
+        newErrors.fechaNacimiento = 'La fecha ingresada no existe';
+      }
+      // Validar mayor de 18 años
+      else if (calcularEdad(fechaNacimiento) < 18) {
+        newErrors.fechaNacimiento = 'Debes ser mayor de 18 años';
+      }
+    }
+  }
 
     if (!generoSeleccionado) {
       newErrors.genero = 'Selecciona tu género';
@@ -271,20 +306,20 @@ export const CompletarRegistroPage = () => {
   setShowConfirmDialog(true);
 };
 
-// ✅ FUNCIÓN: Confirmar y proceder con el registro
+//       FUNCIÓN: Confirmar y proceder con el registro
 const handleConfirmRegistro = () => {
   setShowConfirmDialog(false); // Cerrar diálogo de confirmación
   handleSubmit(); // Proceder con el envío
 };
 
-// ✅ FUNCIÓN: Cancelar
+//       FUNCIÓN: Cancelar
 const handleCancelRegistro = () => {
   setShowConfirmDialog(false);
 };
 
   const handleSubmit = async () => {
-     setShowConfirmModal(true);
-  setCargando(true); 
+    setShowConfirmModal(true);
+    setCargando(true); 
     
     const formData = new FormData();
     formData.append('UsuarioId', registrationData.userId.toString());
@@ -319,6 +354,10 @@ const handleCancelRegistro = () => {
       if (bancoNombre) formData.append('BancoNombre', bancoNombre);
       if (numeroCuenta) formData.append('NumeroCuenta', numeroCuenta);
       if (bio) formData.append('Bio', bio);
+
+        //   AGREGAR INSTAGRAM Y TELEGRAM
+      if (instagram) formData.append('Instagram', instagram);
+      if (telegram) formData.append('Telegram', telegram);
     }
     
     if (fotoDocumento) formData.append('FotoDocumento', fotoDocumento);
@@ -439,68 +478,138 @@ const handleCancelRegistro = () => {
               <ErrorMessage message={errors.username} />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              {/* Nombre */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => {
-                    setNombre(e.target.value);
-                    setErrors({ ...errors, nombre: '' });
-                  }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                    errors.nombre ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Tu nombre"
-                />
-                <ErrorMessage message={errors.nombre} />
-              </div>
+            {registrationData?.tipoUsuario === 2 && (
+                        <div className="grid md:grid-cols-2 gap-4">
+                          {/* Nombre */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Nombre <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={nombre}
+                              onChange={(e) => {
+                                setNombre(e.target.value);
+                                setErrors({ ...errors, nombre: '' });
+                              }}
+                              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                                errors.nombre ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="Tu nombre"
+                            />
+                            <ErrorMessage message={errors.nombre} />
+                          </div>
 
-              {/* Apellidos */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Apellidos <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={apellidos}
-                  onChange={(e) => {
-                    setApellidos(e.target.value);
-                    setErrors({ ...errors, apellidos: '' });
-                  }}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                    errors.apellidos ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Tus apellidos"
-                />
-                <ErrorMessage message={errors.apellidos} />
-              </div>
-            </div>
-
-            {/* Fecha de Nacimiento */}
+                          {/* Apellidos */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Apellidos <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={apellidos}
+                              onChange={(e) => {
+                                setApellidos(e.target.value);
+                                setErrors({ ...errors, apellidos: '' });
+                              }}
+                              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                                errors.apellidos ? 'border-red-500' : 'border-gray-300'
+                              }`}
+                              placeholder="Tus apellidos"
+                            />
+                            <ErrorMessage message={errors.apellidos} />
+                          </div>
+                        </div>
+            )}
+ 
+            {/* Fecha de Nacimiento  */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de Nacimiento <span className="text-red-500">*</span>
+                Fecha de nacimiento
               </label>
-              <input
-                type="date"
-                value={fechaNacimiento}
-                onChange={(e) => {
-                  setFechaNacimiento(e.target.value);
-                  setErrors({ ...errors, fechaNacimiento: '' });
-                }}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
-                  errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-              <ErrorMessage message={errors.fechaNacimiento} />
-            </div> 
+              
+              <div className="grid grid-cols-3 gap-3">
+                {/* Día */}
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Día</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={fechaNacimiento.split('-')[2] || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      const [year, month] = fechaNacimiento.split('-');
+                      setFechaNacimiento(`${year || ''}-${month || ''}-${value}`);
+                      setErrors({ ...errors, fechaNacimiento: '' });
+                      
+                      // Auto-focus al siguiente campo
+                      if (value.length === 2) {
+                        document.getElementById('mes-input')?.focus();
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-center focus:ring-2 focus:ring-primary-500 ${
+                      errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="DD"
+                    id="dia-input"
+                  />
+                </div>
 
-            {/* ✅ GÉNERO - AGREGAR OPCIÓN LGBTIQ+ */}
+                {/* Mes */}
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Mes</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={fechaNacimiento.split('-')[1] || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      const [year, , day] = fechaNacimiento.split('-');
+                      setFechaNacimiento(`${year || ''}-${value}-${day || ''}`);
+                      setErrors({ ...errors, fechaNacimiento: '' });
+                      
+                      // Auto-focus al siguiente campo
+                      if (value.length === 2) {
+                        document.getElementById('año-input')?.focus();
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-center focus:ring-2 focus:ring-primary-500 ${
+                      errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="MM"
+                    id="mes-input"
+                  />
+                </div>
+
+                {/* Año */}
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Año</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={fechaNacimiento.split('-')[0] || ''}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      const [, month, day] = fechaNacimiento.split('-');
+                      setFechaNacimiento(`${value}-${month || ''}-${day || ''}`);
+                      setErrors({ ...errors, fechaNacimiento: '' });
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg text-center focus:ring-2 focus:ring-primary-500 ${
+                      errors.fechaNacimiento ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="AAAA"
+                    id="año-input"
+                  />
+                </div>
+              </div>
+              
+              <ErrorMessage message={errors.fechaNacimiento} />
+            </div>
+
+            {/*       GÉNERO - AGREGAR OPCIÓN LGBTIQ+ */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Género <span className="text-red-500">*</span>
@@ -573,7 +682,7 @@ const handleCancelRegistro = () => {
               <ErrorMessage message={errors.genero} />
             </div>
 
-            {/* ✅ NUEVO: CÓDIGO DE REFERIDO (Solo para Creadoras) */}
+            {/*       NUEVO: CÓDIGO DE REFERIDO (Solo para Creadoras) */}
             {registrationData?.tipoUsuario === 2 && (
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200">
                 {/* <div className="flex items-start gap-3 mb-4">
@@ -613,7 +722,7 @@ const handleCancelRegistro = () => {
               </div>
             )}
 
-            {/* ✅ NUEVO: GÉNERO QUE ME INTERESA (Solo para Clientes) */}
+            {/*       NUEVO: GÉNERO QUE ME INTERESA (Solo para Clientes) */}
             {registrationData?.tipoUsuario === 1 && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -877,6 +986,52 @@ const handleCancelRegistro = () => {
                 />
               </div>
               <ErrorMessage message={errors.whatsapp} />
+            </div>
+
+            {/* Instagram (Opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Instagram <span className="text-gray-400 text-xs">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-pink-600 font-semibold">@</span>
+                </div>
+                <input
+                  type="text"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value.replace(/[^a-zA-Z0-9._]/g, ''))}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 bg-white"
+                  placeholder="tu_usuario"
+                  maxLength={30}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Solo tu nombre de usuario, sin @ ni enlaces
+              </p>
+            </div>
+
+            {/* Telegram (Opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Telegram <span className="text-gray-400 text-xs">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-blue-600 font-semibold">@</span>
+                </div>
+                <input
+                  type="text"
+                  value={telegram}
+                  onChange={(e) => setTelegram(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                  placeholder="tu_usuario"
+                  maxLength={32}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Solo tu nombre de usuario, sin @ ni enlaces
+              </p>
             </div>
 
             {/* Métodos de Pago */}
@@ -1307,7 +1462,7 @@ const handleCancelRegistro = () => {
                   {/* Botón "Completar Registro" en el último paso */}
                 <button
                   type="button"
-                  onClick={handleCompletarClick} // ✅ CAMBIAR A handleCompletarClick
+                  onClick={handleCompletarClick} //       CAMBIAR A handleCompletarClick
                   disabled={!fotoDocumento || !fotoEnVivo || !ubicacionObtenida || cargando}
                   className="bg-gradient-to-r from-pink-600 to-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-pink-700 hover:to-purple-700 transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
