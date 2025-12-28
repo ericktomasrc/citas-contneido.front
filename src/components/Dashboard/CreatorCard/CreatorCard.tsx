@@ -1,6 +1,7 @@
-import { MapPin, Heart, MessageCircle, Video, CheckCircle } from 'lucide-react';
+import { MapPin, Heart, MessageCircle, CheckCircle } from 'lucide-react';
 import { Creator } from '../../../shared/types/creator.types';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface CreatorCardProps {
   creator: Creator;
@@ -10,6 +11,7 @@ interface CreatorCardProps {
 
 export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
   const [isLiked, setIsLiked] = useState(false);
+  const navigate = useNavigate();
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -17,9 +19,13 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
     onLike?.(creator.id);
   };
 
+  const handleCardClick = () => {
+    navigate(`/perfil/${creator.id}`);
+  };
+
   return (
     <div
-      onClick={() => onClick?.(creator.id)}
+      onClick={handleCardClick}
       className="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
     >
       {/* Image Container */}
@@ -71,10 +77,22 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
         {/* Hover Actions */}
         <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
           <div className="flex gap-2">
-            <button className="flex-1 bg-white text-gray-900 px-4 py-2 rounded-xl font-medium text-sm hover:bg-gray-100 transition">
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                navigate(`/perfil/${creator.id}`); 
+              }}
+              className="flex-1 bg-white text-gray-900 px-4 py-2 rounded-xl font-medium text-sm hover:bg-gray-100 transition"
+            >
               Ver Perfil
             </button>
-            <button className="bg-pink-500 text-white p-2 rounded-xl hover:bg-pink-600 transition">
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                console.log('Abrir chat con', creator.id);
+              }}
+              className="bg-pink-500 text-white p-2 rounded-xl hover:bg-pink-600 transition"
+            >
               <MessageCircle className="w-5 h-5" />
             </button>
           </div>

@@ -7,7 +7,9 @@ import { CompletarRegistroPage } from '@pages/auth/CompletarRegistroPage';
 import { RecuperarPasswordPage } from '@pages/auth/RecuperarPasswordPage';
 import { RegisterLoginPage } from '@pages/auth/RegisterLoginPage';
 import { DashboardEspectadorPage } from '../../pages/Dashboard/DashboardEspectadorPage'; // ✅ NUEVO
-import { ROUTES } from '@shared/config/constants';
+import { ROUTES } from '@shared/config/constants'; 
+import { CreatorProfilePageFullscreen } from '@/components/CreatorProfile/CreatorProfilePageFullscreen';
+import { LiveStreamPage } from '@/components/CreatorProfile/LiveStream/LiveStreamPage';
 
 export const AppRouter = () => {
   return (
@@ -23,7 +25,10 @@ export const AppRouter = () => {
         <Route path="/completar-registro" element={<CompletarRegistroPage />} />
         
         {/* Dashboard Routes */}
-        <Route path="/dashboard" element={<DashboardEspectadorPage />} /> {/* ✅ NUEVO */}
+        <Route path="/dashboard" element={<DashboardEspectadorPage />} /> {/*  NUEVO */}
+        {/* <Route path="/perfil/:id" element={<CreatorProfilePage />} /> */}
+        <Route path="/perfil/:id" element={<CreatorProfilePageFullscreen />} />
+        <Route path="/live/:id" element={<LiveStreamPage />} />
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
