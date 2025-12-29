@@ -1,64 +1,64 @@
 import { useState } from 'react';
-import { Crown, Mail, Coins, Gift, FileText } from 'lucide-react';
+import { User, Shield, Bell, Lock, Search } from 'lucide-react';
 import { NavbarDashboard } from '../../components/Dashboard/Navbar/NavbarDashboard';
 import { SidebarDashboard } from '../../components/Dashboard/Sidebar/SidebarDashboard';
-import { ActiveSubscriptionsTable } from '../../components/Subscriptions/ActiveSubscriptionsTable';
-import { InvitationsTable } from '../../components/Subscriptions/InvitationsTable';
-import { CoinsTable } from '../../components/Subscriptions/CoinsTable';
-import { GiftsTable } from '../../components/Subscriptions/GiftsTable';
-import { PurchaseHistoryTable } from '../../components/Subscriptions/PurchaseHistoryTable';
+import { ProfileTab } from '../../components/Settings/ProfileTab';
+import { AccountTab } from '../../components/Settings/AccountTab';
+import { PrivacyTab } from '../../components/Settings/PrivacyTab';
+import { NotificationsTab } from '../../components/Settings/NotificationsTab';
+import { SearchPreferencesTab } from '../../components/Settings/SearchPreferencesTab';
 
-type TabType = 'activas' | 'invitaciones' | 'saldo' | 'regalos' | 'historial';
+type SettingsTabType = 'perfil' | 'cuenta' | 'privacidad' | 'notificaciones' | 'busqueda';
 
-export const SubscriptionsPage = () => {
-  const [activeTab, setActiveTab] = useState<TabType>('activas');
+export const SettingsPage = () => {
+  const [activeTab, setActiveTab] = useState<SettingsTabType>('perfil');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const tabs = [
     { 
-      id: 'activas' as TabType, 
-      label: 'Suscripciones Activas',
-      icon: Crown,
-      gradient: 'from-purple-500 to-pink-600',
-      bgActive: 'bg-purple-50',
-      borderActive: 'border-purple-500'
-    },
-    { 
-      id: 'invitaciones' as TabType, 
-      label: 'Invitaciones',
-      icon: Mail,
+      id: 'perfil' as SettingsTabType, 
+      label: 'Mi Perfil',
+      icon: User,
       gradient: 'from-pink-500 to-rose-600',
       bgActive: 'bg-pink-50',
       borderActive: 'border-pink-500'
     },
     { 
-      id: 'saldo' as TabType, 
-      label: 'Recargar Saldo',
-      icon: Coins,
-      gradient: 'from-yellow-500 to-orange-600',
-      bgActive: 'bg-yellow-50',
-      borderActive: 'border-yellow-500'
-    },
-    { 
-      id: 'regalos' as TabType, 
-      label: 'Comprar Regalos',
-      icon: Gift,
+      id: 'cuenta' as SettingsTabType, 
+      label: 'Cuenta',
+      icon: Shield,
       gradient: 'from-blue-500 to-cyan-600',
       bgActive: 'bg-blue-50',
       borderActive: 'border-blue-500'
     },
     { 
-      id: 'historial' as TabType, 
-      label: 'Historial',
-      icon: FileText,
-      gradient: 'from-gray-600 to-gray-800',
-      bgActive: 'bg-gray-50',
-      borderActive: 'border-gray-600'
+      id: 'busqueda' as SettingsTabType, 
+      label: 'Búsqueda',
+      icon: Search,
+      gradient: 'from-green-500 to-emerald-600',
+      bgActive: 'bg-green-50',
+      borderActive: 'border-green-500'
+    },
+    { 
+      id: 'privacidad' as SettingsTabType, 
+      label: 'Privacidad',
+      icon: Lock,
+      gradient: 'from-purple-500 to-indigo-600',
+      bgActive: 'bg-purple-50',
+      borderActive: 'border-purple-500'
+    },
+    { 
+      id: 'notificaciones' as SettingsTabType, 
+      label: 'Notificaciones',
+      icon: Bell,
+      gradient: 'from-yellow-500 to-orange-600',
+      bgActive: 'bg-yellow-50',
+      borderActive: 'border-yellow-500'
     },
   ];
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <NavbarDashboard
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         notificationsCount={5}
@@ -71,8 +71,8 @@ export const SubscriptionsPage = () => {
         <div className="p-8">
           {/* Header */}
           <div className="mb-8 pb-6 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Mis Suscripciones</h1>
-            <p className="text-gray-600">Administra tus suscripciones, invitaciones y compras</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Configuración</h1>
+            <p className="text-gray-600">Administra tu perfil, cuenta y preferencias</p>
           </div>
 
           {/* Tabs Premium */}
@@ -128,11 +128,11 @@ export const SubscriptionsPage = () => {
 
           {/* Content */}
           <div>
-            {activeTab === 'activas' && <ActiveSubscriptionsTable />}
-            {activeTab === 'invitaciones' && <InvitationsTable />}
-            {activeTab === 'saldo' && <CoinsTable />}
-            {activeTab === 'regalos' && <GiftsTable />}
-            {activeTab === 'historial' && <PurchaseHistoryTable />}
+            {activeTab === 'perfil' && <ProfileTab />}
+            {activeTab === 'cuenta' && <AccountTab />}
+            {activeTab === 'busqueda' && <SearchPreferencesTab />}
+            {activeTab === 'privacidad' && <PrivacyTab />}
+            {activeTab === 'notificaciones' && <NotificationsTab />}
           </div>
         </div>
       </main>

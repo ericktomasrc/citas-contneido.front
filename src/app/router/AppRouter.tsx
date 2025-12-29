@@ -12,6 +12,7 @@ import { CreatorProfilePageFullscreen } from '@/components/CreatorProfile/Creato
 import { LiveStreamPage } from '@/components/CreatorProfile/LiveStream/LiveStreamPage';
 import { SubscriptionsPage } from '@/pages/Subscriptions/SubscriptionsPage';
 import { InvitationsPage } from '@/pages/Invitaciones/InvitationsPage';
+import { SettingsPage } from '@/pages/Settings/SettingsPage'; 
 
 export const AppRouter = () => {
   return (
@@ -35,6 +36,7 @@ export const AppRouter = () => {
 
         <Route path="/mis-suscripciones" element={<SubscriptionsPage />} />
         <Route path="/invitaciones" element={<InvitationsPage />} />
+         <Route path="/configuracion" element={<SettingsPage />} /> 
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

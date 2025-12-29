@@ -1,8 +1,8 @@
 import { Home,  CreditCard,  Activity, Settings, X, LogOut } from 'lucide-react';
 import { SidebarItem } from './SidebarItem';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , useLocation} from 'react-router-dom';
 import { authApi } from '@features/auth/api/authApi';
-import { useState } from 'react';
+import { useState } from 'react'; 
 
 interface SidebarDashboardProps {
   isOpen: boolean;
@@ -11,10 +11,12 @@ interface SidebarDashboardProps {
 
 export const SidebarDashboard = ({ isOpen, onClose }: SidebarDashboardProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const menuItems = [
-    { icon: Home, label: 'Inicio', href: '/dashboard', active: true },
+    { icon: Home, label: 'Inicio', href: '/dashboard' },
     { icon: CreditCard, label: 'Mis Suscripciones', href: '/mis-suscripciones' },
     { icon: Activity, label: 'Invitaciones', href: '/invitaciones', badge: 5 },
     { icon: Settings, label: 'Configuración', href: '/configuracion' },
@@ -93,7 +95,8 @@ export const SidebarDashboard = ({ isOpen, onClose }: SidebarDashboardProps) => 
                 icon={item.icon}
                 label={item.label}
                 href={item.href}
-                active={item.active}
+               // active={item.active}
+                active={location.pathname === item.href}
                 badge={item.badge}
               />
             ))}

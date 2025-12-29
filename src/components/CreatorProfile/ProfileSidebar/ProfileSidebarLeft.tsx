@@ -107,7 +107,7 @@ export const ProfileSidebarLeft = ({
               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
-              Invitar
+              Contactar
             </button>
             
             <button 

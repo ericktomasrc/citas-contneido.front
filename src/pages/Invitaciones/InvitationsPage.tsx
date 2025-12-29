@@ -98,7 +98,7 @@ export const InvitationsPage = () => {
         <div className="p-8">
           {/* Header */}
           <div className="mb-8 pb-6 border-b border-gray-200">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Mis Invitaciones</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Mis Invitaciones</h1>
             <p className="text-gray-600">Administra las invitaciones que has enviado a las creadoras</p>
           </div>
 
