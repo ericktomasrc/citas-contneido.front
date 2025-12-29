@@ -4,7 +4,7 @@ import { CreatorCard } from './CreatorCard';
 interface CreatorGridProps {
   creators: Creator[];
   loading?: boolean;
-  onCreatorClick?: (id: number) => void;
+  onCreatorClick?: (creator: Creator) => void;
   onLike?: (id: number) => void;
 }
 

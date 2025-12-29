@@ -1,11 +1,11 @@
-import { Flame, Video, Sparkles, Star } from 'lucide-react';
+import { Flame, Video, Sparkles, Star, Heart } from 'lucide-react';
 import { TabType } from '../../../shared/types/creator.types';
 
 interface TabsNavigationProps {
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
-  activeQuickFilter?: 'nuevas' | 'destacadas' | null;
-  onQuickFilterChange?: (filter: 'nuevas' | 'destacadas' | null) => void;
+  activeQuickFilter?: 'favoritas' | 'nuevas' | 'sugeridas' | null;
+  onQuickFilterChange?: (filter: 'favoritas' | 'nuevas' | 'sugeridas' | null) => void;
 }
 
 export const TabsNavigation = ({ 
@@ -48,6 +48,20 @@ export const TabsNavigation = ({
       {/* Quick Filters */}
       <div className="flex gap-2 pr-4">
         <button
+          onClick={() => onQuickFilterChange?.(activeQuickFilter === 'favoritas' ? null : 'favoritas')}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
+            ${activeQuickFilter === 'favoritas'
+              ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-lg'
+              : 'bg-gradient-to-r from-pink-50 to-rose-50 text-pink-600 hover:from-pink-100 hover:to-rose-100'
+            }
+          `}
+        >
+          <Heart className="w-4 h-4" />
+          <span>Mis Favoritos</span>
+        </button>
+
+        <button
           onClick={() => onQuickFilterChange?.(activeQuickFilter === 'nuevas' ? null : 'nuevas')}
           className={`
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
@@ -62,17 +76,17 @@ export const TabsNavigation = ({
         </button>
 
         <button
-          onClick={() => onQuickFilterChange?.(activeQuickFilter === 'destacadas' ? null : 'destacadas')}
+          onClick={() => onQuickFilterChange?.(activeQuickFilter === 'sugeridas' ? null : 'sugeridas')}
           className={`
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
-            ${activeQuickFilter === 'destacadas'
+            ${activeQuickFilter === 'sugeridas'
               ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
               : 'bg-gradient-to-r from-yellow-50 to-orange-50 text-yellow-600 hover:from-yellow-100 hover:to-orange-100'
             }
           `}
         >
           <Star className="w-4 h-4" />
-          <span>Destacadas</span>
+          <span>Sugeridas</span>
         </button>
       </div>
     </div>

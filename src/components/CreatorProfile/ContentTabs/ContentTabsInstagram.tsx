@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Image, Video, Lock, Radio, ShoppingBag, Crown } from 'lucide-react';
+import { Image, Video,  Radio, ShoppingBag, Crown } from 'lucide-react';
 import { CreatorProfile, ContentTabType } from '../../../shared/types/creator-profile.types';
-import { MediaGrid } from '../MediaGrid/MediaGrid';
-import { PurchasableContentCard } from '../MediaCard/PurchasableContentCard';
+import { MediaGrid } from '../MediaGrid/MediaGrid'; 
 import { PurchasableContentList } from './PurchasableContentList';
 
 interface ContentTabsInstagramProps {
@@ -59,14 +58,14 @@ export const ContentTabsInstagram = ({
       disabled: false,
       color: 'yellow',
     },
-    {
-      id: 'envivo' as ContentTabType,
-      label: 'En vivo',
-      icon: Radio,
-      count: 0,
-      disabled: !profile.estaEnVivo,
-      color: 'red',
-    },
+    // {
+    //   id: 'envivo' as ContentTabType,
+    //   label: 'En vivo',
+    //   icon: Radio,
+    //   count: 0,
+    //   disabled: !profile.estaEnVivo,
+    //   color: 'red',
+    // },
   ];
 
   const getColorClasses = (color: string, isActive: boolean) => {
@@ -105,8 +104,8 @@ export const ContentTabsInstagram = ({
         return profile.contenidoPremiumVideos || [];
       case 'contenido-comprable':
         return null; // Manejado aparte
-      case 'envivo':
-        return [];
+      // case 'envivo':
+      //   return [];
       default:
         return [];
     }
@@ -179,9 +178,9 @@ export const ContentTabsInstagram = ({
                   )}
 
                   {/* Live Indicator */}
-                  {tab.id === 'envivo' && !tab.disabled && (
+                  {/* {tab.id === 'envivo' && !tab.disabled && (
                     <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  )}
+                  )} */}
 
                   {/* Active Border */}
                   {isActive && (
@@ -205,17 +204,19 @@ export const ContentTabsInstagram = ({
           onDownload={handleDownload}
         />
           
-        ) : activeTab === 'envivo' && profile.estaEnVivo ? (
-          /* Live Stream */
-          <div className="max-w-4xl mx-auto">
-            <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl flex items-center justify-center shadow-2xl">
-              <div className="text-white text-center">
-                <Radio className="w-16 h-16 mx-auto mb-4 text-red-500 animate-pulse" />
-                <p className="text-2xl font-bold">Transmisión en vivo</p>
-              </div>
-            </div>
-          </div>
-        ) : (
+        ) : 
+        // activeTab === 'envivo' && profile.estaEnVivo ? (
+        //   /* Live Stream */
+        //   <div className="max-w-4xl mx-auto">
+        //     <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl flex items-center justify-center shadow-2xl">
+        //       <div className="text-white text-center">
+        //         <Radio className="w-16 h-16 mx-auto mb-4 text-red-500 animate-pulse" />
+        //         <p className="text-2xl font-bold">Transmisión en vivo</p>
+        //       </div>
+        //     </div>
+        //   </div>
+        // ) : 
+        (
           /* Media Grid */
           <MediaGrid
             items={getContent() as any}

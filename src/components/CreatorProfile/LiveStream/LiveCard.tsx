@@ -11,7 +11,7 @@ export const LiveCard = ({ live, hasAccess = false }: LiveCardProps) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    navigate(`/live/${live.id}`);
+    navigate(`/live/${live.slug}`);
   };
 
   const isPremium = live.tipo === 'premium';

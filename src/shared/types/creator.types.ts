@@ -4,6 +4,14 @@ export interface Creator {
   nombre: string;
   edad: number;
   ubicacion: string;
+
+   avatar: string;
+      coverPhoto: string;
+       fotos: number;
+  seguidores: number;
+precioSuscripcion: number;
+intereses: string[];
+
   distancia: number;
   fotoUrl: string;
   isLive: boolean;
@@ -16,7 +24,9 @@ export interface Creator {
   generoId: number;
   fechaRegistro?: string; 
   suscriptores?: number;  
-  rating?: number;        
+  rating?: number;       
+  isFavorite: boolean; 
+    slug: string;
 }
 
 export interface DashboardFilters {
@@ -27,6 +37,15 @@ export interface DashboardFilters {
   distancia?: number;
   soloEnVivo?: boolean;
   soloVerificadas?: boolean;
+}
+
+export interface OnlineCreator {
+  id: number;
+  nombre: string;
+  slug?: string;
+  avatar: string;
+  isLive: boolean;
+  isFavorite: boolean;  
 }
 
 export type TabType = 'descubrir' | 'en-vivo';

@@ -14,6 +14,7 @@ import {
 import { LiveStream, LiveMessage } from '../../../shared/types/creator-profile.types';
 
 export const LiveStreamPage = () => {
+  const { slug } = useParams();
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -28,6 +29,7 @@ export const LiveStreamPage = () => {
   // Mock data - TODO: Obtener de API
   const liveStream: LiveStream = {
     id: 1,
+     slug: slug || 'maria-rodriguez-a7k3',
     creatorId: 1,
     creatorName: 'María Rodriguez',
     creatorPhoto: 'https://i.pravatar.cc/400?img=1',

@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 interface CreatorCardProps {
   creator: Creator;
   onLike?: (id: number) => void;
-  onClick?: (id: number) => void;
+  onClick?: (create: Creator) => void;
 }
 
 export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
@@ -20,7 +20,10 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
   };
 
   const handleCardClick = () => {
-    navigate(`/perfil/${creator.id}`);
+      if (creator.slug) {
+      navigate(`/perfil/${creator.slug}`);
+    }
+   // navigate(`/perfil/${creator.id}`);
   };
 
   return (
@@ -80,7 +83,7 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                navigate(`/perfil/${creator.id}`); 
+                navigate(`/perfil/${creator.slug}`); 
               }}
               className="flex-1 bg-white text-gray-900 px-4 py-2 rounded-xl font-medium text-sm hover:bg-gray-100 transition"
             >

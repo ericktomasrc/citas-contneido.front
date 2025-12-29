@@ -7,11 +7,12 @@ import { CreatorGrid } from '../../components/Dashboard/CreatorCard/CreatorGrid'
 import { LiveGrid } from '../../components/CreatorProfile/LiveStream/LiveGrid'; 
 import { useDashboard } from '../../shared/hooks/useDashboard';
 import { LiveStream } from '../../shared/types/creator-profile.types';  
+import { OnlineCreator } from '@/shared/types/creator.types';
 
 export const DashboardEspectadorPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [quickFilter, setQuickFilter] = useState<'nuevas' | 'destacadas' | null>(null);
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false); 
+  const [quickFilter, setQuickFilter] = useState<'favoritas' | 'nuevas' | 'sugeridas' | null>(null);
+
   const {
     activeTab,
     creators,
@@ -22,15 +23,15 @@ export const DashboardEspectadorPage = () => {
   } = useDashboard();
 
   // Mock data - Creadoras en línea
-  const onlineCreators = [
-    { id: 1, nombre: 'Chelsea', avatar: 'https://i.pravatar.cc/150?img=1', isLive: true, isFavorite: true },
-    { id: 2, nombre: 'Amanda', avatar: 'https://i.pravatar.cc/150?img=2', isLive: false, isFavorite: false },
-    { id: 3, nombre: 'Chloe', avatar: 'https://i.pravatar.cc/150?img=3', isLive: true, isFavorite: false },
-    { id: 4, nombre: 'Leslie', avatar: 'https://i.pravatar.cc/150?img=4', isLive: false, isFavorite: true },
-    { id: 5, nombre: 'María', avatar: 'https://i.pravatar.cc/150?img=5', isLive: false, isFavorite: false },
-    { id: 6, nombre: 'Ana', avatar: 'https://i.pravatar.cc/150?img=6', isLive: true, isFavorite: true },
-    { id: 7, nombre: 'Sofía', avatar: 'https://i.pravatar.cc/150?img=7', isLive: false, isFavorite: false },
-    { id: 8, nombre: 'Lucía', avatar: 'https://i.pravatar.cc/150?img=8', isLive: false, isFavorite: true },
+  const onlineCreators: OnlineCreator[] = [
+    { id: 1, slug: 'maria-rodriguez-a7k3', nombre: 'Chelsea', avatar: 'https://i.pravatar.cc/150?img=1', isLive: true, isFavorite: true },
+    { id: 2, slug: 'amanda-garcia-b9d2', nombre: 'Amanda', avatar: 'https://i.pravatar.cc/150?img=2', isLive: false, isFavorite: false },
+    { id: 3, slug: 'chloe-martin-c4f7', nombre: 'Chloe', avatar: 'https://i.pravatar.cc/150?img=3', isLive: true, isFavorite: false },
+    { id: 4, slug: 'leslie-hall-e8k1', nombre: 'Leslie', avatar: 'https://i.pravatar.cc/150?img=4', isLive: false, isFavorite: true },
+    { id: 5, slug: 'maria-lopez-d3j9', nombre: 'María', avatar: 'https://i.pravatar.cc/150?img=5', isLive: false, isFavorite: false },
+    { id: 6, slug: 'ana-martinez-f6l4', nombre: 'Ana', avatar: 'https://i.pravatar.cc/150?img=6', isLive: true, isFavorite: true },
+    { id: 7, slug: 'sofia-gonzalez-h7k2', nombre: 'Sofía', avatar: 'https://i.pravatar.cc/150?img=7', isLive: false, isFavorite: false },
+    { id: 8, slug: 'lucia-morales-j9l8', nombre: 'Lucía', avatar: 'https://i.pravatar.cc/150?img=8', isLive: false, isFavorite: true },
   ];
 
   // ✅ NUEVO - Mock data de Lives
@@ -50,6 +51,7 @@ export const DashboardEspectadorPage = () => {
       likes: 456,
       totalEarnings: 890,
       startedAt: new Date(),
+      slug: 'yoga-matutina-rutina-completa',
     },
     {
       id: 2,
@@ -67,6 +69,7 @@ export const DashboardEspectadorPage = () => {
       likes: 823,
       totalEarnings: 1250,
       startedAt: new Date(),
+      slug: 'baile-sensual-coreografia-nueva',
     },
     {
       id: 3,
@@ -83,6 +86,7 @@ export const DashboardEspectadorPage = () => {
       likes: 312,
       totalEarnings: 450,
       startedAt: new Date(),
+      slug: 'cocina-saludable-recetas-fit',
     },
     {
       id: 4,
@@ -100,6 +104,7 @@ export const DashboardEspectadorPage = () => {
       likes: 678,
       totalEarnings: 980,
       startedAt: new Date(),
+      slug: 'sesion-de-fotos-bts',
     },
     {
       id: 5,
@@ -116,6 +121,7 @@ export const DashboardEspectadorPage = () => {
       likes: 534,
       totalEarnings: 670,
       startedAt: new Date(),
+      slug: 'charlemos-qa-con-fans',
     },
     {
       id: 6,
@@ -133,22 +139,26 @@ export const DashboardEspectadorPage = () => {
       likes: 891,
       totalEarnings: 1340,
       startedAt: new Date(),
+      slug: 'maquillaje-profesional',
     },
   ];
 
   // Filtrar creators según quick filter
-  const filteredCreators = quickFilter
-    ? creators.filter(c => {
-        if (quickFilter === 'nuevas') {
-          const dias = Math.floor((Date.now() - new Date(c.fechaRegistro || 0).getTime()) / (1000 * 60 * 60 * 24));
-          return dias <= 7;
-        }
-        if (quickFilter === 'destacadas') {
-          return c.isVerified && c.likes > 1000;
-        }
-        return true;
-      })
-    : creators;
+const filteredCreators = quickFilter
+  ? creators.filter(c => {
+      if (quickFilter === 'favoritas') {
+        return c.isFavorite; // Mostrar solo favoritas
+      }
+      if (quickFilter === 'nuevas') {
+        const dias = Math.floor((Date.now() - new Date(c.fechaRegistro || 0).getTime()) / (1000 * 60 * 60 * 24));
+        return dias <= 7;
+      }
+      if (quickFilter === 'sugeridas') {
+        return c.isVerified && c.likes > 1000; // O tu lógica de sugeridas
+      }
+      return true;
+    })
+  : creators;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -207,14 +217,14 @@ export const DashboardEspectadorPage = () => {
             </>
           )}
 
-          {/* ✅ NUEVO - SECCIÓN EN VIVO */}
+          {/*  NUEVO - SECCIÓN EN VIVO */}
           {activeTab === 'en-vivo' && (
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-gray-900 text-3xl font-bold mb-2">
+                  <h4 className="text-gray-900 text-3xl font-bold mb-2">
                     Transmisiones en Vivo
-                  </h2>
+                  </h4>
                   <p className="text-gray-600">
                     {mockLives.length} creadoras transmitiendo ahora
                   </p>

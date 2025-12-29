@@ -14,6 +14,7 @@ export interface LiveStream {
   likes: number;
   totalEarnings: number; // Total ganado
   startedAt: Date;
+    slug: string;
 }
 
 export interface LiveMessage {
@@ -28,6 +29,7 @@ export interface LiveMessage {
 
 export interface CreatorProfile {
   id: number;
+    slug: string; 
   username: string;
   nombre: string;
   apellidos?: string;

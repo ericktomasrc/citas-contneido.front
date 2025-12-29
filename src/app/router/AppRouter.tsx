@@ -10,6 +10,8 @@ import { DashboardEspectadorPage } from '../../pages/Dashboard/DashboardEspectad
 import { ROUTES } from '@shared/config/constants'; 
 import { CreatorProfilePageFullscreen } from '@/components/CreatorProfile/CreatorProfilePageFullscreen';
 import { LiveStreamPage } from '@/components/CreatorProfile/LiveStream/LiveStreamPage';
+import { SubscriptionsPage } from '@/pages/Subscriptions/SubscriptionsPage';
+import { InvitationsPage } from '@/pages/Invitaciones/InvitationsPage';
 
 export const AppRouter = () => {
   return (
@@ -27,8 +29,12 @@ export const AppRouter = () => {
         {/* Dashboard Routes */}
         <Route path="/dashboard" element={<DashboardEspectadorPage />} /> {/*  NUEVO */}
         {/* <Route path="/perfil/:id" element={<CreatorProfilePage />} /> */}
-        <Route path="/perfil/:id" element={<CreatorProfilePageFullscreen />} />
-        <Route path="/live/:id" element={<LiveStreamPage />} />
+        
+        <Route path="/perfil/:slug" element={<CreatorProfilePageFullscreen />} />
+        <Route path="/live/:slug" element={<LiveStreamPage />} />
+
+        <Route path="/mis-suscripciones" element={<SubscriptionsPage />} />
+        <Route path="/invitaciones" element={<InvitationsPage />} />
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

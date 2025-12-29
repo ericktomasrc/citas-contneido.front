@@ -6,6 +6,7 @@ import { ContentTabsInstagram } from './ContentTabs/ContentTabsInstagram';
 import { CreatorProfile } from '../../shared/types/creator-profile.types';
 
 export const CreatorProfilePageFullscreen = () => {
+   const { slug } = useParams(); // ✅ Lee slug
   const { id } = useParams<{ id: string }>();
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSubscribedToPhotos, setIsSubscribedToPhotos] = useState(false); 
@@ -13,6 +14,7 @@ export const CreatorProfilePageFullscreen = () => {
 
 const profile: CreatorProfile = {
   id: 1,
+  slug: slug || 'maria-rodriguez-a7k3',
   username: 'maria_lima',
   nombre: 'María',
   apellidos: 'Rodriguez',

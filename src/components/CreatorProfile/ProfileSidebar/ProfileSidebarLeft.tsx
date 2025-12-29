@@ -126,22 +126,22 @@ export const ProfileSidebarLeft = ({
               Donar
             </button>
             
-            <button 
+            {/* <button 
               onClick={onSubscribe}
               className="w-full bg-gradient-to-br from-pink-600 to-rose-600 text-white px-4 py-2 rounded-lg font-semibold hover:from-pink-500 hover:to-rose-500 transition shadow-lg flex items-center justify-center gap-2"
             >
               <Crown className="w-5 h-5" />
               Premium S/. {profile.precioSuscripcion}/mes
-            </button>
+            </button> */}
 
             {profile.estaEnVivo && (
-  <button 
-    onClick={() => navigate(`/live/${profile.id}`)}
-    className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-3 rounded-lg font-bold transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
-  >
-    <div className="w-3 h-3 bg-white rounded-full"></div>
-    VER EN VIVO
-  </button>
+          <button 
+            onClick={() => navigate(`/live/${profile.id}`)}
+            className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white px-4 py-3 rounded-lg font-bold transition shadow-lg flex items-center justify-center gap-2 animate-pulse"
+          >
+            <div className="w-3 h-3 bg-white rounded-full"></div>
+            VER EN VIVO
+          </button>
 )}
           </div>
         </div>

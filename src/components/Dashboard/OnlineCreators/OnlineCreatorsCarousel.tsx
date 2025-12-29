@@ -1,21 +1,22 @@
 import { ChevronRight, Star } from 'lucide-react';
 import { useRef } from 'react';
-
-interface OnlineCreator {
-  id: number;
-  nombre: string;
-  avatar: string;
-  isLive: boolean;
-  isFavorite: boolean;  
-}
+import { useNavigate } from 'react-router-dom';
+import { OnlineCreator } from '../../../shared/types/creator.types'  
 
 interface OnlineCreatorsCarouselProps {
   creators: OnlineCreator[];
-  onCreatorClick?: (id: number) => void;
+  onCreatorClick?: (creator: OnlineCreator) => void;
 }
 
 export const OnlineCreatorsCarousel = ({ creators, onCreatorClick }: OnlineCreatorsCarouselProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+    const handleClick = (creator: OnlineCreator) => { 
+    if (creator.slug) {
+      navigate(`/perfil/${creator.slug}`);
+    }
+  };
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -31,13 +32,13 @@ export const OnlineCreatorsCarousel = ({ creators, onCreatorClick }: OnlineCreat
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          {/* <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> */}
           <h2 className="text-lg font-bold text-gray-900">
-            EN LÍNEA
+            {/* EN LÍNEA */}
           </h2>
-          <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+          {/* <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
             {creators.length}
-          </span>
+          </span> */}
         </div>
         <button className="flex items-center gap-1 text-sm font-medium text-pink-600 hover:text-pink-700 transition">
           Ver todas
@@ -56,7 +57,7 @@ export const OnlineCreatorsCarousel = ({ creators, onCreatorClick }: OnlineCreat
           {creators.map((creator) => (
             <button
               key={creator.id}
-              onClick={() => onCreatorClick?.(creator.id)}
+              onClick={() => handleClick(creator)}
               className="flex-shrink-0 group/item"
             >
               <div className="flex flex-col items-center gap-2">
