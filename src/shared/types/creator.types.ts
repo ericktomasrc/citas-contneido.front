@@ -10,7 +10,8 @@ export interface Creator {
        fotos: number;
   seguidores: number;
 precioSuscripcion: number;
-intereses: string[];
+intereses: string[];       // ✅ Ya existe
+  dislikes?: number;  
 
   distancia: number;
   fotoUrl: string;

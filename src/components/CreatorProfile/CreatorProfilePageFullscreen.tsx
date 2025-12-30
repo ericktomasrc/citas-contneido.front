@@ -15,7 +15,7 @@ export const CreatorProfilePageFullscreen = () => {
 const profile: CreatorProfile = {
   id: 1,
   slug: slug || 'maria-rodriguez-a7k3',
-  username: 'maria_lima',
+  username: 'maria_lima6',
   nombre: 'María',
   apellidos: 'Rodriguez',
   edad: 24,
@@ -31,6 +31,7 @@ const profile: CreatorProfile = {
   recomendaciones: 472,
   suscriptores: 12400,
   likes: 5700,
+  dislikes: 0,
   intereses: ['Relación seria', 'Salir', 'Amistad', 'Cenas'],
   altura: 1.65,
   educacion: 'Universidad',
@@ -204,6 +205,7 @@ contenidoPremiumVideos: [
       {/* Top Bar */}
       <ProfileTopBar
         username={profile.username}
+        edad={profile.edad}
         isVerified={profile.isVerified}
         isFavorite={isFavorite}
         onToggleFavorite={() => setIsFavorite(!isFavorite)}

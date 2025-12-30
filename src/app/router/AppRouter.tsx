@@ -13,6 +13,7 @@ import { LiveStreamPage } from '@/components/CreatorProfile/LiveStream/LiveStrea
 import { SubscriptionsPage } from '@/pages/Subscriptions/SubscriptionsPage';
 import { InvitationsPage } from '@/pages/Invitaciones/InvitationsPage';
 import { SettingsPage } from '@/pages/Settings/SettingsPage'; 
+import { DashboardCreadoraPage } from '@/pages/DashboardCreadora/DashboardCreadoraPage';
 
 export const AppRouter = () => {
   return (
@@ -36,7 +37,8 @@ export const AppRouter = () => {
 
         <Route path="/mis-suscripciones" element={<SubscriptionsPage />} />
         <Route path="/invitaciones" element={<InvitationsPage />} />
-         <Route path="/configuracion" element={<SettingsPage />} /> 
+         <Route path="/configuracion" element={<SettingsPage />} />  
+         <Route path="/dashboard-creadora" element={<DashboardCreadoraPage />} />
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

@@ -29,7 +29,7 @@ export interface LiveMessage {
 
 export interface CreatorProfile {
   id: number;
-    slug: string; 
+  slug: string; 
   username: string;
   nombre: string;
   apellidos?: string;
@@ -56,6 +56,7 @@ export interface CreatorProfile {
   recomendaciones: number;
   suscriptores: number;
   likes: number;
+  dislikes : number;
   
   // Detalles
   intereses: string[];

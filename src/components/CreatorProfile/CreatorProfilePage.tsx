@@ -14,7 +14,8 @@ export const CreatorProfilePage = () => {
   const profile: CreatorProfile = {
     // ... mismo mock data
     id: 1,
-    username: 'maria_lima',
+    username: 'maria_lima5',
+    slug: 'maria_lima',
     nombre: 'María',
     apellidos: 'Rodriguez',
     edad: 24,

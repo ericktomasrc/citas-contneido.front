@@ -1,15 +1,16 @@
-import { ArrowLeft, Heart, Star, Share2, ThumbsDown } from 'lucide-react'; // ✅ Cambiar X por ThumbsDown
+import { ArrowLeft, Heart, Star, Share2, ThumbsDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 interface ProfileTopBarProps {
   username: string;
+  edad: number;
   isVerified: boolean;
   isFavorite: boolean;
   onToggleFavorite: () => void;
 }
 
-export const ProfileTopBar = ({ username, isVerified, isFavorite, onToggleFavorite }: ProfileTopBarProps) => {
+export const ProfileTopBar = ({ username, edad, isVerified, isFavorite, onToggleFavorite }: ProfileTopBarProps) => {
   const navigate = useNavigate();
   const [recommend, setRecommend] = useState(false);
   const [notRecommend, setNotRecommend] = useState(false);
@@ -27,8 +28,8 @@ export const ProfileTopBar = ({ username, isVerified, isFavorite, onToggleFavori
         </button>
         
         {/* Center */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-900">@{username}</span>
+        {/* <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-gray-900">@{username}, {edad}</span>
           {isVerified && (
             <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
               <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -36,49 +37,61 @@ export const ProfileTopBar = ({ username, isVerified, isFavorite, onToggleFavori
               </svg>
             </div>
           )}
-        </div>
+        </div> */}
         
         {/* Right */}
         <div className="flex items-center gap-2">
-          {/* Recomendar */}
+          {/* Me gusta - Verde */}
           <button
             onClick={() => {
               setRecommend(!recommend);
               setNotRecommend(false);
             }}
-            className={`p-2 rounded-full transition ${
-              recommend ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`p-2 rounded-full transition-all ${
+              recommend 
+                ? 'bg-green-500 text-white shadow-lg shadow-green-200' 
+                : 'bg-green-50 text-green-500 hover:bg-green-100'
             }`}
+            title="Me gusta"
           >
             <Heart className={`w-5 h-5 ${recommend ? 'fill-current' : ''}`} />
           </button>
-          
-          {/* Favorito */}
-          <button
-            onClick={onToggleFavorite}
-            className={`p-2 rounded-full transition ${
-              isFavorite ? 'bg-yellow-400 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            <Star className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
-          
-          {/* Compartir */}
-          <button className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
-            <Share2 className="w-5 h-5" />
-          </button>
-          
-          {/* No me gusta - THUMBS DOWN */}
+
+          {/* No me gusta - Rojo */}
           <button
             onClick={() => {
               setNotRecommend(!notRecommend);
               setRecommend(false);
             }}
-            className={`p-2 rounded-full transition ${
-              notRecommend ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`p-2 rounded-full transition-all ${
+              notRecommend 
+                ? 'bg-red-500 text-white shadow-lg shadow-red-200' 
+                : 'bg-red-50 text-red-500 hover:bg-red-100'
             }`}
+            title="No me gusta"
           >
             <ThumbsDown className={`w-5 h-5 ${notRecommend ? 'fill-current' : ''}`} />
+          </button>
+          
+          {/* Favorito - Naranja-Amarillo */}
+          <button
+            onClick={onToggleFavorite}
+            className={`p-2 rounded-full transition-all ${
+              isFavorite 
+                ? 'bg-gradient-to-br from-orange-400 to-amber-500 text-white shadow-lg shadow-orange-200' 
+                : 'bg-orange-50 text-orange-500 hover:bg-orange-100'
+            }`}
+            title="Favorito"
+          >
+            <Star className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+          
+          {/* Compartir - Azul */}
+          <button 
+            className="p-2 rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 hover:text-blue-600 transition-all"
+            title="Compartir perfil"
+          >
+            <Share2 className="w-5 h-5" />
           </button>
         </div>
       </div>

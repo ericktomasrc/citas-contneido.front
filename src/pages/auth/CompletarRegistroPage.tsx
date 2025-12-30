@@ -373,9 +373,16 @@ const handleCancelRegistro = () => {
     setCargando(false);
     
     // Redirigir después de 3 segundos
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 3000);
+     setTimeout(() => {
+        if (registrationData.tipoUsuario === 1) {
+          // Espectador → Dashboard existente
+          navigate('/dashboard');
+        } else if (registrationData.tipoUsuario === 2) {
+          // Creadora → Dashboard de Monetizador (nuevo)
+          navigate('/dashboard-creadora');
+        }
+      }, 3000);
+
     } catch (err: any) {
     setShowConfirmModal(false);
     setCargando(false);
@@ -1487,7 +1494,11 @@ const handleCancelRegistro = () => {
             isSuccess={registroExitoso}
             onClose={() => {
               setShowConfirmModal(false);
-              navigate('/dashboard');
+              if (registrationData.tipoUsuario === 1) {
+                  navigate('/dashboard');
+                } else {
+                  navigate('/dashboard-creadora');
+                }
             }}
           />
         )}
