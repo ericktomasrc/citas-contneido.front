@@ -8,12 +8,14 @@ import { RecuperarPasswordPage } from '@pages/auth/RecuperarPasswordPage';
 import { RegisterLoginPage } from '@pages/auth/RegisterLoginPage';
 import { DashboardEspectadorPage } from '../../pages/Dashboard/DashboardEspectadorPage'; // ✅ NUEVO
 import { ROUTES } from '@shared/config/constants'; 
-import { CreatorProfilePageFullscreen } from '@/components/CreatorProfile/CreatorProfilePageFullscreen';
-import { LiveStreamPage } from '@/components/CreatorProfile/LiveStream/LiveStreamPage';
-import { SubscriptionsPage } from '@/pages/Subscriptions/SubscriptionsPage';
-import { InvitationsPage } from '@/pages/Invitaciones/InvitationsPage';
-import { SettingsPage } from '@/pages/Settings/SettingsPage'; 
-import { DashboardCreadoraPage } from '@/pages/DashboardCreadora/DashboardCreadoraPage';
+import { CreatorProfilePageFullscreen } from '@/components/Dashboard/CreatorProfile/CreatorProfilePageFullscreen';
+import { LiveStreamPage } from '@/components/Dashboard/CreatorProfile/LiveStream/LiveStreamPage'; 
+import { InvitationsPage } from '@/pages/Dashboard/Invitaciones/InvitationsPage'; 
+import { DashboardCreadoraPage } from '@/pages/DashboardCreadora/DashboardCreadoraPage'; 
+import { SettingsPage } from '@/pages/Dashboard/Settings/SettingsPage';
+import { SubscriptionsPage } from '@/pages/Dashboard/Subscriptions/SubscriptionsPage';
+import { SearchPreferencesPage } from '@/pages/Dashboard/SearchPreferencesPage/SearchPreferencesPage';
+import { MyProfilePage } from '@/pages/Dashboard/MyProfilePage/MyProfilePage';
 
 export const AppRouter = () => {
   return (
@@ -39,6 +41,8 @@ export const AppRouter = () => {
         <Route path="/invitaciones" element={<InvitationsPage />} />
          <Route path="/configuracion" element={<SettingsPage />} />  
          <Route path="/dashboard-creadora" element={<DashboardCreadoraPage />} />
+         <Route path="/mi-perfil" element={<MyProfilePage />} />
+         <Route path="/preferencias-busqueda" element={<SearchPreferencesPage />} />
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

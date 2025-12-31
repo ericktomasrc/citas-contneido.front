@@ -4,7 +4,7 @@ import { SidebarDashboard } from '../../components/Dashboard/Sidebar/SidebarDash
 import { TabsNavigation } from '../../components/Dashboard/Tabs/TabsNavigation';
 import { OnlineCreatorsCarousel } from '../../components/Dashboard/OnlineCreators/OnlineCreatorsCarousel';
 import { CreatorGrid } from '../../components/Dashboard/CreatorCard/CreatorGrid';
-import { LiveGrid } from '../../components/CreatorProfile/LiveStream/LiveGrid'; 
+import { LiveGrid } from '../../components/Dashboard/CreatorProfile/LiveStream/LiveGrid'; 
 import { useDashboard } from '../../shared/hooks/useDashboard';
 import { LiveStream } from '../../shared/types/creator-profile.types';  
 import { OnlineCreator } from '@/shared/types/creator.types';

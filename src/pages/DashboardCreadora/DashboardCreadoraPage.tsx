@@ -196,9 +196,9 @@ const invitaciones = [
               {activeSubTab === 'invitaciones' && (
                 <div>
                   <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-1">
                       Usuarios Interesados
-                    </h2>
+                    </h3>
                     <p className="text-gray-600">
                       {invitaciones.length} usuarios han enviado invitaciones
                     </p>
@@ -215,9 +215,9 @@ const invitaciones = [
                   {/* ✅ Header con Ganancias del Mes */}
                   <div className="mb-8 flex items-center justify-between">
                     <div>
-                      <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
                         ¡Hola {currentUser.nombre}! 👋
-                      </h1>
+                      </h3>
                       <p className="text-gray-600">
                         Aquí tienes un resumen de tu actividad
                       </p>

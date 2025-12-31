@@ -74,33 +74,6 @@ export const NavbarDashboard = ({
     }
   };
 
-  const dropdownItems = [
-    { 
-      icon: User, 
-      label: 'Mi Perfil', 
-      onClick: () => {
-        navigate('/mi-perfil');
-        setShowProfileDropdown(false);
-      }
-    },
-    { 
-      icon: CreditCard, 
-      label: 'Mis Suscripciones', 
-      onClick: () => {
-        navigate('/mis-suscripciones');
-        setShowProfileDropdown(false);
-      }
-    },
-    { 
-      icon: Settings, 
-      label: 'Configuración', 
-      onClick: () => {
-        navigate('/configuracion');
-        setShowProfileDropdown(false);
-      }
-    },
-  ];
-
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="h-16 px-4 flex items-center justify-between gap-4">
@@ -130,34 +103,7 @@ export const NavbarDashboard = ({
           {/* Search */}
           <div className="flex-1">
             <SearchBar />
-          </div>
-
-          {/* Ciudad Filter */}
-          <div className="hidden md:block">
-            <select
-              value={selectedCity}
-              onChange={(e) => {
-                setSelectedCity(e.target.value);
-                onFilterChange?.({ ciudad: e.target.value });
-              }}
-              className="px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:bg-white transition appearance-none pr-10"
-            >
-              <option value="">📍 Todas las ciudades</option>
-              <option value="lima">Lima</option>
-              <option value="arequipa">Arequipa</option>
-              <option value="cusco">Cusco</option>
-              <option value="trujillo">Trujillo</option>
-              <option value="chiclayo">Chiclayo</option>
-            </select>
-          </div>
-
-          {/* Filtros Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="hidden md:flex items-center gap-2 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-200 transition"
-          >
-            <SlidersHorizontal className="w-5 h-5 text-gray-600" />
-          </button>
+          </div>         
         </div>
 
         {/* Right Section */}
@@ -166,34 +112,32 @@ export const NavbarDashboard = ({
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition"
+              className="flex items-center gap-2 hover:bg-gray-100 rounded-full px-2 py-1.5 transition"
             >
-              {currentUser.avatar ? (
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.nombre}
-                  className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-200"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-400 to-purple-500 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-              )}
-              <span className="font-medium text-gray-700 hidden lg:block">
-                {currentUser.username}
-              </span>
+              <img
+                src={currentUser.avatar}
+                alt={currentUser.nombre}
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-200"
+              />
+            <span className="text-sm font-medium text-gray-700 hidden sm:block">
+              {currentUser.username}
+            </span>
+
+              <svg className={`w-4 h-4 text-gray-500 transition-transform hidden sm:block ${showProfileDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
 
             {/* Dropdown Menu */}
             {showProfileDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <img
                       src={currentUser.avatar}
                       alt={currentUser.nombre}
-                      className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-200"
+                      className="w-10 h-10 rounded-full object-cover ring-2 ring-gray-200"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 truncate">
@@ -207,35 +151,52 @@ export const NavbarDashboard = ({
                 </div>
 
                 {/* Menu Items */}
-                <div className="py-2">
-                  {dropdownItems.map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={item.onClick}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      <item.icon className="w-5 h-5 text-gray-500" />
-                      <span className="font-medium">{item.label}</span>
-                    </button>
-                  ))}
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      navigate('/configuracion');
+                      setShowProfileDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span>Mi Perfil</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate('/mis-suscripciones');
+                      setShowProfileDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <CreditCard className="w-4 h-4 text-gray-500" />
+                    <span>Mis Suscripciones</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      navigate('/configuracion');
+                      setShowProfileDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    <span>Configuración</span>
+                  </button>
                 </div>
 
-                {/* Divider */}
-                <div className="border-t border-gray-100 my-2" />
-
                 {/* Logout */}
-                <button
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <LogOut className={`w-5 h-5 transition-transform ${
-                    isLoggingOut ? 'animate-pulse' : ''
-                  }`} />
-                  <span className="font-medium">
-                    {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
-                  </span>
-                </button>
+                <div className="border-t border-gray-100 pt-1">
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <LogOut className={`w-4 h-4 ${isLoggingOut ? 'animate-pulse' : ''}`} />
+                    <span>{isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

@@ -45,22 +45,24 @@ export const TabsNavigation = ({
         ))}
       </div>
 
-      {/* Quick Filters */}
+      {/* Quick Filters - ORDEN Y COLORES ACTUALIZADOS */}
       <div className="flex gap-2 pr-4">
+        {/* Mis Favoritos - AMARILLO con ESTRELLA */}
         <button
           onClick={() => onQuickFilterChange?.(activeQuickFilter === 'favoritas' ? null : 'favoritas')}
           className={`
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
             ${activeQuickFilter === 'favoritas'
-              ? 'bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-lg'
-              : 'bg-gradient-to-r from-pink-50 to-rose-50 text-pink-600 hover:from-pink-100 hover:to-rose-100'
+              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
+              : 'bg-gradient-to-r from-yellow-50 to-orange-50 text-yellow-600 hover:from-yellow-100 hover:to-orange-100'
             }
           `}
         >
-          <Heart className="w-4 h-4" />
+          <Star className="w-4 h-4" />
           <span>Mis Favoritos</span>
         </button>
 
+        {/* Nuevas - AZUL con SPARKLES */}
         <button
           onClick={() => onQuickFilterChange?.(activeQuickFilter === 'nuevas' ? null : 'nuevas')}
           className={`
@@ -75,18 +77,19 @@ export const TabsNavigation = ({
           <span>Nuevas</span>
         </button>
 
+        {/* Sugerencias - VERDE con CORAZÓN */}
         <button
           onClick={() => onQuickFilterChange?.(activeQuickFilter === 'sugeridas' ? null : 'sugeridas')}
           className={`
             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition
             ${activeQuickFilter === 'sugeridas'
-              ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-lg'
-              : 'bg-gradient-to-r from-yellow-50 to-orange-50 text-yellow-600 hover:from-yellow-100 hover:to-orange-100'
+              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg'
+              : 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-600 hover:from-green-100 hover:to-emerald-100'
             }
           `}
         >
-          <Star className="w-4 h-4" />
-          <span>Sugeridas</span>
+          <Heart className="w-4 h-4" />
+          <span>Sugerencias</span>
         </button>
       </div>
     </div>
