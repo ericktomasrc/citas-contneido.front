@@ -12,6 +12,8 @@ app.use(cors());
 
 // Almacenar espectadores por canal
 const espectadoresPorCanal = new Map();
+// Almacenar estado de canales (activo/cerrado)
+const canalesActivos = new Map();
 
 app.get('/api/agora/token', (req, res) => {
   const { channelName, userId } = req.query;
@@ -98,6 +100,47 @@ app.get('/api/espectadores/:channelName', (req, res) => {
     : 0;
   
   res.json({ espectadores: total });
+});
+
+// Endpoint para iniciar canal (creadora)
+app.post('/api/canal/iniciar', express.json(), (req, res) => {
+  const { channelName } = req.body;
+  
+  if (!channelName) {
+    return res.status(400).json({ error: 'channelName es requerido' });
+  }
+
+  canalesActivos.set(channelName, true);
+  console.log(`🟢 Canal ${channelName} iniciado`);
+  
+  res.json({ success: true, activo: true });
+});
+
+// Endpoint para finalizar canal (creadora)
+app.post('/api/canal/finalizar', express.json(), (req, res) => {
+  const { channelName } = req.body;
+  
+  if (!channelName) {
+    return res.status(400).json({ error: 'channelName es requerido' });
+  }
+
+  // Marcar canal como inactivo
+  canalesActivos.set(channelName, false);
+  
+  // Limpiar espectadores
+  espectadoresPorCanal.delete(channelName);
+  
+  console.log(`🔴 Canal ${channelName} finalizado y limpiado`);
+  
+  res.json({ success: true, activo: false });
+});
+
+// Endpoint para verificar si un canal está activo
+app.get('/api/canal/:channelName/activo', (req, res) => {
+  const { channelName } = req.params;
+  const activo = canalesActivos.get(channelName) === true;
+  
+  res.json({ activo });
 });
 
 const PORT = 5000;

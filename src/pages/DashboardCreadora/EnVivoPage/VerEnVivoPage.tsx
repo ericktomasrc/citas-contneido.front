@@ -58,6 +58,19 @@ export const VerEnVivoPage = () => {
         throw new Error('No se especificó el canal de transmisión');
       }
 
+      // IMPORTANTE: Verificar si el canal está activo ANTES de conectarse
+      const verificarResponse = await fetch(`http://localhost:5000/api/canal/${channelName}/activo`);
+      const { activo } = await verificarResponse.json();
+      
+      if (!activo) {
+        console.log('❌ Canal cerrado, no se conecta a Agora');
+        setTransmisionFinalizada(true);
+        setCargando(false);
+        return; // NO se conecta a Agora, ahorra recursos
+      }
+
+      console.log('✅ Canal activo, procediendo a conectar...');
+
       // Generar userId para espectador
       const userId = Math.floor(Math.random() * 10000);
 

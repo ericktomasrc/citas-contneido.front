@@ -107,6 +107,18 @@ export const TransmisionReal = () => {
       console.log('🔴 Transmisión ACTIVA:', newChannelName);
       console.log('📺 Link para espectadores:', `${window.location.origin}/live/${newChannelName}`);
       
+      // Notificar al backend que el canal está activo
+      try {
+        await fetch('http://localhost:5000/api/canal/iniciar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelName: newChannelName })
+        });
+        console.log('✅ Canal marcado como activo en backend');
+      } catch (err) {
+        console.warn('⚠️ No se pudo notificar al backend:', err);
+      }
+      
     } catch (error: any) {
       console.error('❌ Error al iniciar transmisión:', error);
       setError(error.message || 'Error desconocido');
@@ -124,11 +136,25 @@ export const TransmisionReal = () => {
     try {
       setCargando(true);
       
-      // 1. Cerrar tracks
+      // 1. Notificar al backend que el canal se cerró
+      if (channelName) {
+        try {
+          await fetch('http://localhost:5000/api/canal/finalizar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channelName })
+          });
+          console.log('✅ Canal marcado como cerrado en backend');
+        } catch (err) {
+          console.warn('⚠️ No se pudo notificar cierre al backend:', err);
+        }
+      }
+      
+      // 2. Cerrar tracks
       localAudioTrack?.close();
       localVideoTrack?.close();
 
-      // 2. Salir del canal
+      // 3. Salir del canal
       await client.leave();
 
       setEnVivo(false);
