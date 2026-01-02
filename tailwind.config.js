@@ -38,7 +38,7 @@ export default {
       animation: {
         'slide-in': 'slide-in 0.3s ease-out',
         'scale-in': 'scale-in 0.3s ease-out',
-        'spin-slow': 'spin 3s linear infinite'
+        'spin-slow': 'spin 3s linear infinite', 
       },
   },
   plugins: [

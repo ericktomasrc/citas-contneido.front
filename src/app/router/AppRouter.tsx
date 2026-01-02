@@ -16,6 +16,13 @@ import { SettingsPage } from '@/pages/Dashboard/Settings/SettingsPage';
 import { SubscriptionsPage } from '@/pages/Dashboard/Subscriptions/SubscriptionsPage';
 import { SearchPreferencesPage } from '@/pages/Dashboard/SearchPreferencesPage/SearchPreferencesPage';
 import { MyProfilePage } from '@/pages/Dashboard/MyProfilePage/MyProfilePage';
+import { PerfilUsuarioPage } from '@/pages/DashboardCreadora/PerfilUsuarioPage/PerfilUsuarioPage';
+import { ContenidoPage } from '@/pages/DashboardCreadora/ContenidoPage/ContenidoPage';
+import { PacksPage } from '@/pages/DashboardCreadora/PacksPage/PacksPage';
+import { PerfilPublicoCreadoraPage } from '@/pages/DashboardCreadora/PerfilPublicoCreadoraPage/PerfilPublicoCreadoraPage';
+import { EditarPerfilCreadoraPage } from '@/pages/DashboardCreadora/PerfilPublicoCreadoraPage/EditarPerfilCreadoraPage';
+import { EnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/EnVivoPage';
+import { VerEnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/VerEnVivoPage';
 
 export const AppRouter = () => {
   return (
@@ -36,6 +43,7 @@ export const AppRouter = () => {
         
         <Route path="/perfil/:slug" element={<CreatorProfilePageFullscreen />} />
         <Route path="/live/:slug" element={<LiveStreamPage />} />
+        <Route path="/live-creadora/:slug" element={<VerEnVivoPage />} />
 
         <Route path="/mis-suscripciones" element={<SubscriptionsPage />} />
         <Route path="/invitaciones" element={<InvitationsPage />} />
@@ -43,6 +51,12 @@ export const AppRouter = () => {
          <Route path="/dashboard-creadora" element={<DashboardCreadoraPage />} />
          <Route path="/mi-perfil" element={<MyProfilePage />} />
          <Route path="/preferencias-busqueda" element={<SearchPreferencesPage />} />
+         <Route path="/perfil-usuario/:slug" element={<PerfilUsuarioPage />} />
+         <Route path="/contenido" element={<ContenidoPage />} />
+         <Route path="/packs" element={<PacksPage />} />
+         <Route path="/perfil-publico-creadora" element={<PerfilPublicoCreadoraPage />} />
+         <Route path="/editar-publico-creadora" element={<EditarPerfilCreadoraPage />} />
+         <Route path="/envivo" element={<EnVivoPage />} />
         
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />

@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Camera, X, Calendar, Save, User } from 'lucide-react';
-import { NavbarDashboard } from '../../../components/Dashboard/Navbar/NavbarDashboard';
-import { SidebarDashboard } from '../../../components/Dashboard/Sidebar/SidebarDashboard';
+import { Camera, X, Calendar, Save, User, Eye } from 'lucide-react';
+import { NavbarCreadora } from '../../../components/DashboardCreadora/Navbar/NavbarCreadora';
+import { SidebarCreadora } from '../../../components/DashboardCreadora/Sidebar/SidebarCreadora';
+import { useNavigate } from 'react-router-dom';
 
-export const MyProfilePage = () => {
+type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
+
+export const EditarPerfilCreadoraPage = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [photos, setPhotos] = useState<string[]>([
-    'https://i.pravatar.cc/400?img=12',
-    'https://i.pravatar.cc/400?img=13',
+    'https://i.pravatar.cc/400?img=1',
+    'https://i.pravatar.cc/400?img=2',
   ]);
   
   const [formData, setFormData] = useState({
-    nombre: 'Jack',
-    fechaNacimiento: '1994-04-08',
-    bio: 'Soy Ing. Software... y me gusta viajar',
+    nombre: 'María',
+    fechaNacimiento: '1999-03-15',
+    bio: 'Soy Ing. Software... y me gusta viajar ✈️ Amante del fitness y la vida saludable 💪 Aquí comparto mi día a día y contenido exclusivo 🌟',
     altura: 160,
     tipoCuerpo: 'delgado',
     apariencia: 'muy-atractivo',
@@ -23,11 +27,16 @@ export const MyProfilePage = () => {
     fumas: 'no',
     hijos: '0',
     buscando: ['ligue'],
-    ingresos: '0-49k'
+    ingresos: '50k-249k',
+    precioSuscripcion: 140,
+    ubicacion: 'Miraflores, Lima'
   });
 
   const handlePhotoUpload = () => {
-    alert('Upload de foto - TODO: Implementar con API');
+    const newPhoto = `https://i.pravatar.cc/400?img=${Math.floor(Math.random() * 70)}`;
+    if (photos.length < 5) {
+      setPhotos([...photos, newPhoto]);
+    }
   };
 
   const handleRemovePhoto = (index: number) => {
@@ -36,18 +45,29 @@ export const MyProfilePage = () => {
 
   const handleSave = () => {
     alert('¡Perfil guardado exitosamente! 🎉');
-    console.log('Datos del perfil:', formData, photos);
+    console.log('Datos del perfil:', { formData, photos });
+  };
+
+  const handleViewPublicProfile = () => {
+    navigate('/perfil-publico-creadora');
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    if (tab === 'resumen' || tab === 'invitaciones') {
+      navigate('/dashboard-creadora');
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavbarDashboard
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        notificationsCount={5}
-        messagesCount={3}
-      />
+      <NavbarCreadora onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-      <SidebarDashboard isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <SidebarCreadora
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        activeTab="configuracion"
+        onTabChange={handleTabChange}
+      />
 
       <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-64 overflow-hidden flex flex-col">
         {/* Header Fijo */}
@@ -56,8 +76,7 @@ export const MyProfilePage = () => {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3 flex-wrap">
                 <User className="w-7 h-7 text-pink-500" />
-                Mi Perfil
-                {/* Badge de verificación compacto */}
+                Editar Mi Perfil
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full shadow-md">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -65,11 +84,17 @@ export const MyProfilePage = () => {
                   Verificado
                 </span>
               </h1>
-              <p className="text-gray-600">Administra tu información personal y preferencias</p>
+              <p className="text-gray-600">Administra tu información personal y preferencias que verán tus seguidores</p>
             </div>
 
-            {/* Botón Guardar en header para desktop */}
-            <div className="hidden lg:flex">
+            <div className="hidden lg:flex gap-3">
+              <button
+                onClick={handleViewPublicProfile}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Ver Perfil Público
+              </button>
               <button
                 onClick={handleSave}
                 className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 flex items-center gap-2"
@@ -84,19 +109,16 @@ export const MyProfilePage = () => {
         {/* Contenido con Scroll */}
         <div className="flex-1 overflow-y-auto bg-gray-50">
           <div className="max-w-[1800px] mx-auto p-8 pt-4">
-            {/* Grid Principal */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-              {/* Columna Izquierda - Fotos (sticky) */}
-              <div className="xl:col-span-1">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+              {/* Columna Izquierda - Fotos */}
+              <div className="xl:col-span-4">
                 <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-6 sticky top-4">
                   <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                     <Camera className="w-5 h-5 text-pink-500" />
                     Tus Fotos
                   </h2>
                   
-                  {/* Grid de fotos - Diseño Premium */}
                   <div className="grid grid-cols-3 gap-3">
-                    {/* Foto principal (más grande) */}
                     {photos[0] && (
                       <div className="col-span-2 row-span-2 relative group rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all">
                         <img
@@ -117,7 +139,6 @@ export const MyProfilePage = () => {
                       </div>
                     )}
 
-                    {/* Fotos secundarias */}
                     {photos.slice(1, 5).map((photo, index) => (
                       <div key={index + 1} className="relative group aspect-square rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
                         <img
@@ -135,7 +156,6 @@ export const MyProfilePage = () => {
                       </div>
                     ))}
 
-                    {/* Slots vacíos */}
                     {Array.from({ length: Math.max(0, 5 - photos.length) }).map((_, index) => (
                       <button
                         key={`empty-${index}`}
@@ -151,13 +171,25 @@ export const MyProfilePage = () => {
                   <p className="text-xs text-gray-500 mt-4 text-center">
                     Máximo 5 fotos • Primera foto es tu foto principal
                   </p>
+                  
+                  <div className="mt-4 p-4 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl border border-pink-200">
+                    <p className="text-xs font-semibold text-pink-700 mb-1">💡 Consejo</p>
+                    <p className="text-xs text-gray-700">
+                      Las fotos de buena calidad y variadas atraen más seguidores. Muestra tu personalidad!
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Columna Derecha - Información */}
-              <div className="xl:col-span-2 space-y-8">
-                {/* Botón flotante para móvil */}
-                <div className="lg:hidden fixed bottom-6 right-6 z-40">
+              <div className="xl:col-span-8 space-y-8">
+                <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+                  <button
+                    onClick={handleViewPublicProfile}
+                    className="w-14 h-14 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-full font-semibold hover:from-purple-600 hover:to-indigo-700 transition-all shadow-2xl hover:shadow-3xl hover:scale-110 flex items-center justify-center"
+                  >
+                    <Eye className="w-6 h-6" />
+                  </button>
                   <button
                     onClick={handleSave}
                     className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full font-semibold hover:from-green-600 hover:to-emerald-700 transition-all shadow-2xl hover:shadow-3xl hover:scale-110 flex items-center justify-center"
@@ -171,7 +203,6 @@ export const MyProfilePage = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Información Básica</h2>
                   
                   <div className="space-y-6">
-                    {/* Nombre */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         ¿Cuál es tu nombre?
@@ -185,7 +216,22 @@ export const MyProfilePage = () => {
                       />
                     </div>
 
-                    {/* Fecha de Nacimiento */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Ubicación
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.ubicacion}
+                        onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                        placeholder="Ej: Miraflores, Lima"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Esto ayuda a que usuarios cercanos te encuentren
+                      </p>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Fecha de nacimiento
@@ -201,13 +247,30 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Bio */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Precio de Suscripción Mensual (S/.)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.precioSuscripcion}
+                        onChange={(e) => setFormData({ ...formData, precioSuscripcion: parseInt(e.target.value) })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
+                        placeholder="140"
+                        min="10"
+                        max="500"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Precio recomendado: S/. 100 - S/. 200
+                      </p>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Sobre ti
                       </label>
                       <p className="text-xs text-gray-500 mb-2">
-                        Escribe sobre tus hobbies, valores y visión de vida
+                        Escribe sobre tus hobbies, valores y visión de vida. Esto aparecerá en tu perfil público 💫
                       </p>
                       <textarea
                         value={formData.bio}
@@ -219,7 +282,9 @@ export const MyProfilePage = () => {
                       />
                       <div className="flex justify-between items-center mt-2">
                         <p className="text-xs text-gray-500">Máximo 500 caracteres</p>
-                        <p className="text-xs font-medium text-gray-600">{formData.bio.length}/500</p>
+                        <p className={`text-xs font-medium ${formData.bio.length > 450 ? 'text-orange-600' : 'text-gray-600'}`}>
+                          {formData.bio.length}/500
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -230,10 +295,9 @@ export const MyProfilePage = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Características Físicas</h2>
                   
                   <div className="space-y-8">
-                    {/* Altura */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-4">
-                        Tu altura: <span className="text-pink-600">{formData.altura} cm</span>
+                        Tu altura: <span className="text-pink-600 text-lg">{formData.altura} cm</span>
                       </label>
                       <input
                         type="range"
@@ -249,7 +313,6 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Tipo de cuerpo */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Tipo de cuerpo
@@ -271,7 +334,6 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Apariencia */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Tu apariencia
@@ -300,7 +362,6 @@ export const MyProfilePage = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Idiomas y Cultura</h2>
                   
                   <div className="space-y-8">
-                    {/* Idiomas */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Idiomas que hablas
@@ -330,9 +391,11 @@ export const MyProfilePage = () => {
                           );
                         })}
                       </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Puedes seleccionar múltiples idiomas
+                      </p>
                     </div>
 
-                    {/* Nivel de inglés */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Nivel de inglés
@@ -354,7 +417,6 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Etnia */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Tu etnia
@@ -383,7 +445,6 @@ export const MyProfilePage = () => {
                   <h2 className="text-xl font-bold text-gray-900 mb-6">Estilo de Vida</h2>
                   
                   <div className="space-y-8">
-                    {/* Fumas */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         ¿Fumas?
@@ -405,7 +466,6 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Hijos */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         ¿Cuántos hijos tienes?
@@ -427,7 +487,6 @@ export const MyProfilePage = () => {
                       </div>
                     </div>
 
-                    {/* Buscando */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         ¿Qué estás buscando?
@@ -457,9 +516,11 @@ export const MyProfilePage = () => {
                           );
                         })}
                       </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Puedes seleccionar múltiples opciones
+                      </p>
                     </div>
 
-                    {/* Ingresos */}
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-3">
                         Tenencias en dólares (USD)

@@ -5,9 +5,9 @@ import { IdCard, BookOpen, CreditCard, Info, Smartphone, DollarSign, Banknote,
    Flag} from 'lucide-react';
 import { LiveCameraCapture } from '../../components/LiveCameraCapture';  
 import { completarRegistro } from '../../shared/api/authApi';
-import { Toast } from '../../components/Toast'; 
-import { ConfirmModal } from '../../components/ConfirmModal'; 
-import { ConfirmationDialog } from '../../components/ConfirmationDialog'; 
+import { Toast } from '../../components/Modals/Toast'; 
+import { ConfirmModal } from '../../components/Modals/ConfirmModal'; 
+import { ConfirmationDialog } from '../../components/Modals/ConfirmationDialog'; 
 
 export const CompletarRegistroPage = () => {
   const navigate = useNavigate();

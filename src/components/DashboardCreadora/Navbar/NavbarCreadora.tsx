@@ -57,9 +57,9 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
   const dropdownItems = [
     { 
       icon: User, 
-      label: 'Ver mi Perfil Público', 
+      label: 'Mi Perfil', 
       onClick: () => {
-        navigate('/perfil/maria-rodriguez-a7k3');
+        navigate('/editar-publico-creadora');  // ✅ NUEVA RUTA
         setShowProfileDropdown(false);
       }
     },

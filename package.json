@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+
+        "backend": "node src/shared/backend/server.js",
+    "dev:full": "concurrently \"npm run backend\" \"npm run dev\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -15,14 +18,18 @@
     "@stripe/react-stripe-js": "^5.4.1",
     "@stripe/stripe-js": "^8.6.0",
     "@tanstack/react-query": "^5.90.12",
+    "agora-access-token": "^2.0.4",
+    "agora-rtc-react": "^2.5.1",
+    "agora-rtc-sdk-ng": "^4.24.2",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
+    "express": "^5.2.1",
     "framer-motion": "^12.23.26",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-facebook-login": "^4.1.1",
     "react-hook-form": "^7.69.0",
     "react-router-dom": "^7.11.0",
     "tailwind-merge": "^3.4.0",
