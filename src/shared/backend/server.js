@@ -4,8 +4,8 @@ import pkg from 'agora-access-token';
 const { RtcTokenBuilder, RtcRole } = pkg;
 
 const app = express();
-const APP_ID = 'ab41c61677c841dea4b85741c7ad07f8';
-const APP_CERTIFICATE = 'd4ad8566672044b297a08882052c9c75'; // Copia el que está a la izquierda
+const APP_ID = process.env.VITE_AGORA_APP_ID || 'ab41c61677c841dea4b85741c7ad07f8';
+const APP_CERTIFICATE = process.env.VITE_AGORA_APP_CERTIFICATE || 'd4ad8566672044b297a08882052c9c75';
 
 // Habilitar CORS
 app.use(cors());

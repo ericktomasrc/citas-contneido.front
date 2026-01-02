@@ -7,6 +7,7 @@ import AgoraRTC, {
 import { Video, Mic, MicOff, VideoOff, Radio, Users, AlertCircle, Copy, Check } from 'lucide-react';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 export const TransmisionReal = () => {
   const [client] = useState<IAgoraRTCClient>(() => 
@@ -24,6 +25,8 @@ export const TransmisionReal = () => {
   const [cargando, setCargando] = useState(false);
   const [channelName, setChannelName] = useState<string>('');
   const [linkCopiado, setLinkCopiado] = useState(false);
+  const [tiempoSinEspectadores, setTiempoSinEspectadores] = useState(0);
+  const [mostrarAlertaSinAudiencia, setMostrarAlertaSinAudiencia] = useState(false);
 
   // Verificar APP_ID
   useEffect(() => {
@@ -55,7 +58,7 @@ export const TransmisionReal = () => {
       console.log('🔄 Solicitando token para:', newChannelName, 'userId:', userId);
       
       const response = await fetch(
-        `http://localhost:5000/api/agora/token?channelName=${newChannelName}&userId=${userId}`
+        `${BACKEND_URL}/api/agora/token?channelName=${newChannelName}&userId=${userId}`
       );
 
       if (!response.ok) {
@@ -109,7 +112,7 @@ export const TransmisionReal = () => {
       
       // Notificar al backend que el canal está activo
       try {
-        await fetch('http://localhost:5000/api/canal/iniciar', {
+        await fetch(`${BACKEND_URL}/api/canal/iniciar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelName: newChannelName })
@@ -139,7 +142,7 @@ export const TransmisionReal = () => {
       // 1. Notificar al backend que el canal se cerró
       if (channelName) {
         try {
-          await fetch('http://localhost:5000/api/canal/finalizar', {
+          await fetch(`${BACKEND_URL}/api/canal/finalizar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ channelName })
@@ -200,7 +203,7 @@ export const TransmisionReal = () => {
     // Consultar espectadores cada 3 segundos
     const intervalo = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/espectadores/${channelName}`);
+        const response = await fetch(`${BACKEND_URL}/api/espectadores/${channelName}`);
         const data = await response.json();
         setEspectadores(data.espectadores);
         console.log('📊 Espectadores actualizados:', data.espectadores);
@@ -211,6 +214,43 @@ export const TransmisionReal = () => {
 
     return () => clearInterval(intervalo);
   }, [enVivo, channelName]);
+
+  // Monitorear tiempo sin espectadores
+  useEffect(() => {
+    if (!enVivo) {
+      setTiempoSinEspectadores(0);
+      setMostrarAlertaSinAudiencia(false);
+      return;
+    }
+
+    const intervalo = setInterval(() => {
+      if (espectadores === 0) {
+        setTiempoSinEspectadores(prev => {
+          const nuevoTiempo = prev + 1;
+          
+          // Alerta a los 3 minutos (180 segundos)
+          if (nuevoTiempo === 180) {
+            setMostrarAlertaSinAudiencia(true);
+            console.log('⚠️ 3 minutos sin espectadores');
+          }
+          
+          // Auto-detener a los 10 minutos (600 segundos)
+          if (nuevoTiempo >= 600) {
+            console.log('🛑 Auto-deteniendo transmisión: 10 minutos sin espectadores');
+            detenerTransmision();
+          }
+          
+          return nuevoTiempo;
+        });
+      } else {
+        // Resetear si hay espectadores
+        setTiempoSinEspectadores(0);
+        setMostrarAlertaSinAudiencia(false);
+      }
+    }, 1000); // Cada segundo
+
+    return () => clearInterval(intervalo);
+  }, [enVivo, espectadores]);
 
   // Resetear espectadores cuando termina la transmisión
   useEffect(() => {
@@ -228,6 +268,26 @@ export const TransmisionReal = () => {
           <div className="flex-1">
             <p className="text-sm font-semibold text-red-900">Error</p>
             <p className="text-xs text-red-700">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Alerta de sin audiencia */}
+      {mostrarAlertaSinAudiencia && enVivo && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 flex items-start gap-3 animate-pulse">
+          <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-amber-900">⚠️ No tienes espectadores</p>
+            <p className="text-xs text-amber-700 mt-1">
+              Llevas {Math.floor(tiempoSinEspectadores / 60)} minutos sin audiencia. 
+              La transmisión se detendrá automáticamente a los 10 minutos para ahorrar recursos.
+            </p>
+            <button
+              onClick={detenerTransmision}
+              className="mt-2 px-3 py-1 bg-amber-600 text-white text-xs rounded-lg hover:bg-amber-700 transition"
+            >
+              Finalizar ahora
+            </button>
           </div>
         </div>
       )}

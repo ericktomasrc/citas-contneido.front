@@ -8,6 +8,9 @@ import AgoraRTC, {
 import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// Controlado desde .env: VITE_REQUIERE_AUTENTICACION=true o false
+const REQUIERE_AUTENTICACION = import.meta.env.VITE_REQUIERE_AUTENTICACION === 'true';
 
 export const VerEnVivoPage = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -36,7 +39,7 @@ export const VerEnVivoPage = () => {
 
     const intervalo = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:5000/api/espectadores/${channelName}`);
+        const response = await fetch(`${BACKEND_URL}/api/espectadores/${channelName}`);
         const data = await response.json();
         setEspectadores(data.espectadores);
       } catch (error) {
@@ -53,13 +56,24 @@ export const VerEnVivoPage = () => {
       setCargando(true);
       setError(null);
 
+      // Validar autenticación si está habilitada
+      if (REQUIERE_AUTENTICACION) {
+        // TODO: Cuando tengas login, descomentar esto:
+        // const usuarioAutenticado = verificarSesion(); // Tu función de verificación
+        // if (!usuarioAutenticado) {
+        //   window.location.href = '/login';
+        //   return;
+        // }
+        console.log('⚠️ REQUIERE_AUTENTICACION está activo pero aún no implementado');
+      }
+
       // Validar que existe el channelName
       if (!channelName) {
         throw new Error('No se especificó el canal de transmisión');
       }
 
       // IMPORTANTE: Verificar si el canal está activo ANTES de conectarse
-      const verificarResponse = await fetch(`http://localhost:5000/api/canal/${channelName}/activo`);
+      const verificarResponse = await fetch(`${BACKEND_URL}/api/canal/${channelName}/activo`);
       const { activo } = await verificarResponse.json();
       
       if (!activo) {
@@ -76,7 +90,7 @@ export const VerEnVivoPage = () => {
 
       // Obtener token
       const response = await fetch(
-        `http://localhost:5000/api/agora/token?channelName=${channelName}&userId=${userId}`
+        `${BACKEND_URL}/api/agora/token?channelName=${channelName}&userId=${userId}`
       );
 
       if (!response.ok) {
@@ -96,7 +110,7 @@ export const VerEnVivoPage = () => {
       
       // Registrar espectador en el backend (no bloquear si falla)
       try {
-        await fetch('http://localhost:5000/api/espectador/unirse', {
+        await fetch(`${BACKEND_URL}/api/espectador/unirse`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelName, userId })
@@ -233,7 +247,7 @@ export const VerEnVivoPage = () => {
       
       // Des-registrar espectador al salir
       if (currentChannel && currentUserId) {
-        fetch('http://localhost:5000/api/espectador/salir', {
+        fetch(`${BACKEND_URL}/api/espectador/salir`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channelName: currentChannel, userId: currentUserId })

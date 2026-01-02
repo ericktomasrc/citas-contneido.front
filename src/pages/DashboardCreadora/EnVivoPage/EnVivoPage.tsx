@@ -1,4 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import AgoraRTC, { 
+  IAgoraRTCClient, 
+  ICameraVideoTrack, 
+  IMicrophoneAudioTrack 
+} from 'agora-rtc-sdk-ng';
 import { 
   Radio, 
   Eye, 
@@ -12,9 +17,20 @@ import {
   Send,
   Smile,
   Trash2,
-  Clock
+  Clock,
+  Mic,
+  MicOff,
+  VideoOff,
+  Users,
+  AlertCircle,
+  Copy,
+  Check,
+  Maximize,
+  Minimize
 } from 'lucide-react';
-import { TransmisionReal } from './TransmisionReal';
+
+const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 interface Evento {
   id: string;
@@ -37,6 +53,24 @@ interface Recompensa {
 }
 
 export const EnVivoPage = () => {
+  // Estados de Agora
+  const [client] = useState<IAgoraRTCClient>(() => 
+    AgoraRTC.createClient({ mode: 'live', codec: 'vp8' })
+  );
+  const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
+  const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
+  const [channelName, setChannelName] = useState<string>('');
+  const [micMuted, setMicMuted] = useState(false);
+  const [cameraOff, setCameraOff] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tiempoSinEspectadores, setTiempoSinEspectadores] = useState(0);
+  const [mostrarAlertaSinAudiencia, setMostrarAlertaSinAudiencia] = useState(false);
+  const [espectadoresEnVivo, setEspectadoresEnVivo] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Estados UI originales
   const [enVivo, setEnVivo] = useState(false);
   const [showRecompensasModal, setShowRecompensasModal] = useState(false);
   const [showCrearEventoModal, setShowCrearEventoModal] = useState(false);
@@ -57,8 +91,7 @@ export const EnVivoPage = () => {
   const [nuevoEvento, setNuevoEvento] = useState({
     tipo: 'gratis' as 'gratis' | 'pagado',
     precio: 0,
-    actividad: '',
-    objetivo: '',
+    actividadObjetivo: '',
     titulo: '',
     hora: new Date().toTimeString().slice(0, 5)
   });
@@ -67,8 +100,245 @@ export const EnVivoPage = () => {
   const stats = {
     seguidores: 12400,
     suscriptores: 1200,
-    publico: enVivo ? 3500 : 0,
+    publico: espectadoresEnVivo, // Usar contador real de Agora
   };
+
+  // Configurar rol como broadcaster
+  useEffect(() => {
+    client.setClientRole('host');
+  }, [client]);
+
+  // Verificar APP_ID
+  useEffect(() => {
+    if (!APP_ID) {
+      setError('❌ APP_ID no configurado en .env');
+      console.error('VITE_AGORA_APP_ID no encontrado');
+    }
+  }, []);
+
+  // Iniciar transmisión con Agora
+  const iniciarTransmision = async () => {
+    try {
+      setCargando(true);
+      setError(null);
+
+      // 1. Verificar permisos
+      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+      // 2. Obtener token del backend
+      const userId = Math.floor(Math.random() * 10000).toString();
+      const newChannelName = `live_${Date.now()}`;
+      
+      const response = await fetch(
+        `${BACKEND_URL}/api/agora/token?channelName=${newChannelName}&userId=${userId}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Error al obtener token del servidor');
+      }
+
+      const { token } = await response.json();
+
+      // 3. Unirse al canal
+      await client.join(APP_ID, newChannelName, token, parseInt(userId));
+
+      // 4. Crear tracks locales
+      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+        {
+          encoderConfig: {
+            sampleRate: 48000,
+            stereo: true,
+            bitrate: 128,
+          }
+        },
+        {
+          encoderConfig: {
+            width: 1280,
+            height: 720,
+            frameRate: 30,
+            bitrateMin: 600,
+            bitrateMax: 1000,
+          }
+        }
+      );
+
+      setLocalAudioTrack(audioTrack);
+      setLocalVideoTrack(videoTrack);
+
+      // 5. Reproducir video localmente
+      videoTrack.play('local-player');
+
+      // 6. Publicar tracks
+      await client.publish([audioTrack, videoTrack]);
+
+      setEnVivo(true);
+      setChannelName(newChannelName);
+      
+      // Notificar al backend que el canal está activo
+      try {
+        await fetch(`${BACKEND_URL}/api/canal/iniciar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channelName: newChannelName })
+        });
+      } catch (err) {
+        console.warn('⚠️ No se pudo notificar al backend:', err);
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error al iniciar transmisión:', error);
+      setError(error.message || 'Error desconocido');
+      
+      // Cleanup en caso de error
+      localAudioTrack?.close();
+      localVideoTrack?.close();
+      await client.leave();
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  // Detener transmisión
+  const detenerTransmision = async () => {
+    try {
+      setCargando(true);
+      
+      // Notificar al backend que el canal se cerró
+      if (channelName) {
+        try {
+          await fetch(`${BACKEND_URL}/api/canal/finalizar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channelName })
+          });
+        } catch (err) {
+          console.warn('⚠️ No se pudo notificar cierre al backend:', err);
+        }
+      }
+      
+      // Cerrar tracks
+      localAudioTrack?.close();
+      localVideoTrack?.close();
+
+      // Salir del canal
+      await client.leave();
+
+      setEnVivo(false);
+      setLocalAudioTrack(null);
+      setLocalVideoTrack(null);
+      setError(null);
+      setChannelName('');
+      setLinkCopiado(false);
+      setEspectadoresEnVivo(0);
+      
+    } catch (error) {
+      console.error('Error al detener transmisión:', error);
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const toggleMic = () => {
+    if (localAudioTrack) {
+      localAudioTrack.setEnabled(!micMuted);
+      setMicMuted(!micMuted);
+    }
+  };
+
+  const toggleCamera = () => {
+    if (localVideoTrack) {
+      localVideoTrack.setEnabled(!cameraOff);
+      setCameraOff(!cameraOff);
+    }
+  };
+
+  const copiarLink = () => {
+    const link = `${window.location.origin}/live-creadora/${channelName}`;
+    navigator.clipboard.writeText(link);
+    setLinkCopiado(true);
+    setTimeout(() => setLinkCopiado(false), 3000);
+  };
+
+  const toggleFullscreen = async () => {
+    const videoContainer = document.getElementById('video-container-transmision');
+    if (!videoContainer) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await videoContainer.requestFullscreen();
+        setIsFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    } catch (error) {
+      console.error('Error al cambiar pantalla completa:', error);
+    }
+  };
+
+  // Detectar cambios de fullscreen
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  // Actualizar contador de espectadores desde el backend
+  useEffect(() => {
+    if (!enVivo || !channelName) return;
+
+    const intervalo = setInterval(async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/espectadores/${channelName}`);
+        const data = await response.json();
+        setEspectadoresEnVivo(data.espectadores);
+      } catch (error) {
+        console.error('Error al obtener espectadores:', error);
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalo);
+  }, [enVivo, channelName]);
+
+  // Monitorear tiempo sin espectadores
+  useEffect(() => {
+    if (!enVivo) {
+      setTiempoSinEspectadores(0);
+      setMostrarAlertaSinAudiencia(false);
+      return;
+    }
+
+    const intervalo = setInterval(() => {
+      if (espectadoresEnVivo === 0) {
+        setTiempoSinEspectadores(prev => {
+          const nuevoTiempo = prev + 1;
+          
+          // Alerta a los 3 minutos (180 segundos)
+          if (nuevoTiempo === 180) {
+            setMostrarAlertaSinAudiencia(true);
+          }
+          
+          // Auto-detener a los 10 minutos (600 segundos)
+          if (nuevoTiempo >= 600) {
+            detenerTransmision();
+          }
+          
+          return nuevoTiempo;
+        });
+      } else {
+        // Resetear si hay espectadores
+        setTiempoSinEspectadores(0);
+        setMostrarAlertaSinAudiencia(false);
+      }
+    }, 1000);
+
+    return () => clearInterval(intervalo);
+  }, [enVivo, espectadoresEnVivo]);
 
   // Recompensas DETALLADAS
   const recompensas: Recompensa[] = [
@@ -123,8 +393,7 @@ export const EnVivoPage = () => {
     setNuevoEvento({
       tipo: 'gratis',
       precio: 0,
-      actividad: '',
-      objetivo: '',
+      actividadObjetivo: '',
       titulo: '',
       hora: new Date().toTimeString().slice(0, 5)
     });
@@ -136,7 +405,12 @@ export const EnVivoPage = () => {
     setEventos([...eventos, {
       id: Date.now().toString(),
       fecha: selectedDate,
-      ...nuevoEvento
+      hora: nuevoEvento.hora,
+      titulo: nuevoEvento.titulo,
+      tipo: nuevoEvento.tipo,
+      precio: nuevoEvento.precio,
+      actividad: nuevoEvento.actividadObjetivo,
+      objetivo: nuevoEvento.actividadObjetivo
     }]);
     setShowCrearEventoModal(false);
     setSelectedDate(null);
@@ -202,29 +476,188 @@ export const EnVivoPage = () => {
 
       {/* Card Transmisión */}
       <div className="bg-white rounded-xl shadow-lg border-2 border-gray-200 p-6">
-        <div className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <Video className="w-8 h-8 text-pink-500" />
+        {/* Alerta de error */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 mb-4">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-red-900">Error</p>
+              <p className="text-xs text-red-700">{error}</p>
+            </div>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">¡Bienvenida a tu Estudio!</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            {hayEventos ? 'Crea o programa tu próxima transmisión en vivo' : 'Primero programa un evento para poder transmitir'}
-          </p>
+        )}
+
+        {/* Alerta de sin audiencia */}
+        {mostrarAlertaSinAudiencia && enVivo && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4 flex items-start gap-3 animate-pulse mb-4">
+            <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-bold text-amber-900">⚠️ No tienes espectadores</p>
+              <p className="text-xs text-amber-700 mt-1">
+                Llevas {Math.floor(tiempoSinEspectadores / 60)} minutos sin audiencia. 
+                La transmisión se detendrá automáticamente a los 10 minutos para ahorrar recursos.
+              </p>
+              <button
+                onClick={detenerTransmision}
+                className="mt-2 px-3 py-1 bg-amber-600 text-white text-xs rounded-lg hover:bg-amber-700 transition"
+              >
+                Finalizar ahora
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Link para compartir */}
+        {enVivo && channelName && (
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4 mb-4">
+            <p className="text-sm font-semibold text-purple-900 mb-2 flex items-center gap-2">
+              📺 Comparte este link con tus seguidores:
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={`${window.location.origin}/live-creadora/${channelName}`}
+                readOnly
+                className="flex-1 px-4 py-2 bg-white border border-purple-300 rounded-lg text-sm focus:outline-none"
+              />
+              <button
+                onClick={copiarLink}
+                className={`px-4 py-2 rounded-lg font-semibold transition flex items-center gap-2 ${
+                  linkCopiado
+                    ? 'bg-green-500 text-white'
+                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                }`}
+              >
+                {linkCopiado ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    ¡Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copiar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Video Preview con Agora - Tamaño reducido */}
+        <div id="video-container-transmision" className="relative bg-black rounded-2xl overflow-hidden mb-4" style={{ maxWidth: '800px', aspectRatio: '16/9', margin: '0 auto' }}>
+          <div id="local-player" className="w-full h-full" />
+          
+          {!enVivo && !cargando && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <Video className="w-8 h-8 text-white/70" />
+                </div>
+                <h2 className="text-white text-xl font-bold mb-2">¡Bienvenida a tu Estudio!</h2>
+                <p className="text-white/80 text-sm mb-4">
+                  {hayEventos ? 'Lista para transmitir' : 'Programa un evento primero'}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {cargando && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-white">Conectando...</p>
+              </div>
+            </div>
+          )}
+
+          {/* Stats en vivo */}
+          {enVivo && (
+            <>
+              <div className="absolute top-4 left-4 flex items-center gap-3">
+                <div className="bg-red-500 px-3 py-1 rounded-full flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                  <span className="text-white text-sm font-bold">EN VIVO</span>
+                </div>
+                <div className="bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-2">
+                  <Users className="w-4 h-4 text-white" />
+                  <span className="text-white text-sm font-bold">{espectadoresEnVivo}</span>
+                </div>
+              </div>
+              
+              {/* Botón Fullscreen */}
+              <button
+                onClick={toggleFullscreen}
+                className="absolute top-4 right-4 w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition"
+              >
+                {isFullscreen ? (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                )}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Controles */}
+        <div className="flex items-center justify-center gap-3 mt-6">
+          {enVivo && (
+            <>
+              <button
+                onClick={toggleMic}
+                disabled={cargando}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition ${
+                  micMuted 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-gray-700 hover:bg-gray-800'
+                }`}
+              >
+                {micMuted ? (
+                  <MicOff className="w-5 h-5 text-white" />
+                ) : (
+                  <Mic className="w-5 h-5 text-white" />
+                )}
+              </button>
+
+              <button
+                onClick={toggleCamera}
+                disabled={cargando}
+                className={`w-12 h-12 rounded-full flex items-center justify-center transition ${
+                  cameraOff 
+                    ? 'bg-red-500 hover:bg-red-600' 
+                    : 'bg-gray-700 hover:bg-gray-800'
+                }`}
+              >
+                {cameraOff ? (
+                  <VideoOff className="w-5 h-5 text-white" />
+                ) : (
+                  <Video className="w-5 h-5 text-white" />
+                )}
+              </button>
+            </>
+          )}
+
           <button
-            onClick={() => hayEventos && setEnVivo(!enVivo)}
-            disabled={!hayEventos}
-            className={`w-full py-2.5 px-5 rounded-xl font-bold text-sm transition-all shadow-lg flex items-center justify-center gap-2 ${
-              !hayEventos ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : enVivo ? 'bg-red-500 hover:bg-red-600 text-white' 
-                : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white'
+            onClick={enVivo ? detenerTransmision : iniciarTransmision}
+            disabled={cargando || !!error || (!hayEventos && !enVivo)}
+            className={`px-5 py-2 rounded-lg font-bold text-sm text-white flex items-center gap-2 transition shadow-lg ${
+              cargando || error || (!hayEventos && !enVivo)
+                ? 'bg-gray-400 cursor-not-allowed'
+                : enVivo
+                ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-red-500/50'
+                : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 shadow-red-500/50'
             }`}
           >
             <Radio className={`w-4 h-4 ${enVivo ? 'animate-pulse' : ''}`} />
-            {!hayEventos ? 'Programa un Evento Primero' : enVivo ? 'Finalizar Transmisión' : 'Iniciar Transmisión11'}
+            {cargando ? 'Conectando...' : 
+             !hayEventos && !enVivo ? 'Programa un Evento' :
+             enVivo ? 'Finalizar' : 'Iniciar Transmisión'}
           </button>
-           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-             <TransmisionReal />
-           </div>
         </div>
       </div>
 
@@ -233,7 +666,7 @@ export const EnVivoPage = () => {
         <button
           onClick={() => {
             setSelectedDate(new Date());
-            setNuevoEvento({ tipo: 'gratis', precio: 0, actividad: '', objetivo: '', titulo: '', hora: new Date().toTimeString().slice(0, 5) });
+            setNuevoEvento({ tipo: 'gratis', precio: 0, actividadObjetivo: '', titulo: '', hora: new Date().toTimeString().slice(0, 5) });
             setShowCrearEventoModal(true);
           }}
           className="group relative w-11 h-11 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition"
@@ -654,11 +1087,14 @@ export const EnVivoPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Título</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Título <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={nuevoEvento.titulo}
                   onChange={(e) => setNuevoEvento({ ...nuevoEvento, titulo: e.target.value })}
+                  required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="Ej: Sesión de Yoga"
                 />
@@ -703,28 +1139,24 @@ export const EnVivoPage = () => {
               )}
 
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Actividad</label>
-                <input
-                  type="text"
-                  value={nuevoEvento.actividad}
-                  onChange={(e) => setNuevoEvento({ ...nuevoEvento, actividad: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">Objetivo</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Actividad/Objetivo (Opcional)</label>
                 <textarea
-                  value={nuevoEvento.objetivo}
-                  onChange={(e) => setNuevoEvento({ ...nuevoEvento, objetivo: e.target.value })}
-                  rows={2}
+                  value={nuevoEvento.actividadObjetivo}
+                  onChange={(e) => setNuevoEvento({ ...nuevoEvento, actividadObjetivo: e.target.value })}
+                  rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="Describe brevemente la actividad y objetivo de este evento..."
                 />
               </div>
 
               <button
                 onClick={handleGuardarEvento}
-                className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-2 rounded-lg text-sm font-bold hover:from-pink-600 hover:to-purple-700 transition"
+                disabled={!nuevoEvento.titulo.trim()}
+                className={`w-full py-2 rounded-lg text-sm font-bold transition ${
+                  !nuevoEvento.titulo.trim()
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-pink-500 to-purple-600 text-white hover:from-pink-600 hover:to-purple-700'
+                }`}
               >
                 Guardar Evento
               </button>
