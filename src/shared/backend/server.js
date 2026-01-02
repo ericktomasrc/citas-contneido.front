@@ -1,9 +1,19 @@
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import pkg from 'agora-access-token';
 const { RtcTokenBuilder, RtcRole } = pkg;
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
 const APP_ID = process.env.VITE_AGORA_APP_ID || 'ab41c61677c841dea4b85741c7ad07f8';
 const APP_CERTIFICATE = process.env.VITE_AGORA_APP_CERTIFICATE || 'd4ad8566672044b297a08882052c9c75';
 
@@ -14,6 +24,8 @@ app.use(cors());
 const espectadoresPorCanal = new Map();
 // Almacenar estado de canales (activo/cerrado)
 const canalesActivos = new Map();
+// Almacenar configuración del chat por canal
+const chatConfigPorCanal = new Map();
 
 app.get('/api/agora/token', (req, res) => {
   const { channelName, userId } = req.query;
@@ -144,6 +156,68 @@ app.get('/api/canal/:channelName/activo', (req, res) => {
 });
 
 const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor Agora corriendo en http://localhost:${PORT}`);
+
+// Socket.io - Chat en tiempo real
+io.on('connection', (socket) => {
+  console.log('👤 Usuario conectado:', socket.id);
+
+  // Unirse a un canal específico
+  socket.on('join-channel', (data) => {
+    const channelName = typeof data === 'string' ? data : data.channelName;
+    socket.join(channelName);
+    console.log(`✅ Usuario ${socket.id} se unió al canal: ${channelName}`);
+    
+    // Enviar configuración actual del chat al nuevo usuario
+    if (chatConfigPorCanal.has(channelName)) {
+      const config = chatConfigPorCanal.get(channelName);
+      console.log(`📤 Enviando configuración a ${socket.id}:`, config);
+      socket.emit('chat-config-updated', config);
+    } else {
+      console.log(`⚠️ No hay configuración guardada para el canal: ${channelName}`);
+    }
+  });
+
+  // Actualizar configuración del chat (solo creadora)
+  socket.on('update-chat-config', (data) => {
+    const { channelName, config } = data;
+    chatConfigPorCanal.set(channelName, config);
+    console.log(`⚙️ Configuración del chat actualizada para ${channelName}:`, config);
+    
+    // Emitir la nueva configuración a todos en el canal
+    io.to(channelName).emit('chat-config-updated', config);
+  });
+
+  // Mensaje de chat
+  socket.on('chat-message', (data) => {
+    const { channelName, user, mensaje, isVIP, avatar } = data;
+    io.to(channelName).emit('new-message', {
+      id: Date.now(),
+      user,
+      mensaje,
+      isVIP,
+      avatar,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Regalo/Donación
+  socket.on('send-gift', (data) => {
+    const { channelName, giftId, user, gift, isVIP, avatar } = data;
+    io.to(channelName).emit('new-gift', {
+      id: giftId || Date.now().toString(), // Usar el ID del cliente o generar uno nuevo
+      user,
+      gift,
+      isVIP,
+      avatar,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  socket.on('disconnect', () => {
+    console.log('👋 Usuario desconectado:', socket.id);
+  });
+});
+
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Servidor Agora + Socket.io corriendo en http://localhost:${PORT}`);
 });

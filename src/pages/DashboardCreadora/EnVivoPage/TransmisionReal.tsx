@@ -330,7 +330,7 @@ export const TransmisionReal = () => {
       )}
 
       {/* Video Preview */}
-      <div className="relative bg-black rounded-2xl overflow-hidden aspect-video">
+      <div className="relative bg-black rounded-2xl overflow-hidden" style={{ height: '600px' }}>
         <div id="local-player" className="w-full h-full" />
         
         {!enVivo && !cargando && (
