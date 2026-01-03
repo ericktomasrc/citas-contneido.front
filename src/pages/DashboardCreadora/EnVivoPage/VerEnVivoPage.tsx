@@ -5,8 +5,9 @@ import AgoraRTC, {
   IAgoraRTCRemoteUser,
   UID
 } from 'agora-rtc-sdk-ng';
-import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize, Crown, DollarSign, Send, Sparkles } from 'lucide-react';
+import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize, Crown, DollarSign, Send, Sparkles, X } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
+import { SuperChatModal } from './SuperChatModal';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -35,6 +36,27 @@ interface GiftMessage {
     valor: number;
   };
   timestamp: Date;
+}
+
+interface TipMessage {
+  id: string;
+  user: string;
+  monto: number;
+  isVIP: boolean;
+  avatar: string;
+  timestamp: Date;
+}
+
+interface SuperChatMessage {
+  id: string;
+  user: string;
+  mensaje: string;
+  monto: number;
+  tier: 'basic' | 'premium' | 'elite';
+  isVIP: boolean;
+  avatar: string;
+  timestamp: Date;
+  expiresAt?: Date;
 }
 
 interface ScreenNotification {
@@ -76,9 +98,19 @@ export const VerEnVivoPage = () => {
   const socketRef = useRef<Socket | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [giftMessages, setGiftMessages] = useState<GiftMessage[]>([]);
+  const [tipMessages, setTipMessages] = useState<TipMessage[]>([]);
+  const [superChatMessages, setSuperChatMessages] = useState<SuperChatMessage[]>([]);
+  const [pinnedSuperChat, setPinnedSuperChat] = useState<SuperChatMessage | null>(null);
   const [mensajeActual, setMensajeActual] = useState('');
   const [mostrarCatalogoRegalos, setMostrarCatalogoRegalos] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  // Estados para Super Chat
+  const [mostrarModalSuperChat, setMostrarModalSuperChat] = useState(false);
+  
+  // Estados para notificaciones toast
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   
   // Estados para notificaciones en pantalla
   const [screenNotifications, setScreenNotifications] = useState<ScreenNotification[]>([]);
@@ -88,6 +120,13 @@ export const VerEnVivoPage = () => {
   // Estados para emoticones y corazones flotantes
   const [mostrarEmojis, setMostrarEmojis] = useState(false);
   const [floatingHearts, setFloatingHearts] = useState<FloatingHeart[]>([]);
+  
+  // Estados para Meta (sincronizados con la creadora)
+  const [metaActiva, setMetaActiva] = useState(false);
+  const [metaActual, setMetaActual] = useState(0);
+  const [descripcionMeta, setDescripcionMeta] = useState('');
+  const [progresoMeta, setProgresoMeta] = useState(0);
+  const porcentajeMeta = metaActual > 0 ? Math.min((progresoMeta / metaActual) * 100, 100) : 0;
 
   // Estados para restricciones del chat
   const [chatConfig, setChatConfig] = useState({
@@ -140,8 +179,60 @@ export const VerEnVivoPage = () => {
 
       // Escuchar regalos nuevos
       socketRef.current.on('new-gift', (gift: GiftMessage) => {
-        // Solo agregar al chat, NO crear notificación en pantalla para espectadores
+        console.log('🎁 Espectador recibió regalo:', gift);
+        console.log('🎯 Estado meta antes de actualizar:', { metaActiva, metaActual, progresoMeta });
+        
+        // Agregar al chat
         setGiftMessages(prev => [...prev, gift]);
+        
+        // Actualizar progreso de meta localmente SIEMPRE (el componente decide si mostrar)
+        setProgresoMeta(prev => {
+          const nuevoProgreso = prev + gift.gift.valor;
+          console.log(`📊 Actualizando progreso: ${prev} + ${gift.gift.valor} = ${nuevoProgreso}`);
+          return nuevoProgreso;
+        });
+      });
+
+      // Escuchar estado inicial del canal (cuando se une)
+      socketRef.current.on('channel-joined', (data: any) => {
+        console.log('✅ Canal unido, estado inicial recibido:', data);
+        if (data.meta) {
+          console.log('🎯 Inicializando meta del espectador:', data.meta);
+          setMetaActiva(data.meta.activa);
+          setMetaActual(data.meta.monto);
+          setDescripcionMeta(data.meta.descripcion);
+          setProgresoMeta(data.meta.progreso);
+        }
+      });
+
+      // Escuchar actualizaciones de la meta
+      socketRef.current.on('meta-updated', (data: any) => {
+        console.log('🎯 [ESPECTADOR] Meta actualizada recibida:', data);
+        console.log('🎯 [ESPECTADOR] Progreso actual ANTES:', progresoMeta);
+        setMetaActiva(data.activa);
+        setMetaActual(data.monto);
+        setDescripcionMeta(data.descripcion);
+        setProgresoMeta(data.progreso);
+        console.log('🎯 [ESPECTADOR] Progreso actual DESPUÉS:', data.progreso);
+      });
+
+      // Escuchar Super Chats
+      socketRef.current.on('new-superchat', (superchat: SuperChatMessage) => {
+        console.log('💬💰 [ESPECTADOR] Super Chat recibido:', superchat);
+        setSuperChatMessages(prev => [...prev, superchat]);
+        
+        // Fijar el super chat en el chat
+        const duration = superchat.tier === 'elite' ? 120000 : superchat.tier === 'premium' ? 60000 : 30000;
+        const expiresAt = new Date(Date.now() + duration);
+        setPinnedSuperChat({ ...superchat, expiresAt });
+        
+        // Actualizar progreso de meta localmente
+        setProgresoMeta(prev => prev + superchat.monto);
+        
+        // Desfijar después del tiempo
+        setTimeout(() => {
+          setPinnedSuperChat(prev => prev?.id === superchat.id ? null : prev);
+        }, duration);
       });
 
       // Cleanup
@@ -626,6 +717,66 @@ export const VerEnVivoPage = () => {
     setTimeout(() => setRegaloEnviado({ show: false }), 3000);
   };
 
+  // Manejar propinas rápidas
+  const handleEnviarPropina = (monto: number) => {
+    if (!socketRef.current) return;
+
+    const userName = 'Espectador' + Math.floor(Math.random() * 1000); // TODO: usar nombre real
+    const tipId = Date.now().toString();
+
+    // Agregar al chat local del espectador
+    const newTip: TipMessage = {
+      id: tipId,
+      user: userName,
+      monto,
+      isVIP: false,
+      avatar: '💵',
+      timestamp: new Date()
+    };
+    setTipMessages(prev => [...prev, newTip]);
+
+    // Enviar al servidor
+    socketRef.current.emit('send-tip', {
+      channelName,
+      tipId,
+      user: userName,
+      monto,
+      isVIP: false,
+      avatar: '💵'
+    });
+
+    // Mostrar toast de confirmación
+    setToastMessage(`💵 Propina de S/.${monto} enviada`);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
+
+    console.log('💵 Propina enviada:', monto);
+  };
+
+  // Manejar envío de Super Chat
+  const handleEnviarSuperChat = (mensaje: string, tier: 'basic' | 'premium' | 'elite') => {
+    if (!socketRef.current || !mensaje.trim()) return;
+
+    const tiersPrecios = {
+      basic: 5,
+      premium: 10,
+      elite: 20
+    };
+
+    socketRef.current.emit('send-superchat', {
+      channelName,
+      superChatId: Date.now().toString(),
+      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+      mensaje: mensaje,
+      monto: tiersPrecios[tier],
+      tier: tier,
+      isVIP: false,
+      avatar: '⭐'
+    });
+
+    console.log('⭐ Super Chat enviado:', { mensaje, tier });
+  };
+
   // Catálogo de regalos premium
   const catalogoRegalos = [
     { id: '1', nombre: 'Rosa', emoji: '🌹', valor: 10 },
@@ -636,8 +787,8 @@ export const VerEnVivoPage = () => {
     { id: '6', nombre: 'Unicornio', emoji: '🦄', valor: 500 },
   ];
 
-  // Combinar mensajes y regalos en timeline
-  const timeline = [...chatMessages, ...giftMessages].sort(
+  // Combinar mensajes, regalos, propinas y super chats en timeline
+  const timeline = [...chatMessages, ...giftMessages, ...tipMessages, ...superChatMessages].sort(
     (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   );
 
@@ -765,6 +916,32 @@ export const VerEnVivoPage = () => {
                         <div className="bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-2">
                           <Users className="w-4 h-4 text-white" />
                           <span className="text-white text-sm font-bold">{espectadores}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Barra de Progreso de Meta - VISIBLE PARA ESPECTADORES */}
+                    {!transmisionFinalizada && metaActiva && metaActual > 0 && (
+                      <div className="absolute bottom-4 left-4 right-4 z-30">
+                        <div className="bg-black/70 backdrop-blur-md rounded-xl p-3 border border-white/10 shadow-2xl">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">🎯</span>
+                              <div>
+                                <p className="text-white text-sm font-bold">{descripcionMeta}</p>
+                                <p className="text-white/60 text-xs">{progresoMeta} / {metaActual} coins</p>
+                              </div>
+                            </div>
+                            <div className="text-white/80 text-xs font-medium">
+                              {porcentajeMeta.toFixed(0)}%
+                            </div>
+                          </div>
+                          <div className="relative w-full h-3 bg-gray-700/50 rounded-full overflow-hidden">
+                            <div 
+                              className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 transition-all duration-500 rounded-full"
+                              style={{ width: `${porcentajeMeta}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -911,6 +1088,60 @@ export const VerEnVivoPage = () => {
                 </div>
               </div>
               
+              {/* Super Chat Fijado */}
+              {pinnedSuperChat && (
+                <div className="mb-3 bg-white flex-shrink-0 shadow-lg rounded-xl overflow-hidden border-2 border-gray-200">
+                  <div className={`p-3 bg-gradient-to-r ${
+                    pinnedSuperChat.tier === 'elite' 
+                      ? 'from-yellow-500/30 via-orange-500/30 to-pink-500/30' 
+                      : pinnedSuperChat.tier === 'premium'
+                      ? 'from-purple-600/30 to-indigo-600/30'
+                      : 'from-blue-600/30 to-cyan-600/30'
+                  } border-l-4 ${
+                    pinnedSuperChat.tier === 'elite' 
+                      ? 'border-yellow-500' 
+                      : pinnedSuperChat.tier === 'premium'
+                      ? 'border-purple-600'
+                      : 'border-blue-600'
+                  }`}>
+                    <div className="flex items-center gap-1 mb-1.5">
+                      <span className="text-xs font-bold text-gray-700">📌 Super Chat Fijado</span>
+                      <span className="ml-auto text-[10px] text-gray-500">
+                        {pinnedSuperChat.tier === 'basic' ? '30s' : pinnedSuperChat.tier === 'premium' ? '60s' : '120s'}
+                      </span>
+                      <button
+                        onClick={() => setPinnedSuperChat(null)}
+                        className="text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm text-white font-bold">{pinnedSuperChat.avatar || '⭐'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1 mb-1">
+                          <p className="text-sm font-bold text-gray-900">{pinnedSuperChat.user}</p>
+                          {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
+                          <div className={`ml-auto flex items-center gap-0.5 ${
+                            pinnedSuperChat.tier === 'elite' 
+                              ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
+                              : pinnedSuperChat.tier === 'premium'
+                              ? 'bg-purple-500'
+                              : 'bg-blue-500'
+                          } rounded-lg px-2 py-0.5`}>
+                            <DollarSign className="w-3 h-3 text-white" />
+                            <span className="text-xs text-white font-bold">{pinnedSuperChat.monto}</span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-800 break-words leading-snug">{pinnedSuperChat.mensaje}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Timeline de mensajes y regalos */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                 {timeline.length === 0 ? (
@@ -922,6 +1153,67 @@ export const VerEnVivoPage = () => {
                   </div>
                 ) : (
                   timeline.map((item) => {
+                    // Es un Super Chat
+                    if ('tier' in item && 'monto' in item && 'mensaje' in item) {
+                      const superChat = item as SuperChatMessage;
+                      const tierConfig = {
+                        basic: { gradient: 'from-blue-500/20 to-blue-600/20', border: 'border-blue-500/50', text: 'text-blue-700', badge: 'bg-blue-500' },
+                        premium: { gradient: 'from-purple-500/20 to-purple-600/20', border: 'border-purple-500/50', text: 'text-purple-700', badge: 'bg-purple-500' },
+                        elite: { gradient: 'from-yellow-500/20 to-orange-600/20', border: 'border-yellow-500/50', text: 'text-yellow-700', badge: 'bg-gradient-to-r from-yellow-500 to-orange-500' }
+                      };
+                      const config = tierConfig[superChat.tier];
+                      
+                      return (
+                        <div key={superChat.id} className="animate-fade-in">
+                          <div className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-lg p-3 shadow-lg`}>
+                            <div className="flex items-start gap-2">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm text-white font-bold">{superChat.avatar || '⭐'}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <p className={`text-sm font-bold ${config.text}`}>{superChat.user}</p>
+                                  {superChat.isVIP && <Crown className="w-4 h-4 text-yellow-400" />}
+                                  <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1`}>
+                                    <DollarSign className="w-3 h-3 text-white" />
+                                    <p className="text-xs text-white font-bold">{superChat.monto}</p>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-800 font-medium break-words">{superChat.mensaje}</p>
+                                <p className="text-[10px] text-gray-500 mt-1">Super Chat • {superChat.tier === 'basic' ? '30s' : superChat.tier === 'premium' ? '60s' : '120s'} destacado</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Es una propina
+                    if ('monto' in item && !('gift' in item)) {
+                      return (
+                        <div key={item.id} className="animate-fade-in">
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300/50 rounded-lg p-2.5 shadow-sm">
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm">{item.avatar || '💵'}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1">
+                                  <p className="text-xs font-bold text-green-700 truncate">{item.user}</p>
+                                  {item.isVIP && <Crown className="w-3 h-3 text-yellow-500 flex-shrink-0" />}
+                                </div>
+                                <p className="text-[10px] text-gray-600">envió una propina</p>
+                              </div>
+                              <div className="flex items-center gap-0.5 bg-green-600 rounded-md px-2 py-1 flex-shrink-0">
+                                <DollarSign className="w-3 h-3 text-white" />
+                                <span className="text-xs text-white font-bold">{item.monto}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     if ('mensaje' in item) {
                       // Es un mensaje de chat
                       return (
@@ -1048,23 +1340,69 @@ export const VerEnVivoPage = () => {
                   )}
                 </div>
 
+                {/* Propinas Rápidas */}
+                <div className="mb-2">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    <button 
+                      onClick={() => handleEnviarPropina(1)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-1.5 px-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>1</span>
+                    </button>
+                    <button 
+                      onClick={() => handleEnviarPropina(5)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-1.5 px-1.5 bg-green-700 hover:bg-green-800 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>5</span>
+                    </button>
+                    <button 
+                      onClick={() => handleEnviarPropina(10)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-1.5 px-1.5 bg-green-800 hover:bg-green-900 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>10</span>
+                    </button>
+                    <button 
+                      onClick={() => handleEnviarPropina(20)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-1.5 px-1.5 bg-green-900 hover:bg-green-950 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3 h-3" />
+                      <span>20</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Botones de interacción premium */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   <button 
                     onClick={handleMeGusta}
                     disabled={!conectado || transmisionFinalizada}
-                    className="py-2.5 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95"
+                    className="py-2 px-2 bg-gray-800 hover:bg-gray-700 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95"
                   >
-                    <Heart className="w-4 h-4" />
-                    <span className="text-sm">Me gusta</span>
+                    <Heart className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Me gusta</span>
                   </button>
                   <button 
                     onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
                     disabled={!conectado || transmisionFinalizada}
-                    className="py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500"
+                    className="py-2 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500"
                   >
-                    <Gift className="w-4 h-4" />
-                    <span className="text-sm">Regalo</span>
+                    <Gift className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Regalo</span>
+                  </button>
+                  <button 
+                    onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
+                    disabled={!conectado || transmisionFinalizada}
+                    className="py-2 px-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Super</span>
                   </button>
                 </div>
               </div>
@@ -1193,6 +1531,25 @@ export const VerEnVivoPage = () => {
                 Comprar más coins
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Super Chat */}
+      <SuperChatModal 
+        isOpen={mostrarModalSuperChat}
+        onClose={() => setMostrarModalSuperChat(false)}
+        onSend={handleEnviarSuperChat}
+      />
+
+      {/* Toast de notificación */}
+      {toastVisible && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-down">
+          <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-green-400">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span className="font-semibold">{toastMessage}</span>
           </div>
         </div>
       )}

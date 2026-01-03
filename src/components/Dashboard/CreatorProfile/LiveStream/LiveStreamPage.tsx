@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { io, Socket } from 'socket.io-client';
 import { 
   Heart, 
   Gift, 
@@ -13,6 +14,8 @@ import {
 } from 'lucide-react';
 import { LiveStream, LiveMessage } from '../../../../shared/types/creator-profile.types';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+
 export const LiveStreamPage = () => {
   const { slug } = useParams();
   const { id } = useParams();
@@ -25,6 +28,7 @@ export const LiveStreamPage = () => {
   const [newMessage, setNewMessage] = useState('');
   const [canSendMessage, setCanSendMessage] = useState(true);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const socketRef = useRef<Socket | null>(null);
 
   // Mock data - TODO: Obtener de API
   const liveStream: LiveStream = {
@@ -118,10 +122,51 @@ export const LiveStreamPage = () => {
     console.log('Enviar regalo:', amount);
   };
 
-  const handleReaction = (reaction: string) => {
-    console.log('Reacción:', reaction);
-    // TODO: Enviar reacción al servidor
+  const handleSendTip = (amount: number) => {
+    console.log('💵 Enviando propina:', amount);
+    if (socketRef.current && id) {
+      const channelName = `live_${id}`;
+      socketRef.current.emit('send-tip', {
+        channelName,
+        tipId: Date.now().toString(),
+        user: 'Espectador',
+        monto: amount,
+        isVIP: false,
+        avatar: '👤'
+      });
+    }
   };
+
+  const handleReaction = (reaction: string) => {
+    console.log('Reacción enviada:', reaction);
+    if (socketRef.current && id) {
+      const channelName = `live_${id}`;
+      socketRef.current.emit('send-reaction', {
+        channelName,
+        liveId: id,
+        reaction,
+        username: 'Espectador',
+        timestamp: new Date().toISOString()
+      });
+    }
+  };
+
+  // Conectar al socket cuando el componente se monta
+  useEffect(() => {
+    if (!id) return;
+    
+    socketRef.current = io(BACKEND_URL);
+    const channelName = `live_${id}`;
+    
+    socketRef.current.on('connect', () => {
+      console.log('✅ Socket conectado como espectador');
+      socketRef.current?.emit('join-channel', channelName);
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, [id]);
 
   // Modal de pago de entrada
   if (showPaymentModal) {
@@ -261,6 +306,34 @@ export const LiveStreamPage = () => {
               <DollarSign className="w-5 h-5 text-white" />
               <span className="text-white font-bold">S/. {liveStream.totalEarnings}</span>
             </div>
+          </div>
+
+          {/* Propinas Rápidas */}
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              onClick={() => handleSendTip(1)}
+              className="bg-green-500/80 backdrop-blur-md hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+            >
+              💵 S/. 1
+            </button>
+            <button
+              onClick={() => handleSendTip(5)}
+              className="bg-green-600/80 backdrop-blur-md hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+            >
+              💵 S/. 5
+            </button>
+            <button
+              onClick={() => handleSendTip(10)}
+              className="bg-green-700/80 backdrop-blur-md hover:bg-green-800 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+            >
+              💵 S/. 10
+            </button>
+            <button
+              onClick={() => handleSendTip(20)}
+              className="bg-green-800/80 backdrop-blur-md hover:bg-green-900 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+            >
+              💵 S/. 20
+            </button>
           </div>
 
           {/* Botones de Regalos */}

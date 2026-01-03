@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { 
   ArrowLeft, Heart, MessageCircle, Share2, MapPin, 
   Users, CheckCircle, Star, Calendar, Shield, 
-  UserPlus, DollarSign, ThumbsDown, Image, Video, 
-  Crown, ShoppingBag, Gift, Globe
+  Camera, Gift, Globe, ThumbsDown, Image, Video,
+  Crown, ShoppingBag, Play, Lock, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-// Interfaces
+// Types
 interface MediaItem {
   id: number;
   tipo: 'foto' | 'video';
@@ -46,6 +46,11 @@ export const CreatorProfilePageFullscreen = () => {
   const [activeTab, setActiveTab] = useState<ContentTabType>('fotos');
   const [isSubscribedToPhotos, setIsSubscribedToPhotos] = useState(false);
   const [isSubscribedToVideos, setIsSubscribedToVideos] = useState(false);
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0);
+  
+  // Estados para el modal de visualización
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   // Mock data
   const creadora = {
@@ -55,58 +60,57 @@ export const CreatorProfilePageFullscreen = () => {
     edad: 24,
     avatar: 'https://i.pravatar.cc/400?img=1',
     ubicacion: 'Miraflores, Lima',
-    distancia: 5,
     bio: 'Modelo y creadora de contenido. Amante del fitness, viajes y la buena vida 💪✨',
     verificada: true,
     enVivo: false,
     isOnline: true,
-    
-    // Stats
     seguidores: 12400,
     meGusta: 472,
     noMeGusta: 0,
     contenidoSubido: 156,
-    
-    // Información detallada
     altura: 160,
     tipoCuerpo: 'Delgado',
     apariencia: 'Muy atractivo',
     idiomas: ['Inglés', 'Español'],
     nivelIngles: 'Medio',
     etnia: 'Latino/Hispano',
-    educacion: 'Universidad',
     fumas: 'No',
     hijos: '0',
     buscando: ['Ligue', 'Amistad'],
     ingresos: '50k-249k',
-    intereses: ['Relación seria', 'Salir', 'Amistad', 'Cenas'],
-    
-    // Extras
     ultimaConexion: 'Conectada ahora',
     miembroDesde: 'Enero 2024',
-    cumpleanos: '15 de marzo',
     precioSuscripcion: 140,
     precioSuscripcionFotos: 80,
     precioSuscripcionVideos: 100,
   };
 
+  // Contenido PÚBLICO
   const fotosPublicas: MediaItem[] = [
-    { id: 1, tipo: 'foto', url: 'https://picsum.photos/400/400?random=1', thumbnail: 'https://picsum.photos/400/400?random=1', isPremium: false, likes: 234, createdAt: '2024-01-15' },
-    { id: 2, tipo: 'foto', url: 'https://picsum.photos/400/400?random=2', thumbnail: 'https://picsum.photos/400/400?random=2', isPremium: false, likes: 189, createdAt: '2024-01-14' },
-    { id: 3, tipo: 'foto', url: 'https://picsum.photos/400/400?random=3', thumbnail: 'https://picsum.photos/400/400?random=3', isPremium: false, likes: 156, createdAt: '2024-01-13' },
+    { id: 1, tipo: 'foto', url: 'https://picsum.photos/800/600?random=1', thumbnail: 'https://picsum.photos/400/400?random=1', isPremium: false, likes: 234, createdAt: '2024-01-15' },
+    { id: 2, tipo: 'foto', url: 'https://picsum.photos/800/600?random=2', thumbnail: 'https://picsum.photos/400/400?random=2', isPremium: false, likes: 189, createdAt: '2024-01-14' },
+    { id: 3, tipo: 'foto', url: 'https://picsum.photos/800/600?random=3', thumbnail: 'https://picsum.photos/400/400?random=3', isPremium: false, likes: 156, createdAt: '2024-01-13' },
+    { id: 4, tipo: 'foto', url: 'https://picsum.photos/800/600?random=4', thumbnail: 'https://picsum.photos/400/400?random=4', isPremium: false, likes: 201, createdAt: '2024-01-12' },
+    { id: 5, tipo: 'foto', url: 'https://picsum.photos/800/600?random=5', thumbnail: 'https://picsum.photos/400/400?random=5', isPremium: false, likes: 178, createdAt: '2024-01-11' },
   ];
 
   const videosPublicos: MediaItem[] = [
-    { id: 10, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/400/400?random=10', isPremium: false, likes: 567, createdAt: '2024-01-13', duracion: 125 },
+    { id: 10, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/800/600?random=10', isPremium: false, likes: 567, createdAt: '2024-01-13', duracion: 125 },
+    { id: 11, tipo: 'video', url: 'video2.mp4', thumbnail: 'https://picsum.photos/800/600?random=11', isPremium: false, likes: 432, createdAt: '2024-01-12', duracion: 95 },
   ];
 
+  // Contenido PREMIUM
   const contenidoPremiumFotos: MediaItem[] = [
-    { id: 30, tipo: 'foto', url: 'https://picsum.photos/400/400?random=30', thumbnail: 'https://picsum.photos/400/400?random=30', isPremium: true, likes: 456, createdAt: '2024-01-10', titulo: 'Atardecer en la Playa' },
-    { id: 31, tipo: 'foto', url: 'https://picsum.photos/400/400?random=31', thumbnail: 'https://picsum.photos/400/400?random=31', isPremium: true, likes: 389, createdAt: '2024-01-09', titulo: 'Fitness en el Gym' },
+    { id: 30, tipo: 'foto', url: 'https://picsum.photos/800/600?random=30', thumbnail: 'https://picsum.photos/400/400?random=30', isPremium: true, likes: 456, createdAt: '2024-01-10', titulo: 'Atardecer en la Playa' },
+    { id: 31, tipo: 'foto', url: 'https://picsum.photos/800/600?random=31', thumbnail: 'https://picsum.photos/400/400?random=31', isPremium: true, likes: 389, createdAt: '2024-01-09', titulo: 'Fitness en el Gym' },
+    { id: 32, tipo: 'foto', url: 'https://picsum.photos/800/600?random=32', thumbnail: 'https://picsum.photos/400/400?random=32', isPremium: true, likes: 512, createdAt: '2024-01-08', titulo: 'Sesión Exclusiva' },
+    { id: 33, tipo: 'foto', url: 'https://picsum.photos/800/600?random=33', thumbnail: 'https://picsum.photos/400/400?random=33', isPremium: true, likes: 423, createdAt: '2024-01-07', titulo: 'Playa Privada' },
   ];
 
   const contenidoPremiumVideos: MediaItem[] = [
-    { id: 40, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/400/400?random=40', isPremium: true, likes: 789, createdAt: '2024-01-08', duracion: 180, titulo: 'Yoga Matutina' },
+    { id: 40, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/800/600?random=40', isPremium: true, likes: 789, createdAt: '2024-01-08', duracion: 180, titulo: 'Yoga Matutina' },
+    { id: 41, tipo: 'video', url: 'video2.mp4', thumbnail: 'https://picsum.photos/800/600?random=41', isPremium: true, likes: 654, createdAt: '2024-01-07', duracion: 240, titulo: 'Rutina Completa' },
+    { id: 42, tipo: 'video', url: 'video3.mp4', thumbnail: 'https://picsum.photos/800/600?random=42', isPremium: true, likes: 521, createdAt: '2024-01-06', duracion: 156, titulo: 'Sesión Premium' },
   ];
 
   const contenidoComprable: ContenidoComprable[] = [
@@ -123,14 +127,25 @@ export const CreatorProfilePageFullscreen = () => {
       isPurchased: false,
       createdAt: '2024-01-12',
     },
+    {
+      id: 2,
+      titulo: 'Video Fitness Completo',
+      descripcion: 'Rutina completa de gimnasio en 4K.',
+      tipo: 'video',
+      thumbnail: 'https://picsum.photos/400/400?random=51',
+      precio: 25,
+      cantidadItems: 1,
+      isPurchased: true,
+      createdAt: '2024-01-11',
+    },
   ];
 
   const tabs = [
-    { id: 'fotos' as ContentTabType, label: 'Fotos', icon: Image, count: fotosPublicas.length },
-    { id: 'videos' as ContentTabType, label: 'Videos', icon: Video, count: videosPublicos.length },
-    { id: 'premium-fotos' as ContentTabType, label: 'Premium Fotos', icon: Crown, count: contenidoPremiumFotos.length },
-    { id: 'premium-videos' as ContentTabType, label: 'Premium Videos', icon: Crown, count: contenidoPremiumVideos.length },
-    { id: 'contenido-comprable' as ContentTabType, label: 'Contenido ($)', icon: ShoppingBag, count: contenidoComprable.length },
+    { id: 'fotos' as ContentTabType, label: 'Fotos', icon: Image, count: fotosPublicas.length, isPublic: true },
+    { id: 'videos' as ContentTabType, label: 'Videos', icon: Video, count: videosPublicos.length, isPublic: true },
+    { id: 'premium-fotos' as ContentTabType, label: 'Premium Fotos', icon: Crown, count: contenidoPremiumFotos.length, isPublic: false },
+    { id: 'premium-videos' as ContentTabType, label: 'Premium Videos', icon: Crown, count: contenidoPremiumVideos.length, isPublic: false },
+    { id: 'contenido-comprable' as ContentTabType, label: 'Contenido ($)', icon: ShoppingBag, count: contenidoComprable.length, isPublic: false },
   ];
 
   const getContent = () => {
@@ -144,346 +159,291 @@ export const CreatorProfilePageFullscreen = () => {
     }
   };
 
+  const currentContent = getContent();
+  const isPremiumTab = activeTab === 'premium-fotos' || activeTab === 'premium-videos';
+  const isSubscribed = activeTab === 'premium-fotos' ? isSubscribedToPhotos : activeTab === 'premium-videos' ? isSubscribedToVideos : false;
+  const isPublicTab = activeTab === 'fotos' || activeTab === 'videos';
+
+  const handleMediaClick = (index: number) => {
+    if (isPremiumTab && isSubscribed) {
+      setSelectedMediaIndex(index);
+      setShowMediaModal(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
-        <div className="flex items-center justify-between px-6 py-3">
-          {/* Left - Volver */}
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-semibold text-sm">Atrás</span>
-          </button>
-          
-          {/* Right - Acciones */}
-          <div className="flex items-center gap-2">
-            {/* Me gusta */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
             <button
-              onClick={() => {
-                setRecommend(!recommend);
-                setNotRecommend(false);
-              }}
-              className={`p-2 rounded-lg transition-all ${
-                recommend 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-green-50 text-green-600 hover:bg-green-100'
-              }`}
-              title="Me gusta"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
             >
-              <Heart className={`w-4 h-4 ${recommend ? 'fill-current' : ''}`} />
+              <ArrowLeft className="w-4 h-4" />
+              <span className="font-medium text-sm">Volver</span>
             </button>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setRecommend(!recommend);
+                  setNotRecommend(false);
+                }}
+                className={`p-2 rounded-lg transition ${
+                  recommend ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Heart className={`w-4 h-4 ${recommend ? 'fill-current' : ''}`} />
+              </button>
 
-            {/* No me gusta */}
-            <button
-              onClick={() => {
-                setNotRecommend(!notRecommend);
-                setRecommend(false);
-              }}
-              className={`p-2 rounded-lg transition-all ${
-                notRecommend 
-                  ? 'bg-red-500 text-white' 
-                  : 'bg-red-50 text-red-600 hover:bg-red-100'
-              }`}
-              title="No me gusta"
-            >
-              <ThumbsDown className={`w-4 h-4 ${notRecommend ? 'fill-current' : ''}`} />
-            </button>
-            
-            {/* Favorito */}
-            <button
-              onClick={() => setIsFavorite(!isFavorite)}
-              className={`p-2 rounded-lg transition-all ${
-                isFavorite 
-                  ? 'bg-orange-500 text-white' 
-                  : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-              }`}
-              title="Favorito"
-            >
-              <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-            </button>
-            
-            {/* Compartir */}
-            <button 
-              className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all"
-              title="Compartir perfil"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
+              <button
+                onClick={() => {
+                  setNotRecommend(!notRecommend);
+                  setRecommend(false);
+                }}
+                className={`p-2 rounded-lg transition ${
+                  notRecommend ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <ThumbsDown className={`w-4 h-4 ${notRecommend ? 'fill-current' : ''}`} />
+              </button>
+              
+              <button
+                onClick={() => setIsFavorite(!isFavorite)}
+                className={`p-2 rounded-lg transition ${
+                  isFavorite ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+              </button>
+              
+              <button className="p-2 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition">
+                <Share2 className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex">
-        {/* Sidebar Izquierdo - Perfil */}
-        <div className="w-80 h-[calc(100vh-64px)] overflow-y-auto bg-white border-r border-gray-200">
-          <div className="p-6">
-            {/* Avatar */}
-            <div className="relative w-20 h-20 mx-auto mb-4">
-              {creadora.enVivo && (
-                <>
-                  <div className="absolute -inset-1 rounded-full bg-gradient-to-tr from-red-500 to-pink-500 animate-spin-slow"></div>
-                  <div className="absolute -inset-0.5 rounded-full bg-white"></div>
-                </>
-              )}
-              
-              <div className={`relative w-full h-full rounded-full overflow-hidden ${
-                creadora.enVivo ? '' : 'ring-2 ring-gray-200'
-              }`}>
+      {/* Main Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-24">
+              {/* Avatar */}
+              <div className="relative w-24 h-24 mx-auto mb-4">
                 <img
                   src={creadora.avatar}
                   alt={creadora.nombre}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full rounded-full object-cover ring-2 ring-gray-200"
                 />
-              </div>
-              
-              {creadora.enVivo && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full">
-                  EN VIVO
-                </div>
-              )}
-              
-              {!creadora.enVivo && creadora.isOnline && (
-                <div className="absolute bottom-0 right-1/2 translate-x-9 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-              )}
-            </div>
-
-            {/* Nombre */}
-            <div className="text-center mb-4">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <h2 className="text-xl font-bold text-gray-900">{creadora.nombre}, {creadora.edad}</h2>
                 {creadora.verificada && (
-                  <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-3 h-3 text-white" fill="currentColor" />
+                  <div className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center ring-2 ring-white">
+                    <CheckCircle className="w-4 h-4 text-white" fill="currentColor" />
                   </div>
                 )}
+                {creadora.isOnline && (
+                  <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                )}
               </div>
-              <p className="text-sm text-gray-600">{creadora.username}</p>
-            </div>
 
-            {/* Stats */}
-            <div className="flex items-center justify-center gap-6 py-4 mb-4 border-y border-gray-100">
-              <div className="text-center">
-                <div className="text-lg font-bold text-gray-900">{creadora.meGusta}</div>
-                <div className="text-xs text-gray-500">Me gusta</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-gray-900">
-                  {creadora.seguidores >= 1000 
-                    ? `${(creadora.seguidores / 1000).toFixed(1)}K` 
-                    : creadora.seguidores}
-                </div>
-                <div className="text-xs text-gray-500">seguidores</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold text-gray-900">{creadora.noMeGusta}</div>
-                <div className="text-xs text-gray-500">No me gusta</div>
-              </div>
-            </div>
-
-            {/* Ubicación */}
-            <div className="flex items-center gap-2 text-gray-600 mb-4">
-              <MapPin className="w-4 h-4" />
-              <span className="text-sm">{creadora.ubicacion}</span>
-              <span className="text-xs text-gray-400">• {creadora.distancia} km</span>
-            </div>
-
-            {/* Bio */}
-            <div className="mb-4">
-              <p className="text-sm text-gray-700 leading-relaxed">{creadora.bio}</p>
-            </div>
-
-            {/* Intereses */}
-            {creadora.intereses && creadora.intereses.length > 0 && (
-              <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">Intereses</h4>
-                <div className="flex flex-wrap gap-2">
-                  {creadora.intereses.map((interes, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium"
-                    >
-                      {interes}
-                    </span>
-                  ))}
+              {/* Info */}
+              <div className="text-center mb-4">
+                <h1 className="text-xl font-bold text-gray-900 mb-1">
+                  {creadora.nombre}, {creadora.edad}
+                </h1>
+                <p className="text-sm text-gray-600 mb-2">{creadora.username}</p>
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+                  <MapPin className="w-3 h-3" />
+                  <span>{creadora.ubicacion}</span>
                 </div>
               </div>
-            )}
 
-            {/* Botones de acción */}
-            <div className="space-y-2 mb-6">
-              <button 
-                onClick={() => setIsFollowing(!isFollowing)}
-                className={`w-full rounded-lg transition-all flex items-center justify-center gap-2 py-2.5 font-medium text-sm ${
-                  isFollowing
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
-                }`}
-              >
-                <UserPlus className="w-4 h-4" />
-                {isFollowing ? 'Siguiendo' : 'Seguir'}
-              </button>
-
-              <button 
-                className="w-full bg-white hover:bg-blue-500 border-2 border-blue-500 hover:border-blue-600 rounded-lg transition-all flex items-center justify-center gap-2 py-2.5 group"
-              >
-                <MessageCircle className="w-4 h-4 text-blue-500 group-hover:text-white transition-colors" />
-                <span className="text-sm font-medium text-blue-600 group-hover:text-white transition-colors">Mensaje</span>
-              </button>
-
-              <button 
-                className="w-full bg-white hover:bg-green-500 border-2 border-green-500 hover:border-green-600 rounded-lg transition-all flex items-center justify-center gap-2 py-2.5 group"
-              >
-                <DollarSign className="w-4 h-4 text-green-500 group-hover:text-white transition-colors" />
-                <span className="text-sm font-medium text-green-600 group-hover:text-white transition-colors">Donar</span>
-              </button>
-
-              <button 
-                className="w-full bg-white hover:bg-orange-500 border-2 border-orange-500 hover:border-orange-600 rounded-lg transition-all flex items-center justify-center gap-2 py-2.5 group"
-              >
-                <Gift className="w-4 h-4 text-orange-500 group-hover:text-white transition-colors" />
-                <span className="text-sm font-medium text-orange-600 group-hover:text-white transition-colors">Regalo</span>
-              </button>
-            </div>
-
-            {/* Información adicional */}
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-semibold text-gray-900">Información</h4>
-              
-              {/* Características físicas */}
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Características Físicas</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Altura</span>
-                    <span className="font-medium text-gray-900">{creadora.altura} cm</span>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 py-4 mb-4 border-y border-gray-100">
+                <div className="text-center">
+                  <div className="text-base font-bold text-gray-900">
+                    {creadora.seguidores >= 1000 
+                      ? `${(creadora.seguidores / 1000).toFixed(1)}K` 
+                      : creadora.seguidores}
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tipo de cuerpo</span>
-                    <span className="font-medium text-gray-900">{creadora.tipoCuerpo}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Apariencia</span>
-                    <span className="font-medium text-gray-900">{creadora.apariencia}</span>
+                  <div className="text-xs text-gray-500">Seguidores</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-base font-bold text-gray-900">{creadora.meGusta}</div>
+                  <div className="text-xs text-gray-500">Me Gusta</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-base font-bold text-gray-900">{creadora.contenidoSubido}</div>
+                  <div className="text-xs text-gray-500">Posts</div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div className="mb-4">
+                <p className="text-sm text-gray-700 leading-relaxed">{creadora.bio}</p>
+              </div>
+
+              {/* Botones */}
+              <div className="space-y-2 mb-6">
+                <button
+                  onClick={() => setIsFollowing(!isFollowing)}
+                  className={`w-full py-2.5 rounded-lg font-semibold text-sm transition ${
+                    isFollowing
+                      ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  {isFollowing ? 'Siguiendo' : 'Seguir'}
+                </button>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="py-2.5 px-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5">
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    Mensaje
+                  </button>
+                  <button className="py-2.5 px-3 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition flex items-center justify-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5" />
+                    Regalo
+                  </button>
+                </div>
+              </div>
+
+              {/* Premium */}
+              <div className="bg-gray-900 rounded-lg p-4 text-center mb-6">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Star className="w-4 h-4 text-white" />
+                  <span className="text-sm font-semibold text-white">Premium</span>
+                </div>
+                <p className="text-2xl font-bold text-white mb-3">S/. {creadora.precioSuscripcion}/mes</p>
+                <button className="w-full py-2.5 bg-white text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-100 transition">
+                  Suscribirse
+                </button>
+              </div>
+
+              {/* Info Adicional */}
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Características</p>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Altura</span>
+                      <span className="text-gray-900 font-medium">{creadora.altura} cm</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tipo</span>
+                      <span className="text-gray-900 font-medium">{creadora.tipoCuerpo}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Idiomas */}
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Idiomas</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {creadora.idiomas.map((idioma) => (
-                    <span key={idioma} className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                      {idioma}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Estilo de vida */}
-              <div>
-                <p className="text-xs text-gray-500 mb-2">Estilo de Vida</p>
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Educación</span>
-                    <span className="font-medium text-gray-900">{creadora.educacion}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Fuma</span>
-                    <span className="font-medium text-gray-900">{creadora.fumas}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Hijos</span>
-                    <span className="font-medium text-gray-900">{creadora.hijos}</span>
+                <div>
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Idiomas</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {creadora.idiomas.map((idioma) => (
+                      <span key={idioma} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                        {idioma}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Info del perfil */}
-              <div className="pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Miembro desde {creadora.miembroDesde}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5" />
-                  <span>Perfil verificado</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span>{creadora.ultimaConexion}</span>
+                <div className="space-y-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3" />
+                    <span>Miembro desde {creadora.miembroDesde}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3 h-3" />
+                    <span>Perfil verificado</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Contenido Principal - Tabs */}
-        <div className="flex-1">
-          {/* Tabs */}
-          <div className="sticky top-14 bg-white border-b border-gray-200 z-20">
-            <div className="overflow-x-auto">
-              <div className="flex gap-1 px-4 min-w-max">
-                {tabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition relative whitespace-nowrap ${
-                        isActive 
-                          ? 'text-gray-900' 
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <div className={`p-1.5 rounded-lg transition ${
-                        isActive ? 'bg-gray-900' : 'bg-gray-100'
-                      }`}>
-                        <tab.icon className={`w-4 h-4 ${
-                          isActive ? 'text-white' : 'text-gray-600'
-                        }`} />
-                      </div>
-
-                      <span>{tab.label}</span>
-
-                      {tab.count > 0 && (
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          isActive ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
-                        }`}>
-                          {tab.count}
-                        </span>
-                      )}
-
-                      {isActive && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-900" />
-                      )}
-                    </button>
-                  );
-                })}
+          {/* Content Area */}
+          <div className="lg:col-span-3">
+            {/* Tabs */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-4">
+              <div className="overflow-x-auto">
+                <div className="flex border-b border-gray-200">
+                  {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition relative whitespace-nowrap ${
+                          isActive 
+                            ? 'text-gray-900 border-b-2 border-gray-900 -mb-px' 
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <tab.icon className="w-4 h-4" />
+                        <span>{tab.label}</span>
+                        {tab.count > 0 && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            isActive ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
+                        {!tab.isPublic && (
+                          <Lock className="w-3 h-3 text-gray-400" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Contenido de las tabs */}
-          <div className="p-4">
-            {activeTab === 'contenido-comprable' ? (
-              /* Contenido Comprable */
-              <div className="max-w-6xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Content */}
+            <div>
+              {activeTab === 'contenido-comprable' ? (
+                /* Contenido Comprable */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {contenidoComprable.map((item) => (
-                    <div key={item.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition">
-                      <div className="aspect-video relative">
-                        <img src={item.thumbnail} alt={item.titulo} className="w-full h-full object-cover" />
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-bold rounded">
+                    <div key={item.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-300 transition">
+                      <div className="aspect-video relative bg-gray-100">
+                        {/* Imagen con blur si NO está comprado */}
+                        <img 
+                          src={item.thumbnail} 
+                          alt={item.titulo} 
+                          className={`w-full h-full object-cover transition ${
+                            !item.isPurchased ? 'blur-xl scale-105' : ''
+                          }`}
+                        />
+                        
+                        {/* Badge de precio */}
+                        <div className={`absolute top-2 right-2 px-2 py-1 bg-gray-900 text-white text-xs font-bold rounded ${
+                          !item.isPurchased ? 'blur-sm' : ''
+                        }`}>
                           S/. {item.precio}
                         </div>
+                        
+                        {/* Badge de comprado */}
+                        {item.isPurchased && (
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
+                            ✓ Comprado
+                          </div>
+                        )}
+                        
+                        {/* Icono de candado si NO está comprado */}
+                        {!item.isPurchased && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-gray-900/70 rounded-full flex items-center justify-center">
+                              <Lock className="w-8 h-8 text-white" />
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="p-4">
-                        <h3 className="font-semibold text-gray-900 mb-1">{item.titulo}</h3>
+                        <h3 className="font-semibold text-gray-900 mb-1 text-sm">{item.titulo}</h3>
                         <p className="text-xs text-gray-600 mb-3 line-clamp-2">{item.descripcion}</p>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500">{item.cantidadItems} items</span>
@@ -502,52 +462,215 @@ export const CreatorProfilePageFullscreen = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            ) : (
-              /* Grid de Fotos/Videos */
-              <div className="max-w-6xl mx-auto">
-                {(activeTab === 'premium-fotos' || activeTab === 'premium-videos') && 
-                 !(activeTab === 'premium-fotos' ? isSubscribedToPhotos : isSubscribedToVideos) && (
-                  <div className="bg-white rounded-xl border-2 border-gray-200 p-8 text-center mb-6">
-                    <Crown className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">Contenido Premium</h3>
-                    <p className="text-gray-600 mb-6">
-                      Suscríbete para acceder a {activeTab === 'premium-fotos' ? 'fotos' : 'videos'} exclusivos
-                    </p>
-                    <button 
-                      onClick={() => activeTab === 'premium-fotos' ? setIsSubscribedToPhotos(true) : setIsSubscribedToVideos(true)}
-                      className="bg-gray-900 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-800 transition"
-                    >
-                      Suscribirse por S/. {activeTab === 'premium-fotos' ? creadora.precioSuscripcionFotos : creadora.precioSuscripcionVideos}/mes
-                    </button>
-                  </div>
-                )}
+              ) : isPublicTab ? (
+                /* GALERÍA PÚBLICA */
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Camera className="w-4 h-4" />
+                    Galería
+                  </h2>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {getContent()?.map((item: MediaItem) => (
-                    <div key={item.id} className="aspect-square relative group">
-                      <img
-                        src={item.thumbnail}
-                        alt=""
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      {item.tipo === 'video' && (
-                        <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-semibold rounded">
-                          {Math.floor(item.duracion! / 60)}:{(item.duracion! % 60).toString().padStart(2, '0')}
+                  {currentContent && currentContent.length > 0 && (
+                    <>
+                      <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-4 bg-gray-100">
+                        <img
+                          src={currentContent[activeMediaIndex].url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                        
+                        {currentContent[activeMediaIndex].tipo === 'video' && (
+                          <>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-16 h-16 bg-black/60 rounded-full flex items-center justify-center">
+                                <Play className="w-8 h-8 text-white fill-current ml-1" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 text-white text-xs font-semibold rounded">
+                              {Math.floor(currentContent[activeMediaIndex].duracion! / 60)}:{(currentContent[activeMediaIndex].duracion! % 60).toString().padStart(2, '0')}
+                            </div>
+                          </>
+                        )}
+
+                        {activeMediaIndex > 0 && (
+                          <button
+                            onClick={() => setActiveMediaIndex(activeMediaIndex - 1)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow transition"
+                          >
+                            <ChevronLeft className="w-5 h-5 text-gray-900" />
+                          </button>
+                        )}
+                        {activeMediaIndex < currentContent.length - 1 && (
+                          <button
+                            onClick={() => setActiveMediaIndex(activeMediaIndex + 1)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow transition"
+                          >
+                            <ChevronRight className="w-5 h-5 text-gray-900" />
+                          </button>
+                        )}
+
+                        <div className="absolute bottom-3 left-3 bg-black/60 px-2 py-1 rounded text-white text-xs font-medium">
+                          {activeMediaIndex + 1} / {currentContent.length}
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                        <Heart className="w-5 h-5 text-white mr-2" />
-                        <span className="text-white font-semibold text-sm">{item.likes}</span>
+                      </div>
+
+                      <div className="grid grid-cols-5 gap-2">
+                        {currentContent.map((item, index) => (
+                          <button
+                            key={item.id}
+                            onClick={() => setActiveMediaIndex(index)}
+                            className={`aspect-square rounded overflow-hidden transition relative ${
+                              activeMediaIndex === index
+                                ? 'ring-2 ring-gray-900'
+                                : 'opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img src={item.thumbnail} alt="" className="w-full h-full object-cover" />
+                            {item.tipo === 'video' && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-6 h-6 bg-black/60 rounded-full flex items-center justify-center">
+                                  <Play className="w-3 h-3 text-white fill-current" />
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* CONTENIDO PREMIUM */
+                <div>
+                  {/* Candado STICKY (SIEMPRE VISIBLE - Aparece primero) */}
+                  {!isSubscribed && (
+                    <div className="sticky top-24 z-20 flex justify-center mb-6 pointer-events-none">
+                      <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-xl p-8 text-center max-w-md pointer-events-auto">
+                        <Lock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Contenido Premium</h3>
+                        <p className="text-sm text-gray-600 mb-6">
+                          Suscríbete para desbloquear {currentContent?.length} {activeTab === 'premium-fotos' ? 'fotos' : 'videos'} exclusivos
+                        </p>
+                        <button 
+                          onClick={() => activeTab === 'premium-fotos' ? setIsSubscribedToPhotos(true) : setIsSubscribedToVideos(true)}
+                          className="w-full bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-sm shadow-lg"
+                        >
+                          Suscribirse por S/. {activeTab === 'premium-fotos' ? creadora.precioSuscripcionFotos : creadora.precioSuscripcionVideos}/mes
+                        </button>
                       </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Grid con Blur (SIEMPRE VISIBLE) */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {currentContent?.map((item: MediaItem, index: number) => (
+                      <button
+                        key={item.id}
+                        onClick={() => handleMediaClick(index)}
+                        disabled={!isSubscribed}
+                        className={`aspect-square relative group bg-gray-100 rounded-lg overflow-hidden ${
+                          !isSubscribed ? 'cursor-default' : 'cursor-pointer'
+                        }`}
+                      >
+                        <img
+                          src={item.thumbnail}
+                          alt=""
+                          className={`w-full h-full object-cover transition ${
+                            !isSubscribed ? 'blur-2xl scale-110' : 'group-hover:scale-105'
+                          }`}
+                        />
+                        {item.tipo === 'video' && (
+                          <>
+                            <div className={`absolute inset-0 flex items-center justify-center ${!isSubscribed ? 'blur-sm' : ''}`}>
+                              <div className="w-10 h-10 bg-black/60 rounded-full flex items-center justify-center">
+                                <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                              </div>
+                            </div>
+                            <div className={`absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-semibold rounded ${!isSubscribed ? 'blur-sm' : ''}`}>
+                              {Math.floor(item.duracion! / 60)}:{(item.duracion! % 60).toString().padStart(2, '0')}
+                            </div>
+                          </>
+                        )}
+                        {isSubscribed && (
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div className="flex items-center gap-2 text-white">
+                              <Heart className="w-4 h-4" />
+                              <span className="font-semibold text-sm">{item.likes}</span>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Modal de Visualización (Solo Premium Suscrito) */}
+      {showMediaModal && currentContent && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4">
+          <button
+            onClick={() => setShowMediaModal(false)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+
+          <div className="max-w-5xl w-full">
+            <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-4">
+              <img
+                src={currentContent[selectedMediaIndex].url}
+                alt=""
+                className="w-full h-full object-contain"
+              />
+              
+              {currentContent[selectedMediaIndex].tipo === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+                    <Play className="w-10 h-10 text-white fill-current ml-1" />
+                  </div>
+                </div>
+              )}
+
+              {selectedMediaIndex > 0 && (
+                <button
+                  onClick={() => setSelectedMediaIndex(selectedMediaIndex - 1)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition"
+                >
+                  <ChevronLeft className="w-6 h-6 text-white" />
+                </button>
+              )}
+              {selectedMediaIndex < currentContent.length - 1 && (
+                <button
+                  onClick={() => setSelectedMediaIndex(selectedMediaIndex + 1)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition"
+                >
+                  <ChevronRight className="w-6 h-6 text-white" />
+                </button>
+              )}
+
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-2 rounded-full text-white text-sm font-medium">
+                {selectedMediaIndex + 1} / {currentContent.length}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-4">
+                <button className="flex items-center gap-2 hover:text-gray-300 transition">
+                  <Heart className="w-5 h-5" />
+                  <span className="text-sm font-medium">{currentContent[selectedMediaIndex].likes}</span>
+                </button>
+              </div>
+              {currentContent[selectedMediaIndex].titulo && (
+                <p className="text-sm font-medium">{currentContent[selectedMediaIndex].titulo}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

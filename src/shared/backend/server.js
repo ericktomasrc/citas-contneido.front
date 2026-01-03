@@ -26,6 +26,8 @@ const espectadoresPorCanal = new Map();
 const canalesActivos = new Map();
 // Almacenar configuración del chat por canal
 const chatConfigPorCanal = new Map();
+// Almacenar estado de las metas por canal
+const metasPorCanal = new Map();
 
 app.get('/api/agora/token', (req, res) => {
   const { channelName, userId } = req.query;
@@ -142,6 +144,12 @@ app.post('/api/canal/finalizar', express.json(), (req, res) => {
   // Limpiar espectadores
   espectadoresPorCanal.delete(channelName);
   
+  // Limpiar configuración del chat
+  chatConfigPorCanal.delete(channelName);
+  
+  // Limpiar meta del canal
+  metasPorCanal.delete(channelName);
+  
   console.log(`🔴 Canal ${channelName} finalizado y limpiado`);
   
   res.json({ success: true, activo: false });
@@ -167,6 +175,9 @@ io.on('connection', (socket) => {
     socket.join(channelName);
     console.log(`✅ Usuario ${socket.id} se unió al canal: ${channelName}`);
     
+    // Preparar datos del canal
+    const channelData = {};
+    
     // Enviar configuración actual del chat al nuevo usuario
     if (chatConfigPorCanal.has(channelName)) {
       const config = chatConfigPorCanal.get(channelName);
@@ -174,6 +185,36 @@ io.on('connection', (socket) => {
       socket.emit('chat-config-updated', config);
     } else {
       console.log(`⚠️ No hay configuración guardada para el canal: ${channelName}`);
+    }
+    
+    // Enviar estado actual de la meta al nuevo espectador
+    if (metasPorCanal.has(channelName)) {
+      const metaActual = metasPorCanal.get(channelName);
+      console.log(`🎯 Enviando meta actual a ${socket.id}:`, metaActual);
+      channelData.meta = metaActual;
+      socket.emit('meta-updated', metaActual);
+      socket.emit('channel-joined', channelData);
+    } else {
+      console.log(`⚠️ No hay meta configurada para el canal: ${channelName}`);
+      socket.emit('channel-joined', channelData);
+    }
+  });
+
+  // Unirse a un live (espectadores)
+  socket.on('join-live', (data) => {
+    const { liveId } = data;
+    const channelName = `live_${liveId}`;
+    socket.join(channelName);
+    console.log(`👀 Espectador ${socket.id} se unió al live: ${channelName}`);
+    
+    // Enviar configuración del chat si existe
+    if (chatConfigPorCanal.has(channelName)) {
+      socket.emit('chat-config-updated', chatConfigPorCanal.get(channelName));
+    }
+    
+    // Enviar estado de la meta si existe
+    if (metasPorCanal.has(channelName)) {
+      socket.emit('meta-updated', metasPorCanal.get(channelName));
     }
   });
 
@@ -221,6 +262,78 @@ io.on('connection', (socket) => {
       user,
       timestamp
     });
+  });
+
+  // Reacciones (corazones, aplausos, fuego, etc.)
+  socket.on('send-reaction', (data) => {
+    const { channelName, liveId, reaction, creatorId, username, timestamp } = data;
+    // Usar channelName si está disponible, sino construirlo con liveId
+    const targetChannel = channelName || `live_${liveId}`;
+    
+    console.log('❤️ Reacción recibida:', { targetChannel, reaction, username });
+    
+    // Broadcast a todos en el canal (espectadores + creadora)
+    io.to(targetChannel).emit('send-reaction', {
+      reaction,
+      username,
+      timestamp
+    });
+  });
+
+  // Propinas rápidas
+  socket.on('send-tip', (data) => {
+    const { channelName, tipId, user, monto, isVIP, avatar } = data;
+    console.log('💵 Propina recibida:', { channelName, user, monto });
+    
+    io.to(channelName).emit('new-tip', {
+      id: tipId || Date.now().toString(),
+      user,
+      monto,
+      isVIP,
+      avatar,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Super Chat / Mensajes Destacados
+  socket.on('send-superchat', (data) => {
+    const { channelName, superChatId, user, mensaje, monto, tier, isVIP, avatar } = data;
+    console.log('💬💰 Super Chat recibido:', { channelName, user, monto, tier });
+    
+    io.to(channelName).emit('new-superchat', {
+      id: superChatId || Date.now().toString(),
+      user,
+      mensaje,
+      monto,
+      tier, // 'basic', 'premium', 'elite'
+      isVIP,
+      avatar,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Actualizar meta (creadora → espectadores)
+  socket.on('update-meta', (data) => {
+    const { channelName, activa, monto, descripcion, progreso } = data;
+    console.log('🎯 Actualización de meta recibida:', { channelName, activa, monto, descripcion, progreso });
+    
+    // Guardar estado de la meta para nuevos espectadores
+    metasPorCanal.set(channelName, {
+      activa,
+      monto,
+      descripcion,
+      progreso
+    });
+    
+    // Broadcast a TODOS en el canal (incluye creadora y espectadores)
+    io.to(channelName).emit('meta-updated', {
+      activa,
+      monto,
+      descripcion,
+      progreso
+    });
+    
+    console.log(`📢 Meta actualizada broadcast a canal: ${channelName}`);
   });
 
   socket.on('disconnect', () => {

@@ -61,6 +61,27 @@ interface GiftMessage {
   timestamp: string;
 }
 
+interface TipMessage {
+  id: number;
+  user: string;
+  monto: number;
+  isVIP: boolean;
+  avatar?: string;
+  timestamp: string;
+}
+
+interface SuperChatMessage {
+  id: number;
+  user: string;
+  mensaje: string;
+  monto: number;
+  tier: 'basic' | 'premium' | 'elite';
+  isVIP: boolean;
+  avatar?: string;
+  timestamp: string;
+  expiresAt?: Date;
+}
+
 interface ScreenNotification {
   id: string;
   type: 'gift' | 'message';
@@ -128,12 +149,18 @@ export const EnVivoPage = () => {
   const socketRef = useRef<Socket | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [giftMessages, setGiftMessages] = useState<GiftMessage[]>([]);
+  const [tipMessages, setTipMessages] = useState<TipMessage[]>([]);
+  const [superChatMessages, setSuperChatMessages] = useState<SuperChatMessage[]>([]);
+  const [pinnedSuperChat, setPinnedSuperChat] = useState<SuperChatMessage | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Estados para notificaciones en pantalla
   const [screenNotifications, setScreenNotifications] = useState<ScreenNotification[]>([]);
   const notificationQueueRef = useRef<ScreenNotification[]>([]);
   const isProcessingRef = useRef(false);
+  
+  // Estado para corazones flotantes
+  const [floatingHearts, setFloatingHearts] = useState<Array<{ id: number; x: number; delay: number }>>([]);
   
   // Estados UI originales
   const [enVivo, setEnVivo] = useState(false);
@@ -152,17 +179,87 @@ export const EnVivoPage = () => {
   const [eventos, setEventos] = useState<Evento[]>([]);
   
   // Sistema de Metas
-  const [metaActual, setMetaActual] = useState(500); // Meta en coins
+  const [metaActiva, setMetaActiva] = useState(false); // Si la meta está activa o no
+  const [metaActual, setMetaActual] = useState(0); // Meta en coins
+  const [descripcionMeta, setDescripcionMeta] = useState(''); // Descripción/título de la meta
   const [progresoMeta, setProgresoMeta] = useState(0); // Progreso actual en coins
   const [showMetaModal, setShowMetaModal] = useState(false);
   const [metaAlcanzada, setMetaAlcanzada] = useState(false);
   const [topDonadores, setTopDonadores] = useState<{user: string, total: number, avatar?: string}[]>([]);
   const [showTopDonadores, setShowTopDonadores] = useState(false); // Colapsable
   
+  // Modal de tipo de transmisión
+  const [showTipoTransmisionModal, setShowTipoTransmisionModal] = useState(false);
+  const [tipoTransmisionSeleccionado, setTipoTransmisionSeleccionado] = useState<'gratis' | 'pagado'>('gratis');
+  const [precioVIP, setPrecioVIP] = useState(0);
+  const [descripcionVIP, setDescripcionVIP] = useState('');
+  
   // Sistema de Moderación
   const [usuariosSilenciados, setUsuariosSilenciados] = useState<string[]>([]);
   const [showModeracionModal, setShowModeracionModal] = useState(false);
   const [nuevoUsuarioSilenciar, setNuevoUsuarioSilenciar] = useState('');
+  
+  // Sistema de Sonidos con Web Audio API
+  const playSound = (type: 'small' | 'medium' | 'large' | 'goal') => {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Configurar según el tipo de sonido
+    if (type === 'small') {
+      // Sonido suave - ding simple
+      oscillator.frequency.value = 800;
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } else if (type === 'medium') {
+      // Sonido medio - chime ascendente
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(1000, audioContext.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } else if (type === 'large') {
+      // Sonido grande - fanfare celebratorio
+      const playTone = (freq: number, delay: number, duration: number) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.5, audioContext.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + duration);
+        osc.start(audioContext.currentTime + delay);
+        osc.stop(audioContext.currentTime + delay + duration);
+      };
+      playTone(523, 0, 0.2);    // C
+      playTone(659, 0.15, 0.2); // E
+      playTone(784, 0.3, 0.4);  // G
+    } else if (type === 'goal') {
+      // Sonido de meta cumplida - fanfare largo y celebratorio
+      const playTone = (freq: number, delay: number, duration: number) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.6, audioContext.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + delay + duration);
+        osc.start(audioContext.currentTime + delay);
+        osc.stop(audioContext.currentTime + delay + duration);
+      };
+      // Secuencia festiva: C-E-G-C (do-mi-sol-do)
+      playTone(523, 0, 0.3);    // C
+      playTone(659, 0.2, 0.3);  // E
+      playTone(784, 0.4, 0.3);  // G
+      playTone(1047, 0.6, 0.6); // C alto
+    }
+  };
   
   // Remover chat mensajes estáticos - ahora viene de Socket.io
   
@@ -250,6 +347,18 @@ export const EnVivoPage = () => {
           config: chatConfig
         });
         console.log('📤 Configuración inicial enviada:', chatConfig);
+        
+        // Si hay una meta activa, enviar su estado inicial
+        if (metaActiva && metaActual > 0) {
+          console.log('🎯 Enviando estado inicial de meta:', { metaActual, descripcionMeta, progresoMeta });
+          socketRef.current?.emit('update-meta', {
+            channelName,
+            activa: metaActiva,
+            monto: metaActual,
+            descripcion: descripcionMeta,
+            progreso: progresoMeta
+          });
+        }
       });
 
       // Escuchar nuevos mensajes
@@ -265,9 +374,22 @@ export const EnVivoPage = () => {
         setProgresoMeta(prev => {
           const nuevoProgreso = prev + gift.gift.valor;
           
+          // Emitir actualización de progreso a espectadores
+          if (socketRef.current && channelName && metaActiva) {
+            socketRef.current.emit('update-meta', {
+              channelName,
+              activa: metaActiva,
+              monto: metaActual,
+              descripcion: descripcionMeta,
+              progreso: nuevoProgreso
+            });
+          }
+          
           // Verificar si se alcanzó la meta
-          if (nuevoProgreso >= metaActual && prev < metaActual) {
+          if (nuevoProgreso >= metaActual && prev < metaActual && metaActiva) {
             setMetaAlcanzada(true);
+            // Reproducir sonido de meta cumplida
+            playSound('goal');
             // Ocultar la animación después de 5 segundos
             setTimeout(() => setMetaAlcanzada(false), 5000);
           }
@@ -303,9 +425,133 @@ export const EnVivoPage = () => {
         };
         addScreenNotification(screenNotif);
         
-        // Reproducir sonido de notificación (opcional)
-        const audio = new Audio('/notification.mp3');
-        audio.play().catch(() => {});
+        // Reproducir sonido según el tier del regalo
+        const tier = getTier(gift.gift.valor);
+        playSound(tier);
+      });
+
+      // Escuchar reacciones (corazones, aplausos, etc.)
+      socketRef.current.on('send-reaction', (reactionData: { reaction: string; username: string; timestamp: string }) => {
+        console.log('❤️ Reacción recibida:', reactionData);
+        
+        // Crear corazón flotante cuando se recibe una reacción de corazón
+        if (reactionData.reaction === '❤️') {
+          const newHeart = {
+            id: Date.now() + Math.random(),
+            x: Math.random() * 80 + 10, // 10% a 90% del ancho
+            delay: Math.random() * 0.5,
+          };
+          setFloatingHearts(prev => [...prev, newHeart]);
+
+          // Remover después de la animación (3 segundos)
+          setTimeout(() => {
+            setFloatingHearts(prev => prev.filter(h => h.id !== newHeart.id));
+          }, 3000);
+        }
+      });
+
+      // Escuchar propinas rápidas
+      socketRef.current.on('new-tip', (tip: TipMessage) => {
+        console.log('💵 Propina recibida:', tip);
+        setTipMessages(prev => [...prev, tip]);
+        
+        // Actualizar progreso de meta (las propinas también cuentan)
+        setProgresoMeta(prev => {
+          const nuevoProgreso = prev + tip.monto;
+          
+          // Emitir actualización de progreso a espectadores
+          if (socketRef.current && channelName && metaActiva) {
+            socketRef.current.emit('update-meta', {
+              channelName,
+              activa: metaActiva,
+              monto: metaActual,
+              descripcion: descripcionMeta,
+              progreso: nuevoProgreso
+            });
+          }
+          
+          // Verificar si se alcanzó la meta
+          if (nuevoProgreso >= metaActual && prev < metaActual && metaActiva) {
+            setMetaAlcanzada(true);
+            playSound('goal');
+            setTimeout(() => setMetaAlcanzada(false), 5000);
+          }
+          
+          return nuevoProgreso;
+        });
+        
+        // Actualizar ranking de donadores (propinas también cuentan)
+        setTopDonadores(prev => {
+          const donadorExistente = prev.find(d => d.user === tip.user);
+          if (donadorExistente) {
+            return prev
+              .map(d => d.user === tip.user ? {...d, total: d.total + tip.monto} : d)
+              .sort((a, b) => b.total - a.total);
+          } else {
+            return [...prev, { user: tip.user, total: tip.monto, avatar: tip.avatar }]
+              .sort((a, b) => b.total - a.total)
+              .slice(0, 10);
+          }
+        });
+        
+        // Reproducir sonido suave para propinas
+        playSound('small');
+      });
+
+      // Escuchar super chats
+      socketRef.current.on('new-superchat', (superchat: SuperChatMessage) => {
+        console.log('💬💰 Super Chat recibido:', superchat);
+        setSuperChatMessages(prev => [...prev, superchat]);
+        
+        // Fijar el super chat en la parte superior
+        const duration = superchat.tier === 'elite' ? 120000 : superchat.tier === 'premium' ? 60000 : 30000; // 2min, 1min, 30seg
+        const expiresAt = new Date(Date.now() + duration);
+        setPinnedSuperChat({ ...superchat, expiresAt });
+        
+        // Actualizar progreso de meta (super chats también cuentan)
+        setProgresoMeta(prev => {
+          const nuevoProgreso = prev + superchat.monto;
+          
+          if (socketRef.current && channelName && metaActiva) {
+            socketRef.current.emit('update-meta', {
+              channelName,
+              activa: metaActiva,
+              monto: metaActual,
+              descripcion: descripcionMeta,
+              progreso: nuevoProgreso
+            });
+          }
+          
+          if (nuevoProgreso >= metaActual && prev < metaActual && metaActiva) {
+            setMetaAlcanzada(true);
+            playSound('goal');
+            setTimeout(() => setMetaAlcanzada(false), 5000);
+          }
+          
+          return nuevoProgreso;
+        });
+        
+        // Actualizar ranking de donadores
+        setTopDonadores(prev => {
+          const donadorExistente = prev.find(d => d.user === superchat.user);
+          if (donadorExistente) {
+            return prev
+              .map(d => d.user === superchat.user ? {...d, total: d.total + superchat.monto} : d)
+              .sort((a, b) => b.total - a.total);
+          } else {
+            return [...prev, { user: superchat.user, total: superchat.monto, avatar: superchat.avatar }]
+              .sort((a, b) => b.total - a.total)
+              .slice(0, 10);
+          }
+        });
+        
+        // Reproducir sonido según tier
+        playSound(superchat.tier === 'elite' ? 'large' : superchat.tier === 'premium' ? 'medium' : 'small');
+        
+        // Desfijar después del tiempo
+        setTimeout(() => {
+          setPinnedSuperChat(prev => prev?.id === superchat.id ? null : prev);
+        }, duration);
       });
 
       return () => {
@@ -315,10 +561,30 @@ export const EnVivoPage = () => {
     }
   }, [enVivo, channelName]);
 
+  // Sincronizar estado de meta periódicamente para nuevos espectadores
+  useEffect(() => {
+    if (!enVivo || !channelName || !socketRef.current || !metaActiva) return;
+
+    const intervalo = setInterval(() => {
+      if (socketRef.current && metaActiva && metaActual > 0) {
+        console.log('🔄 Sincronizando meta periódicamente:', { progresoMeta, metaActual });
+        socketRef.current.emit('update-meta', {
+          channelName,
+          activa: metaActiva,
+          monto: metaActual,
+          descripcion: descripcionMeta,
+          progreso: progresoMeta
+        });
+      }
+    }, 3000); // Cada 3 segundos
+
+    return () => clearInterval(intervalo);
+  }, [enVivo, channelName, metaActiva, metaActual, descripcionMeta, progresoMeta]);
+
   // Auto-scroll del chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [chatMessages, giftMessages]);
+  }, [chatMessages, giftMessages, tipMessages]);
 
   // Iniciar transmisión con Agora
   const iniciarTransmision = async () => {
@@ -326,9 +592,10 @@ export const EnVivoPage = () => {
       setCargando(true);
       setError(null);
 
-      // Reiniciar meta al iniciar nueva transmisión
+      // Resetear progreso de meta al iniciar nueva transmisión (cada stream es independiente)
       setProgresoMeta(0);
       setTopDonadores([]);
+      setMetaActiva(false);
       setMetaAlcanzada(false);
 
       // 1. Verificar permisos
@@ -441,6 +708,17 @@ export const EnVivoPage = () => {
       setEspectadoresEnVivo(0);
       setChatMessages([]);
       setGiftMessages([]);
+      setTipMessages([]);
+      setSuperChatMessages([]);
+      setPinnedSuperChat(null);
+      
+      // Resetear completamente la meta
+      setMetaActual(0);
+      setDescripcionMeta('');
+      setProgresoMeta(0);
+      setTopDonadores([]);
+      setMetaActiva(false);
+      setMetaAlcanzada(false);
       
     } catch (error) {
       console.error('Error al detener transmisión:', error);
@@ -657,11 +935,50 @@ export const EnVivoPage = () => {
   };
 
   // Funciones de Meta
-  const handleGuardarMeta = (nuevaMeta: number) => {
-    setMetaActual(nuevaMeta);
-    setProgresoMeta(0);
-    setTopDonadores([]);
-    setShowMetaModal(false);
+  const handleGuardarMeta = (nuevaMeta: number, descripcion: string) => {
+    if (nuevaMeta > 0) {
+      setMetaActual(nuevaMeta);
+      setDescripcionMeta(descripcion);
+      setProgresoMeta(0);
+      setTopDonadores([]);
+      setMetaActiva(true); // Activar automáticamente al guardar
+      setMetaAlcanzada(false);
+      setShowMetaModal(false);
+      
+      // Emitir actualización de meta a todos los espectadores
+      if (socketRef.current && channelName) {
+        console.log('🎯 Enviando meta a espectadores:', { channelName, monto: nuevaMeta, descripcion });
+        socketRef.current.emit('update-meta', {
+          channelName,
+          activa: true,
+          monto: nuevaMeta,
+          descripcion: descripcion,
+          progreso: 0
+        });
+      }
+    }
+  };
+
+  const handleToggleMeta = () => {
+    if (!metaActiva && metaActual === 0) {
+      // Si no hay meta configurada, abrir modal
+      setShowMetaModal(true);
+    } else {
+      // Activar/Desactivar meta existente
+      const nuevoEstado = !metaActiva;
+      setMetaActiva(nuevoEstado);
+      
+      // Emitir cambio de estado a espectadores
+      if (socketRef.current && channelName) {
+        socketRef.current.emit('update-meta', {
+          channelName,
+          activa: nuevoEstado,
+          monto: metaActual,
+          descripcion: descripcionMeta,
+          progreso: progresoMeta
+        });
+      }
+    }
   };
 
   const porcentajeMeta = Math.min((progresoMeta / metaActual) * 100, 100);
@@ -728,34 +1045,29 @@ export const EnVivoPage = () => {
   return (
     <div className="space-y-4">
       {/* Header compacto */}
-      <div className="mb-3">
-        <div className="flex items-center gap-2 mb-1">
-          <Video className="w-5 h-5 text-pink-500" />
-          <h1 className="text-lg font-bold text-gray-900">En Vivo</h1>
-        </div> 
-      </div>
+      
  
       {/* Stats COMPACTOS - Juntos y pequeños */}
       <div className="flex items-center gap-6 px-4 py-2">
         <div>
-          <p className="text-sm font-bold text-gray-900">{(stats.seguidores / 1000).toFixed(1)}K</p>
-          <p className="text-[10px] text-gray-600">Seguidores</p>
+          <p className="text-base font-bold text-gray-900">{(stats.seguidores / 1000).toFixed(1)}K</p>
+          <p className="text-xs text-gray-600">Seguidores</p>
         </div>
 
         <div>
-          <p className="text-sm font-bold text-gray-900">{(stats.suscriptores / 1000).toFixed(1)}K</p>
-          <p className="text-[10px] text-gray-600">Suscriptores</p>
+          <p className="text-base font-bold text-gray-900">{(stats.suscriptores / 1000).toFixed(1)}K</p>
+          <p className="text-xs text-gray-600">Suscriptores</p>
         </div>
 
         <div>
-          <p className="text-sm font-bold text-gray-900">{(stats.publico / 1000).toFixed(1)}K</p>
-          <p className="text-[10px] text-gray-600">Público</p>
+          <p className="text-base font-bold text-gray-900">{(stats.publico / 1000).toFixed(1)}K</p>
+          <p className="text-xs text-gray-600">Público</p>
         </div>
 
         <div className="flex items-center gap-2">
           <div>
-            <p className="text-sm font-bold text-orange-600">{totalCoins.toLocaleString()}</p>
-            <p className="text-[10px] text-gray-600">Recompensas</p>
+            <p className="text-base font-bold text-orange-600">{totalCoins.toLocaleString()}</p>
+            <p className="text-xs text-gray-600">Recompensas</p>
           </div>
           <button
             onClick={() => setShowRecompensasModal(true)}
@@ -840,16 +1152,32 @@ export const EnVivoPage = () => {
         <div id="video-container-transmision" className="relative bg-black rounded-2xl overflow-hidden mb-4 h-[600px]">
           <div id="local-player" className="w-full h-full" />
           
-          {/* Barra de Progreso de Meta - SOLO VISIBLE EN VIVO */}
-          {enVivo && (
-            <div className="absolute top-4 left-4 right-4 z-30">
-              <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
+          {/* Corazones flotantes desde espectadores */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
+            {floatingHearts.map((heart) => (
+              <div
+                key={heart.id}
+                className="absolute bottom-0 text-4xl animate-float-up"
+                style={{
+                  left: `${heart.x}%`,
+                  animationDelay: `${heart.delay}s`,
+                }}
+              >
+                ❤️
+              </div>
+            ))}
+          </div>
+          
+          {/* Barra de Progreso de Meta - SOLO VISIBLE CUANDO ESTÁ ACTIVA */}
+          {enVivo && metaActiva && metaActual > 0 && (
+            <div className="absolute bottom-4 left-4 right-4 z-30">
+              <div className="bg-black/70 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-2xl">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">🎯</span>
+                    <span className="text-2xl">🎯</span>
                     <div>
-                      <p className="text-white text-xs font-semibold">Meta del Stream</p>
-                      <p className="text-white/60 text-[10px]">{progresoMeta} / {metaActual} coins</p>
+                      <p className="text-white text-sm font-bold">{descripcionMeta || 'Meta del Stream'}</p>
+                      <p className="text-white/60 text-xs">{progresoMeta} / {metaActual} coins</p>
                     </div>
                   </div>
                   <button
@@ -859,13 +1187,13 @@ export const EnVivoPage = () => {
                     Editar
                   </button>
                 </div>
-                <div className="relative w-full h-3 bg-gray-700/50 rounded-full overflow-hidden">
+                <div className="relative w-full h-4 bg-gray-700/50 rounded-full overflow-hidden">
                   <div 
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500 rounded-full"
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-600 transition-all duration-500 rounded-full"
                     style={{ width: `${porcentajeMeta}%` }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                    <span className="text-xs font-bold text-white drop-shadow-lg">
                       {porcentajeMeta.toFixed(0)}%
                     </span>
                   </div>
@@ -877,10 +1205,13 @@ export const EnVivoPage = () => {
           {/* Animación de Meta Alcanzada */}
           {metaAlcanzada && (
             <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-pulse">
-              <div className="text-center">
+              <div className="text-center px-8">
                 <div className="text-8xl mb-4 animate-bounce">🎉</div>
                 <h2 className="text-white text-4xl font-bold mb-2">¡META ALCANZADA!</h2>
-                <p className="text-white/80 text-xl">¡Increíble trabajo!</p>
+                {descripcionMeta && (
+                  <p className="text-purple-300 text-2xl font-semibold mb-2">"{descripcionMeta}"</p>
+                )}
+                <p className="text-white/80 text-xl">¡Increíble trabajo! {metaActual} coins recaudados 💰</p>
               </div>
             </div>
           )}
@@ -911,21 +1242,52 @@ export const EnVivoPage = () => {
           {/* Stats en vivo */}
           {enVivo && (
             <>
-              <div className="absolute top-4 left-4 flex items-center gap-3">
-                <div className="bg-red-500 px-3 py-1 rounded-full flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                  <span className="text-white text-sm font-bold">EN VIVO</span>
-                </div>
-                <div className="bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-2">
-                  <Users className="w-4 h-4 text-white" />
-                  <span className="text-white text-sm font-bold">{espectadoresEnVivo}</span>
+              {/* Barra de Herramientas Superior */}
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2">
+                <div className="bg-black/70 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-3 border border-white/10 shadow-lg">
+                  {/* Botón Meta */}
+                  <button 
+                    onClick={handleToggleMeta}
+                    className={`p-2 rounded-full transition-all ${
+                      metaActiva 
+                        ? 'bg-purple-500 hover:bg-purple-600 shadow-lg shadow-purple-500/50' 
+                        : 'bg-white/10 hover:bg-white/20'
+                    }`}
+                    title={metaActiva ? 'Desactivar Meta' : 'Activar Meta'}
+                  >
+                    <span className="text-lg">{metaActiva ? '🎯' : '⭕'}</span>
+                  </button>
+                  
+                  {/* Botón Moderación */}
+                  <button 
+                    onClick={() => setShowModeracionModal(true)}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
+                    title="Moderación"
+                  >
+                    <span className="text-lg">🛡️</span>
+                  </button>
+                  
+                  {/* Divisor */}
+                  <div className="w-px h-6 bg-white/20" />
+                  
+                  {/* EN VIVO Badge */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-white text-sm font-bold">EN VIVO</span>
+                  </div>
+                  
+                  {/* Espectadores */}
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-white/80" />
+                    <span className="text-white text-sm font-bold">{espectadoresEnVivo}</span>
+                  </div>
                 </div>
               </div>
               
               {/* Botón Fullscreen */}
               <button
                 onClick={toggleFullscreen}
-                className="absolute top-4 right-4 w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                className="absolute top-4 right-4 w-10 h-10 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition z-40"
               >
                 {isFullscreen ? (
                   <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -980,10 +1342,10 @@ export const EnVivoPage = () => {
           )}
 
           <button
-            onClick={enVivo ? detenerTransmision : iniciarTransmision}
-            disabled={cargando || !!error || (!hayEventos && !enVivo)}
+            onClick={enVivo ? detenerTransmision : () => setShowTipoTransmisionModal(true)}
+            disabled={cargando || !!error}
             className={`px-5 py-2 rounded-lg font-bold text-sm text-white flex items-center gap-2 transition shadow-lg ${
-              cargando || error || (!hayEventos && !enVivo)
+              cargando || error
                 ? 'bg-gray-400 cursor-not-allowed'
                 : enVivo
                 ? 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-red-500/50'
@@ -1000,31 +1362,6 @@ export const EnVivoPage = () => {
 
       {/* Menú flotante - Premium */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 flex flex-col gap-3 z-40">
-        <button
-          onClick={() => {
-            setSelectedDate(new Date());
-            setIsEventoProgramado(false); // Evento inmediato = hora bloqueada
-            setNuevoEvento({ tipo: 'gratis', precio: 0, actividadObjetivo: '', titulo: '', hora: new Date().toTimeString().slice(0, 5) });
-            setShowCrearEventoModal(true);
-          }}
-          className="group relative w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-        >
-          <Radio className="w-5 h-5 text-white" />
-          <span className="absolute right-16 bg-gray-900/95 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
-            En Vivo Ahora
-          </span>
-        </button>
-
-        <button
-          onClick={() => setShowCalendarioModal(true)}
-          className="group relative w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-        >
-          <CalendarIcon className="w-5 h-5 text-white" />
-          <span className="absolute right-16 bg-gray-900/95 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
-            Programar
-          </span>
-        </button>
-
         <button
           onClick={() => {
             setShowChat(!showChat);
@@ -1125,13 +1462,6 @@ export const EnVivoPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setShowModeracionModal(true)}
-                className="text-white/80 hover:text-white text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition"
-                title="Moderación"
-              >
-                🛡️
-              </button>
               <button onClick={() => setShowChat(false)} className="text-white/80 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
@@ -1174,11 +1504,98 @@ export const EnVivoPage = () => {
             </div>
           )}
 
+          {/* Super Chat Fijado en el Chat */}
+          {pinnedSuperChat && (
+            <div className="border-b border-gray-300 bg-white flex-shrink-0 shadow-lg">
+              <div className={`p-3 bg-gradient-to-r ${
+                pinnedSuperChat.tier === 'elite' 
+                  ? 'from-yellow-500/30 via-orange-500/30 to-pink-500/30' 
+                  : pinnedSuperChat.tier === 'premium'
+                  ? 'from-purple-600/30 to-indigo-600/30'
+                  : 'from-blue-600/30 to-cyan-600/30'
+              } border-l-4 ${
+                pinnedSuperChat.tier === 'elite' 
+                  ? 'border-yellow-500' 
+                  : pinnedSuperChat.tier === 'premium'
+                  ? 'border-purple-600'
+                  : 'border-blue-600'
+              }`}>
+                <div className="flex items-center gap-1 mb-1">
+                  <span className="text-xs font-bold text-gray-700">📌 Super Chat Fijado</span>
+                  <span className="ml-auto text-[10px] text-gray-500">
+                    {pinnedSuperChat.tier === 'basic' ? '30s' : pinnedSuperChat.tier === 'premium' ? '60s' : '120s'}
+                  </span>
+                  <button
+                    onClick={() => setPinnedSuperChat(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm text-white font-bold">{pinnedSuperChat.avatar || '⭐'}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                      <p className="text-sm font-bold text-gray-900">{pinnedSuperChat.user}</p>
+                      {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
+                      <div className={`ml-auto flex items-center gap-0.5 ${
+                        pinnedSuperChat.tier === 'elite' 
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
+                          : pinnedSuperChat.tier === 'premium'
+                          ? 'bg-purple-500'
+                          : 'bg-blue-500'
+                      } rounded-lg px-2 py-0.5`}>
+                        <DollarSign className="w-3 h-3 text-white" />
+                        <span className="text-xs text-white font-bold">{pinnedSuperChat.monto}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-800 break-words leading-snug">{pinnedSuperChat.mensaje}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
-            {/* Combinar mensajes y regalos ordenados por timestamp */}
-            {[...chatMessages, ...giftMessages]
+            {/* Combinar mensajes, regalos, propinas y super chats ordenados por timestamp */}
+            {[...chatMessages, ...giftMessages, ...tipMessages, ...superChatMessages]
               .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
               .map((item) => {
+                // Es un Super Chat
+                if ('tier' in item && 'monto' in item) {
+                  const superChat = item as SuperChatMessage;
+                  const tierConfig = {
+                    basic: { gradient: 'from-blue-500/20 to-blue-600/20', border: 'border-blue-500/50', text: 'text-blue-700', badge: 'bg-blue-500' },
+                    premium: { gradient: 'from-purple-500/20 to-purple-600/20', border: 'border-purple-500/50', text: 'text-purple-700', badge: 'bg-purple-500' },
+                    elite: { gradient: 'from-yellow-500/20 to-orange-600/20', border: 'border-yellow-500/50', text: 'text-yellow-700', badge: 'bg-gradient-to-r from-yellow-500 to-orange-500' }
+                  };
+                  const config = tierConfig[superChat.tier];
+                  
+                  return (
+                    <div key={superChat.id} className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-lg p-3 shadow-lg`}>
+                      <div className="flex items-start gap-2">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm text-white font-bold">{superChat.avatar || '⭐'}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1 mb-1">
+                            <p className={`text-sm font-bold ${config.text}`}>{superChat.user}</p>
+                            {superChat.isVIP && <Crown className="w-4 h-4 text-yellow-400" />}
+                            <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1`}>
+                              <DollarSign className="w-3 h-3 text-white" />
+                              <p className="text-xs text-white font-bold">{superChat.monto}</p>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-800 font-medium">{superChat.mensaje}</p>
+                          <p className="text-[10px] text-gray-500 mt-1">Super Chat • {superChat.tier === 'basic' ? '30s' : superChat.tier === 'premium' ? '60s' : '120s'} destacado</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
                 // Es un regalo
                 if ('gift' in item) {
                   const gift = item as GiftMessage;
@@ -1202,6 +1619,29 @@ export const EnVivoPage = () => {
                             <DollarSign className="w-3 h-3 text-green-400" />
                             <p className="text-xs text-green-400 font-bold">{gift.gift.valor} coins</p>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                
+                // Es una propina
+                if ('monto' in item && !('gift' in item)) {
+                  const tip = item as TipMessage;
+                  return (
+                    <div key={tip.id} className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{tip.avatar || '💵'}</span>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-1">
+                            <p className="text-xs font-bold text-green-700">{tip.user}</p>
+                            {tip.isVIP && <Crown className="w-3 h-3 text-yellow-500" />}
+                          </div>
+                          <p className="text-[10px] text-gray-500">envió una propina</p>
+                        </div>
+                        <div className="flex items-center gap-0.5 bg-green-500 rounded-lg px-2 py-1">
+                          <DollarSign className="w-3 h-3 text-white" />
+                          <p className="text-xs text-white font-bold">{tip.monto}</p>
                         </div>
                       </div>
                     </div>
@@ -1285,72 +1725,137 @@ export const EnVivoPage = () => {
 
       {/* Config */}
       {showConfig && (
-        <div className="fixed right-20 top-20 bottom-20 w-80 bg-white/95 backdrop-blur-lg shadow-2xl z-50 flex flex-col border border-gray-200/50 rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-gray-100 flex-shrink-0">
-            <h3 className="text-sm font-bold text-gray-900">Configuración de Chat</h3>
-            <button onClick={() => setShowConfig(false)} className="text-gray-400 hover:text-gray-700 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
+      /* Panel de Configuración - Versión Profesional */
+      <div className="fixed right-20 top-20 bottom-20 w-80 bg-white shadow-lg z-50 flex flex-col border border-gray-200 rounded-lg overflow-hidden">
+        {/* Header - Sin gradiente */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-white flex-shrink-0">
+          <h3 className="text-sm font-semibold text-gray-900">Configuración de Chat</h3>
+          <button 
+            onClick={() => setShowConfig(false)} 
+            className="text-gray-400 hover:text-gray-700 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Contenido */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-5 bg-gray-50">
+          {/* Quién puede chatear */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2.5">Quién puede chatear</p>
+            <div className="space-y-2">
+              <label className="flex items-center justify-between text-xs p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition">
+                <span className="text-gray-700 font-medium">Público</span>
+                <input 
+                  type="checkbox" 
+                  checked={chatConfig.publicoPuedeChatear} 
+                  onChange={(e) => setChatConfig({...chatConfig, publicoPuedeChatear: e.target.checked})} 
+                  className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900"
+                />
+              </label>
+              <label className="flex items-center justify-between text-xs p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition">
+                <span className="text-gray-700 font-medium">Suscriptores</span>
+                <input 
+                  type="checkbox" 
+                  checked={chatConfig.suscriptoresPuedeChatear} 
+                  onChange={(e) => setChatConfig({...chatConfig, suscriptoresPuedeChatear: e.target.checked})} 
+                  className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900"
+                />
+              </label>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div>
-              <p className="text-xs font-semibold text-gray-700 mb-2">Quién puede chatear</p>
-              <div className="space-y-2">
-                <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="text-gray-700">Público</span>
-                  <input type="checkbox" checked={chatConfig.publicoPuedeChatear} onChange={(e) => setChatConfig({...chatConfig, publicoPuedeChatear: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
-                </label>
-                <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="text-gray-700">Suscriptores</span>
-                  <input type="checkbox" checked={chatConfig.suscriptoresPuedeChatear} onChange={(e) => setChatConfig({...chatConfig, suscriptoresPuedeChatear: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
-                </label>
-              </div>
+          {/* Tipo de mensajes */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2.5">Tipo de mensajes</p>
+            <div className="space-y-2">
+              <label className="flex items-center justify-between text-xs p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition">
+                <span className="text-gray-700 font-medium">Solo emoticones</span>
+                <input 
+                  type="checkbox" 
+                  checked={chatConfig.soloEmoticonos} 
+                  onChange={(e) => setChatConfig({...chatConfig, soloEmoticonos: e.target.checked})} 
+                  className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900"
+                />
+              </label>
+              <label className="flex items-center justify-between text-xs p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:border-gray-300 transition">
+                <span className="text-gray-700 font-medium">Solo mensajes</span>
+                <input 
+                  type="checkbox" 
+                  checked={chatConfig.soloMensajes} 
+                  onChange={(e) => setChatConfig({...chatConfig, soloMensajes: e.target.checked})} 
+                  className="w-4 h-4 text-gray-900 rounded border-gray-300 focus:ring-2 focus:ring-gray-900"
+                />
+              </label>
             </div>
+          </div>
 
-            <div>
-              <p className="text-xs font-semibold text-gray-700 mb-2">Tipo de mensajes</p>
-              <div className="space-y-2">
-                <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="text-gray-700">Solo emoticones</span>
-                  <input type="checkbox" checked={chatConfig.soloEmoticonos} onChange={(e) => setChatConfig({...chatConfig, soloEmoticonos: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
-                </label>
-                <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="text-gray-700">Solo mensajes</span>
-                  <input type="checkbox" checked={chatConfig.soloMensajes} onChange={(e) => setChatConfig({...chatConfig, soloMensajes: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
-                </label>
-              </div>
+          {/* Palabras restringidas */}
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-2.5">Palabras restringidas</p>
+            <div className="flex gap-2 mb-2">
+              <input 
+                type="text" 
+                value={nuevaPalabraRestringida} 
+                onChange={(e) => setNuevaPalabraRestringida(e.target.value)} 
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && nuevaPalabraRestringida.trim()) {
+                    setChatConfig({...chatConfig, palabrasRestringidas: [...chatConfig.palabrasRestringidas, nuevaPalabraRestringida]});
+                    setNuevaPalabraRestringida('');
+                  }
+                }}
+                placeholder="Agregar palabra..." 
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              <button
+                onClick={() => {
+                  if (nuevaPalabraRestringida.trim()) {
+                    setChatConfig({...chatConfig, palabrasRestringidas: [...chatConfig.palabrasRestringidas, nuevaPalabraRestringida]});
+                    setNuevaPalabraRestringida('');
+                  }
+                }}
+                className="px-3 py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-lg text-xs transition flex items-center justify-center"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
             </div>
-
-            <div>
-              <p className="text-xs font-semibold text-gray-700 mb-2">Palabras restringidas</p>
-              <div className="flex gap-2 mb-2">
-                <input type="text" value={nuevaPalabraRestringida} onChange={(e) => setNuevaPalabraRestringida(e.target.value)} placeholder="Agregar..." className="flex-1 px-2 py-1.5 border border-gray-300 rounded-lg text-xs" />
-                <button
-                  onClick={() => {
-                    if (nuevaPalabraRestringida.trim()) {
-                      setChatConfig({...chatConfig, palabrasRestringidas: [...chatConfig.palabrasRestringidas, nuevaPalabraRestringida]});
-                      setNuevaPalabraRestringida('');
-                    }
-                  }}
-                  className="px-2 py-1.5 bg-pink-500 text-white rounded-lg text-xs"
-                >
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-              <div className="space-y-1">
+            
+            {/* Lista de palabras */}
+            {chatConfig.palabrasRestringidas.length > 0 ? (
+              <div className="space-y-1.5">
                 {chatConfig.palabrasRestringidas.map((palabra, index) => (
-                  <div key={index} className="flex items-center justify-between bg-red-50 p-2 rounded-lg text-xs border border-red-200">
-                    <span className="text-red-700 font-medium">{palabra}</span>
-                    <button onClick={() => setChatConfig({...chatConfig, palabrasRestringidas: chatConfig.palabrasRestringidas.filter((_, i) => i !== index)})} className="text-red-600 hover:text-red-800">
-                      <Trash2 className="w-3 h-3" />
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between bg-white p-2.5 rounded-lg text-xs border border-gray-200"
+                  >
+                    <span className="text-gray-700 font-medium">{palabra}</span>
+                    <button 
+                      onClick={() => setChatConfig({
+                        ...chatConfig, 
+                        palabrasRestringidas: chatConfig.palabrasRestringidas.filter((_, i) => i !== index)
+                      })} 
+                      className="text-red-600 hover:text-red-700 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-xs text-gray-500 text-center py-4 bg-white rounded-lg border border-gray-200 border-dashed">
+                No hay palabras restringidas
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Footer con estadísticas (opcional) */}
+        <div className="px-4 py-3 bg-white border-t border-gray-200 flex-shrink-0">
+          <div className="text-xs text-gray-500 text-center">
+            {chatConfig.palabrasRestringidas.length} palabra{chatConfig.palabrasRestringidas.length !== 1 ? 's' : ''} restringida{chatConfig.palabrasRestringidas.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      </div>
       )}
 
       {/* Modal Recompensas CON TABLA DETALLADA */}
@@ -1766,48 +2271,86 @@ export const EnVivoPage = () => {
       {/* Modal de Configurar Meta */}
       {showMetaModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-5">
+            <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <span>🎯</span> Configurar Meta
+                <span>🎯</span> {metaActual > 0 ? 'Editar Meta' : 'Crear Meta'}
               </h3>
-              <button onClick={() => setShowMetaModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+              <button onClick={() => setShowMetaModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Meta de Coins
-                </label>
-                <input
-                  type="number"
-                  value={metaActual}
-                  onChange={(e) => setMetaActual(Number(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="500"
-                  min="1"
-                />
-                <p className="text-xs text-gray-500 mt-1">Coins a recaudar en este stream</p>
-              </div>
-
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-xs text-gray-600">
-                  <strong>Progreso actual:</strong> {progresoMeta} / {metaActual} coins ({porcentajeMeta.toFixed(0)}%)
+            <div className="space-y-3">
+              {/* Información */}
+              <div className="bg-purple-50 border border-purple-200 p-2 rounded-lg">
+                <p className="text-xs text-purple-900 leading-snug">
+                  💡 Las metas con descripciones reciben más apoyo
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Descripción de la Meta ✨ <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={descripcionMeta}
+                  onChange={(e) => setDescripcionMeta(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  placeholder="Ej: Nueva cámara 4K"
+                  maxLength={50}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-0.5">Máx. 50 caracteres</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Meta de Coins 💰 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={metaActual || ''}
+                  onChange={(e) => setMetaActual(Number(e.target.value))}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm font-semibold"
+                  placeholder="500"
+                  min="1"
+                />
+                <p className="text-xs text-gray-500 mt-0.5">Coins a recaudar</p>
+              </div>
+
+              {metaActual > 0 && (
+                <div className="bg-gray-50 p-3 rounded-lg space-y-1">
+                  <p className="text-sm text-gray-600">
+                    <strong>Progreso actual:</strong> {progresoMeta} / {metaActual} coins
+                  </p>
+                  <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all"
+                      style={{ width: `${porcentajeMeta}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500">{porcentajeMeta.toFixed(0)}% completado</p>
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleGuardarMeta(metaActual)}
-                  className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-2 rounded-lg font-semibold transition"
+                  onClick={() => handleGuardarMeta(metaActual, descripcionMeta)}
+                  disabled={!metaActual || metaActual <= 0 || !descripcionMeta.trim()}
+                  className={`flex-1 py-2.5 px-6 rounded-lg text-sm font-semibold transition shadow-sm ${
+                    metaActual > 0 && descripcionMeta.trim()
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white hover:shadow-md'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
                 >
-                  Guardar
+                  {metaActiva ? 'Actualizar' : 'Activar'}
                 </button>
                 <button
                   onClick={() => setShowMetaModal(false)}
-                  className="px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition"
+                  className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-sm font-medium transition"
                 >
                   Cancelar
                 </button>
@@ -1820,23 +2363,23 @@ export const EnVivoPage = () => {
       {/* Modal de Moderación */}
       {showModeracionModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
                 <span>🛡️</span> Moderación
               </h3>
-              <button onClick={() => setShowModeracionModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+              <button onClick={() => setShowModeracionModal(false)} className="text-gray-400 hover:text-gray-600 transition">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* Usuarios Silenciados */}
               <div>
-                <h4 className="text-sm font-bold text-gray-700 mb-2">Usuarios Silenciados</h4>
+                <h4 className="text-xs font-bold text-gray-700 mb-2">Usuarios Silenciados</h4>
                 
                 {/* Input para agregar usuario */}
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={nuevoUsuarioSilenciar}
@@ -1848,7 +2391,7 @@ export const EnVivoPage = () => {
                       }
                     }}
                     placeholder="Nombre de usuario..."
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <button
                     onClick={() => {
@@ -1857,22 +2400,22 @@ export const EnVivoPage = () => {
                         setNuevoUsuarioSilenciar('');
                       }
                     }}
-                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition"
+                    className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-[10px] font-semibold rounded-lg transition shadow-sm"
                   >
-                    🔇 Silenciar
+                    🔇
                   </button>
                 </div>
 
                 {usuariosSilenciados.length === 0 ? (
-                  <p className="text-xs text-gray-500 italic">No hay usuarios silenciados</p>
+                  <p className="text-[10px] text-gray-500 italic">No hay usuarios silenciados</p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {usuariosSilenciados.map(user => (
-                      <div key={user} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                        <span className="text-sm text-gray-700">{user}</span>
+                      <div key={user} className="flex items-center justify-between bg-gray-50 p-1.5 rounded-lg">
+                        <span className="text-xs text-gray-700">{user}</span>
                         <button
                           onClick={() => handleDesilenciarUsuario(user)}
-                          className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded transition"
+                          className="text-[10px] bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded transition"
                         >
                           Desilenciar
                         </button>
@@ -1884,9 +2427,144 @@ export const EnVivoPage = () => {
 
               <button
                 onClick={() => setShowModeracionModal(false)}
-                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-1.5 rounded-lg text-xs font-medium transition"
               >
                 Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Tipo de Transmisión */}
+      {showTipoTransmisionModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-4">
+            <div className="mb-3">
+              <h3 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                <Radio className="w-4 h-4 text-pink-500" />
+                Tipo de Transmisión
+              </h3>
+              <p className="text-xs text-gray-600">Selecciona el tipo de acceso para tu transmisión</p>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {/* Opción Gratis */}
+              <button
+                onClick={() => setTipoTransmisionSeleccionado('gratis')}
+                className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                  tipoTransmisionSeleccionado === 'gratis'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                    tipoTransmisionSeleccionado === 'gratis'
+                      ? 'border-green-500 bg-green-500'
+                      : 'border-gray-300'
+                  }`}>
+                    {tipoTransmisionSeleccionado === 'gratis' && (
+                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Transmisión Gratis</h4>
+                    <p className="text-xs text-gray-600">
+                      Todos pueden ver tu transmisión sin costo
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Opción VIP */}
+              <button
+                onClick={() => setTipoTransmisionSeleccionado('pagado')}
+                className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                  tipoTransmisionSeleccionado === 'pagado'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                    tipoTransmisionSeleccionado === 'pagado'
+                      ? 'border-purple-500 bg-purple-500'
+                      : 'border-gray-300'
+                  }`}>
+                    {tipoTransmisionSeleccionado === 'pagado' && (
+                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Transmisión VIP</h4>
+                    <p className="text-xs text-gray-600">
+                      Solo usuarios que paguen podrán acceder
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {/* Formulario VIP */}
+            {tipoTransmisionSeleccionado === 'pagado' && (
+              <div className="space-y-2 mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Precio (Coins) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={precioVIP || ''}
+                    onChange={(e) => setPrecioVIP(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="100"
+                    min="1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Descripción/Actividad <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={descripcionVIP}
+                    onChange={(e) => setDescripcionVIP(e.target.value.slice(0, 100))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Describe el contenido de esta transmisión VIP..."
+                    rows={2}
+                    maxLength={100}
+                    required
+                  />
+                  <p className="text-[10px] text-gray-500 mt-0.5">{descripcionVIP.length}/100 caracteres</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowTipoTransmisionModal(false);
+                  setPrecioVIP(0);
+                  setDescripcionVIP('');
+                }}
+                className="flex-1 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setShowTipoTransmisionModal(false);
+                  iniciarTransmision();
+                }}
+                disabled={tipoTransmisionSeleccionado === 'pagado' && (!precioVIP || precioVIP < 1 || !descripcionVIP.trim())}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition shadow-lg ${
+                  tipoTransmisionSeleccionado === 'pagado' && (!precioVIP || precioVIP < 1 || !descripcionVIP.trim())
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white'
+                }`}
+              >
+                Iniciar
               </button>
             </div>
           </div>
