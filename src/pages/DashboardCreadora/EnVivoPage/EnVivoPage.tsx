@@ -190,9 +190,9 @@ export const EnVivoPage = () => {
   
   // Modal de tipo de transmisión
   const [showTipoTransmisionModal, setShowTipoTransmisionModal] = useState(false);
-  const [tipoTransmisionSeleccionado, setTipoTransmisionSeleccionado] = useState<'gratis' | 'pagado'>('gratis');
-  const [precioVIP, setPrecioVIP] = useState(0);
-  const [descripcionVIP, setDescripcionVIP] = useState('');
+  const [tipoTransmisionSeleccionado, setTipoTransmisionSeleccionado] = useState<'gratis' | 'suscriptores' | 'ppv'>('gratis');
+  const [precioPPV, setPrecioPPV] = useState(0);
+  const [descripcionPPV, setDescripcionPPV] = useState('');
   
   // Sistema de Moderación
   const [usuariosSilenciados, setUsuariosSilenciados] = useState<string[]>([]);
@@ -650,12 +650,17 @@ export const EnVivoPage = () => {
       setEnVivo(true);
       setChannelName(newChannelName);
       
-      // Notificar al backend que el canal está activo
+      // Notificar al backend que el canal está activo con su tipo
       try {
         await fetch(`${BACKEND_URL}/api/canal/iniciar`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelName: newChannelName })
+          body: JSON.stringify({ 
+            channelName: newChannelName,
+            tipoTransmision: tipoTransmisionSeleccionado,
+            precioPPV: tipoTransmisionSeleccionado === 'ppv' ? precioPPV : undefined,
+            descripcionPPV: tipoTransmisionSeleccionado === 'ppv' ? descripcionPPV : undefined
+          })
         });
       } catch (err) {
         console.warn('⚠️ No se pudo notificar al backend:', err);
@@ -2469,74 +2474,112 @@ export const EnVivoPage = () => {
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Transmisión Gratis</h4>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <span className="text-lg">🌍</span>
+                      <h4 className="text-sm font-bold text-gray-900">Público (Gratis)</h4>
+                    </div>
                     <p className="text-xs text-gray-600">
-                      Todos pueden ver tu transmisión sin costo
+                      Cualquiera puede ver sin costo
                     </p>
                   </div>
                 </div>
               </button>
 
-              {/* Opción VIP */}
+              {/* Opción Solo Suscriptores */}
               <button
-                onClick={() => setTipoTransmisionSeleccionado('pagado')}
+                onClick={() => setTipoTransmisionSeleccionado('suscriptores')}
                 className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
-                  tipoTransmisionSeleccionado === 'pagado'
+                  tipoTransmisionSeleccionado === 'suscriptores'
                     ? 'border-purple-500 bg-purple-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-start gap-2">
                   <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                    tipoTransmisionSeleccionado === 'pagado'
+                    tipoTransmisionSeleccionado === 'suscriptores'
                       ? 'border-purple-500 bg-purple-500'
                       : 'border-gray-300'
                   }`}>
-                    {tipoTransmisionSeleccionado === 'pagado' && (
+                    {tipoTransmisionSeleccionado === 'suscriptores' && (
                       <div className="w-1.5 h-1.5 bg-white rounded-full" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-bold text-gray-900 mb-0.5">Transmisión VIP</h4>
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <Crown className="w-4 h-4 text-purple-600" />
+                      <h4 className="text-sm font-bold text-gray-900">Solo Suscriptores</h4>
+                    </div>
                     <p className="text-xs text-gray-600">
-                      Solo usuarios que paguen podrán acceder
+                      Requiere suscripción mensual activa (S/.20-150/mes)
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {/* Opción PPV */}
+              <button
+                onClick={() => setTipoTransmisionSeleccionado('ppv')}
+                className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
+                  tipoTransmisionSeleccionado === 'ppv'
+                    ? 'border-pink-500 bg-pink-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                    tipoTransmisionSeleccionado === 'ppv'
+                      ? 'border-pink-500 bg-pink-500'
+                      : 'border-gray-300'
+                  }`}>
+                    {tipoTransmisionSeleccionado === 'ppv' && (
+                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <span className="text-lg">🎫</span>
+                      <h4 className="text-sm font-bold text-gray-900">Pago por Entrada (PPV)</h4>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      Cobro único para acceder a este live
                     </p>
                   </div>
                 </div>
               </button>
             </div>
 
-            {/* Formulario VIP */}
-            {tipoTransmisionSeleccionado === 'pagado' && (
-              <div className="space-y-2 mb-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+            {/* Formulario PPV */}
+            {tipoTransmisionSeleccionado === 'ppv' && (
+              <div className="space-y-2 mb-4 p-3 bg-pink-50 rounded-lg border border-pink-200">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Precio (Coins) <span className="text-red-500">*</span>
+                    Precio de Entrada (S/.) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
-                    value={precioVIP || ''}
-                    onChange={(e) => setPrecioVIP(Math.max(1, parseInt(e.target.value) || 0))}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="100"
+                    value={precioPPV || ''}
+                    onChange={(e) => setPrecioPPV(Math.max(1, parseInt(e.target.value) || 0))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="15"
                     min="1"
                     required
                   />
+                  <p className="text-[10px] text-gray-500 mt-1">💡 Sugerido: S/.10-30 para lives especiales</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Descripción/Actividad <span className="text-red-500">*</span>
+                    Descripción del Live <span className="text-red-500">*</span>
                   </label>
                   <textarea
-                    value={descripcionVIP}
-                    onChange={(e) => setDescripcionVIP(e.target.value.slice(0, 100))}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="Describe el contenido de esta transmisión VIP..."
+                    value={descripcionPPV}
+                    onChange={(e) => setDescripcionPPV(e.target.value.slice(0, 100))}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs resize-none focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="Ej: Live especial de año nuevo con show exclusivo..."
                     rows={2}
                     maxLength={100}
                     required
                   />
-                  <p className="text-[10px] text-gray-500 mt-0.5">{descripcionVIP.length}/100 caracteres</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{descripcionPPV.length}/100 caracteres</p>
                 </div>
               </div>
             )}
@@ -2545,8 +2588,8 @@ export const EnVivoPage = () => {
               <button
                 onClick={() => {
                   setShowTipoTransmisionModal(false);
-                  setPrecioVIP(0);
-                  setDescripcionVIP('');
+                  setPrecioPPV(0);
+                  setDescripcionPPV('');
                 }}
                 className="flex-1 py-2 px-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold transition"
               >
@@ -2557,9 +2600,9 @@ export const EnVivoPage = () => {
                   setShowTipoTransmisionModal(false);
                   iniciarTransmision();
                 }}
-                disabled={tipoTransmisionSeleccionado === 'pagado' && (!precioVIP || precioVIP < 1 || !descripcionVIP.trim())}
+                disabled={tipoTransmisionSeleccionado === 'ppv' && (!precioPPV || precioPPV < 1 || !descripcionPPV.trim())}
                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition shadow-lg ${
-                  tipoTransmisionSeleccionado === 'pagado' && (!precioVIP || precioVIP < 1 || !descripcionVIP.trim())
+                  tipoTransmisionSeleccionado === 'ppv' && (!precioPPV || precioPPV < 1 || !descripcionPPV.trim())
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : 'bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white'
                 }`}

@@ -22,7 +22,7 @@ app.use(cors());
 
 // Almacenar espectadores por canal
 const espectadoresPorCanal = new Map();
-// Almacenar estado de canales (activo/cerrado)
+// Almacenar estado de canales (activo/cerrado con metadata)
 const canalesActivos = new Map();
 // Almacenar configuración del chat por canal
 const chatConfigPorCanal = new Map();
@@ -118,14 +118,22 @@ app.get('/api/espectadores/:channelName', (req, res) => {
 
 // Endpoint para iniciar canal (creadora)
 app.post('/api/canal/iniciar', express.json(), (req, res) => {
-  const { channelName } = req.body;
+  const { channelName, tipoTransmision, precioPPV, descripcionPPV } = req.body;
   
   if (!channelName) {
     return res.status(400).json({ error: 'channelName es requerido' });
   }
 
-  canalesActivos.set(channelName, true);
-  console.log(`🟢 Canal ${channelName} iniciado`);
+  // Guardar metadata del canal
+  canalesActivos.set(channelName, {
+    activo: true,
+    tipoTransmision: tipoTransmision || 'gratis',
+    precioPPV: precioPPV || 0,
+    descripcionPPV: descripcionPPV || '',
+    iniciadoEn: new Date()
+  });
+  
+  console.log(`🟢 Canal ${channelName} iniciado - Tipo: ${tipoTransmision || 'gratis'}${tipoTransmision === 'ppv' ? ` - Precio: S/.${precioPPV}` : ''}`);
   
   res.json({ success: true, activo: true });
 });
@@ -155,12 +163,18 @@ app.post('/api/canal/finalizar', express.json(), (req, res) => {
   res.json({ success: true, activo: false });
 });
 
-// Endpoint para verificar si un canal está activo
+// Endpoint para verificar si un canal está activo y obtener su configuración
 app.get('/api/canal/:channelName/activo', (req, res) => {
   const { channelName } = req.params;
-  const activo = canalesActivos.get(channelName) === true;
+  const canalData = canalesActivos.get(channelName);
+  const activo = canalData && canalData.activo === true;
   
-  res.json({ activo });
+  res.json({ 
+    activo,
+    tipoTransmision: activo ? canalData.tipoTransmision : 'gratis',
+    precioPPV: activo ? canalData.precioPPV : 0,
+    descripcionPPV: activo ? canalData.descripcionPPV : ''
+  });
 });
 
 const PORT = 5000;

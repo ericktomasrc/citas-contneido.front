@@ -8,6 +8,8 @@ import AgoraRTC, {
 import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize, Crown, DollarSign, Send, Sparkles, X } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { SuperChatModal } from './SuperChatModal';
+import { verificarSuscripcion, verificarAccesoPPV, crearSuscripcion, pagarPPV } from '../../../shared/services/subscription.service';
+import { PLANES_SUSCRIPCION } from '../../../shared/types/subscription.types';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -108,6 +110,14 @@ export const VerEnVivoPage = () => {
   // Estados para Super Chat
   const [mostrarModalSuperChat, setMostrarModalSuperChat] = useState(false);
   
+  // Estados para control de acceso
+  const [tipoTransmision, setTipoTransmision] = useState<'gratis' | 'suscriptores' | 'ppv'>('gratis');
+  const [precioPPV, setPrecioPPVAcceso] = useState(0);
+  const [descripcionPPV, setDescripcionPPVAcceso] = useState('');
+  const [mostrarModalAcceso, setMostrarModalAcceso] = useState(false);
+  const [accesoPermitido, setAccesoPermitido] = useState(false);
+  const [esSuscriptor, setEsSuscriptor] = useState(false); // Simulado por ahora
+  
   // Estados para notificaciones toast
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -138,8 +148,22 @@ export const VerEnVivoPage = () => {
   });
   const [alertaChat, setAlertaChat] = useState<string | null>(null);
   
+  // Estados para procesamiento de pagos
+  const [procesandoPago, setProcesandoPago] = useState(false);
+  
   // Trackear regalos enviados por este usuario para no mostrarle la notificación
   const regalosPropiosRef = useRef<Set<string>>(new Set());
+
+  // Verificar suscripción al cargar (para uso futuro del creadoraId)
+  useEffect(() => {
+    const checkSuscripcion = async () => {
+      // TODO: BACKEND - Obtener creadoraId real del canal
+      const creadoraId = 'temp_creadora_123'; // Temporal
+      const resultado = await verificarSuscripcion(creadoraId);
+      setEsSuscriptor(resultado.esSuscriptor);
+    };
+    checkSuscripcion();
+  }, []);
 
   // Determinar tier del regalo según su valor
   const getTier = (valor: number): 'small' | 'medium' | 'large' => {
@@ -319,15 +343,33 @@ export const VerEnVivoPage = () => {
         throw new Error('No se especificó el canal de transmisión');
       }
 
-      // IMPORTANTE: Verificar si el canal está activo ANTES de conectarse
+      // IMPORTANTE: Verificar si el canal está activo Y obtener configuración de acceso
       const verificarResponse = await fetch(`${BACKEND_URL}/api/canal/${channelName}/activo`);
-      const { activo } = await verificarResponse.json();
+      const canalData = await verificarResponse.json();
       
-      if (!activo) {
+      if (!canalData.activo) {
         console.log('❌ Canal cerrado, no se conecta a Agora');
         setTransmisionFinalizada(true);
         setCargando(false);
         return; // NO se conecta a Agora, ahorra recursos
+      }
+
+      // Verificar tipo de acceso
+      setTipoTransmision(canalData.tipoTransmision || 'gratis');
+      setPrecioPPVAcceso(canalData.precioPPV || 0);
+      setDescripcionPPVAcceso(canalData.descripcionPPV || '');
+
+      // Validar acceso según tipo de transmisión
+      if (canalData.tipoTransmision === 'suscriptores' && !esSuscriptor) {
+        setMostrarModalAcceso(true);
+        setCargando(false);
+        return;
+      }
+
+      if (canalData.tipoTransmision === 'ppv' && !accesoPermitido) {
+        setMostrarModalAcceso(true);
+        setCargando(false);
+        return;
       }
 
       console.log('✅ Canal activo, procediendo a conectar...');
@@ -1541,6 +1583,142 @@ export const VerEnVivoPage = () => {
         onClose={() => setMostrarModalSuperChat(false)}
         onSend={handleEnviarSuperChat}
       />
+
+      {/* Modal de Control de Acceso */}
+      {mostrarModalAcceso && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-pink-500/50 p-6 max-w-md w-full shadow-2xl">
+            {tipoTransmision === 'suscriptores' ? (
+              // Modal de Suscripción Requerida
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Crown className="w-10 h-10 text-white" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Contenido Exclusivo</h3>
+                  <p className="text-gray-300 text-sm">
+                    Este live es solo para suscriptores
+                  </p>
+                </div>
+                
+                <div className="space-y-3 mb-6">
+                  {PLANES_SUSCRIPCION.map((plan) => (
+                    <div
+                      key={plan.id}
+                      className={`${
+                        plan.tipo === 'basico' 
+                          ? 'bg-purple-500/20 border-purple-500/50' 
+                          : plan.tipo === 'vip'
+                          ? 'bg-purple-600/20 border-purple-400/50'
+                          : 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-400/50'
+                      } border rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-bold flex items-center gap-1">
+                          <span className="text-lg">{plan.icono}</span>
+                          {plan.nombre}
+                        </span>
+                        <span className="text-white font-bold">S/. {plan.precio}/mes</span>
+                      </div>
+                      <ul className="text-gray-300 text-sm space-y-1">
+                        {plan.beneficios.slice(0, 3).map((beneficio, idx) => (
+                          <li key={idx}>✓ {beneficio}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => window.history.back()}
+                    className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  >
+                    Volver
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setProcesandoPago(true);
+                      const creadoraId = 'temp_creadora_123'; // TODO: BACKEND - ID real
+                      const resultado = await crearSuscripcion(creadoraId, 'basico');
+                      
+                      if (resultado.success) {
+                        setEsSuscriptor(true);
+                        setMostrarModalAcceso(false);
+                        unirseATransmision();
+                      } else {
+                        alert('Error al procesar suscripción: ' + resultado.error);
+                      }
+                      setProcesandoPago(false);
+                    }}
+                    disabled={procesandoPago}
+                    className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold transition shadow-lg disabled:opacity-50"
+                  >
+                    {procesandoPago ? 'Procesando...' : 'Suscribirme'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              // Modal de PPV (Pago por Entrada)
+              <>
+                <div className="text-center mb-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-4xl">🎫</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Live Premium</h3>
+                  <p className="text-gray-300 text-sm mb-4">
+                    {descripcionPPV || 'Live especial con contenido exclusivo'}
+                  </p>
+                  <div className="inline-flex items-center gap-2 bg-pink-500/20 border border-pink-500/50 rounded-full px-6 py-2">
+                    <DollarSign className="w-5 h-5 text-pink-400" />
+                    <span className="text-white text-2xl font-bold">S/. {precioPPV}</span>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-800/50 rounded-xl p-4 mb-6">
+                  <h4 className="text-white font-semibold mb-2">Lo que incluye:</h4>
+                  <ul className="text-gray-300 text-sm space-y-1">
+                    <li>✓ Acceso completo a este live</li>
+                    <li>✓ Chat sin restricciones</li>
+                    <li>✓ Envío de regalos y propinas</li>
+                    <li>✓ Experiencia premium HD</li>
+                  </ul>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => window.history.back()}
+                    className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!channelName) return;
+                      
+                      setProcesandoPago(true);
+                      const resultado = await pagarPPV(channelName, precioPPV);
+                      
+                      if (resultado.success) {
+                        setAccesoPermitido(true);
+                        setMostrarModalAcceso(false);
+                        unirseATransmision();
+                      } else {
+                        alert('Error al procesar pago: ' + resultado.error);
+                      }
+                      setProcesandoPago(false);
+                    }}
+                    disabled={procesandoPago}
+                    className="flex-1 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-lg font-semibold transition shadow-lg disabled:opacity-50"
+                  >
+                    {procesandoPago ? 'Procesando...' : `Pagar S/. ${precioPPV}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Toast de notificación */}
       {toastVisible && (
