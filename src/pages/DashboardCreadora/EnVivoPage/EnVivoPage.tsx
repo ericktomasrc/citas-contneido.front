@@ -302,11 +302,11 @@ export const EnVivoPage = () => {
         },
         {
           encoderConfig: {
-            width: 1280,
-            height: 720,
+            width: 3840,
+            height: 2160,
             frameRate: 30,
-            bitrateMin: 600,
-            bitrateMax: 1000,
+            bitrateMin: 15000,
+            bitrateMax: 20000,
           }
         }
       );
@@ -314,8 +314,8 @@ export const EnVivoPage = () => {
       setLocalAudioTrack(audioTrack);
       setLocalVideoTrack(videoTrack);
 
-      // 5. Reproducir video localmente
-      videoTrack.play('local-player');
+      // 5. Reproducir video localmente con ajuste "contain" para evitar zoom
+      videoTrack.play('local-player', { fit: 'contain' });
 
       // 6. Publicar tracks
       await client.publish([audioTrack, videoTrack]);
@@ -507,8 +507,8 @@ export const EnVivoPage = () => {
   const [chatConfig, setChatConfig] = useState({
     publicoPuedeChatear: true,
     suscriptoresPuedeChatear: true,
-    soloEmoticonos: false,
-    soloMensajes: false,
+    soloEmoticonos: true,
+    soloMensajes: true,
     palabrasRestringidas: ['spam', 'prohibido']
   });
 
@@ -1100,11 +1100,11 @@ export const EnVivoPage = () => {
               <div className="space-y-2">
                 <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
                   <span className="text-gray-700">Solo emoticones</span>
-                  <input type="checkbox" checked={chatConfig.soloEmoticonos} onChange={(e) => setChatConfig({...chatConfig, soloEmoticonos: e.target.checked, soloMensajes: false})} className="w-4 h-4 text-pink-600 rounded" />
+                  <input type="checkbox" checked={chatConfig.soloEmoticonos} onChange={(e) => setChatConfig({...chatConfig, soloEmoticonos: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
                 </label>
                 <label className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
                   <span className="text-gray-700">Solo mensajes</span>
-                  <input type="checkbox" checked={chatConfig.soloMensajes} onChange={(e) => setChatConfig({...chatConfig, soloMensajes: e.target.checked, soloEmoticonos: false})} className="w-4 h-4 text-pink-600 rounded" />
+                  <input type="checkbox" checked={chatConfig.soloMensajes} onChange={(e) => setChatConfig({...chatConfig, soloMensajes: e.target.checked})} className="w-4 h-4 text-pink-600 rounded" />
                 </label>
               </div>
             </div>
