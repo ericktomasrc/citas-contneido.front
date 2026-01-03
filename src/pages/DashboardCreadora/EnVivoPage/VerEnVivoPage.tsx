@@ -49,6 +49,13 @@ interface ScreenNotification {
   timestamp: Date;
 }
 
+interface FloatingHeart {
+  id: string;
+  left: number; // posición horizontal en %
+  animationDuration: number; // duración en segundos
+  delay: number; // delay inicial
+}
+
 export const VerEnVivoPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const channelName = slug; // El slug es el nombre del canal
@@ -78,12 +85,16 @@ export const VerEnVivoPage = () => {
   const notificationQueueRef = useRef<ScreenNotification[]>([]);
   const isProcessingRef = useRef(false);
 
+  // Estados para emoticones y corazones flotantes
+  const [mostrarEmojis, setMostrarEmojis] = useState(false);
+  const [floatingHearts, setFloatingHearts] = useState<FloatingHeart[]>([]);
+
   // Estados para restricciones del chat
   const [chatConfig, setChatConfig] = useState({
     publicoPuedeChatear: true,
     suscriptoresPuedeChatear: true,
-    soloEmoticonos: false,
-    soloMensajes: false,
+    soloEmoticonos: true,
+    soloMensajes: true,
     palabrasRestringidas: [] as string[]
   });
   const [alertaChat, setAlertaChat] = useState<string | null>(null);
@@ -298,7 +309,7 @@ export const VerEnVivoPage = () => {
             console.log('🎥 Reproduciendo video en:', `remote-player-${user.uid}`, playerDiv ? 'Elemento encontrado' : 'Elemento NO encontrado');
             
             if (playerDiv && user.videoTrack) {
-              user.videoTrack.play(`remote-player-${user.uid}`);
+              user.videoTrack.play(`remote-player-${user.uid}`, { fit: 'contain' });
               console.log('✅ Video reproduciéndose');
             } else {
               console.error('❌ No se pudo reproducir video - elemento o track no disponible');
@@ -445,6 +456,80 @@ export const VerEnVivoPage = () => {
     };
   }, []);
 
+  // Emoticones más usados en lives
+  const emojisPopulares = [
+    '❤️', '😍', '🔥', '👏', '😂', '😊', '🎉', '💜', 
+    '✨', '👍', '🥰', '😘', '💕', '🌟', '💯', '🙌'
+  ];
+
+  // Manejar click en Me gusta - Crear múltiples corazones flotantes (efecto premium)
+  const handleMeGusta = () => {
+    if (!conectado || transmisionFinalizada) return;
+    
+    // Generar entre 3 y 5 corazones por click (como TikTok/Instagram)
+    const cantidadCorazones = Math.floor(Math.random() * 3) + 3; // 3-5 corazones
+    
+    for (let i = 0; i < cantidadCorazones; i++) {
+      setTimeout(() => {
+        const nuevoCorazon: FloatingHeart = {
+          id: Date.now().toString() + Math.random(),
+          left: Math.random() * 70 + 15, // Entre 15% y 85%
+          animationDuration: 2.5 + Math.random() * 1.5, // Entre 2.5 y 4 segundos
+          delay: 0
+        };
+        
+        setFloatingHearts(prev => [...prev, nuevoCorazon]);
+        
+        // Remover después de la animación
+        setTimeout(() => {
+          setFloatingHearts(prev => prev.filter(h => h.id !== nuevoCorazon.id));
+        }, (nuevoCorazon.animationDuration + 0.5) * 1000);
+      }, i * 150); // Delay de 150ms entre cada corazón
+    }
+    
+    // Enviar al servidor para que otros lo vean (un solo evento)
+    if (socketRef.current) {
+      socketRef.current.emit('send-like', {
+        channelName,
+        user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+        timestamp: Date.now()
+      });
+    }
+  };
+
+  // Escuchar likes de otros usuarios
+  useEffect(() => {
+    if (!socketRef.current) return;
+    
+    const handleNewLike = () => {
+      // Generar entre 3 y 5 corazones por like recibido
+      const cantidadCorazones = Math.floor(Math.random() * 3) + 3;
+      
+      for (let i = 0; i < cantidadCorazones; i++) {
+        setTimeout(() => {
+          const nuevoCorazon: FloatingHeart = {
+            id: Date.now().toString() + Math.random(),
+            left: Math.random() * 70 + 15,
+            animationDuration: 2.5 + Math.random() * 1.5,
+            delay: 0
+          };
+          
+          setFloatingHearts(prev => [...prev, nuevoCorazon]);
+          
+          setTimeout(() => {
+            setFloatingHearts(prev => prev.filter(h => h.id !== nuevoCorazon.id));
+          }, (nuevoCorazon.animationDuration + 0.5) * 1000);
+        }, i * 150); // Delay de 150ms entre cada corazón
+      }
+    };
+    
+    socketRef.current.on('new-like', handleNewLike);
+    
+    return () => {
+      socketRef.current?.off('new-like', handleNewLike);
+    };
+  }, [socketRef.current]);
+
   // Enviar mensaje
   const handleEnviarMensaje = () => {
     if (!mensajeActual.trim() || !socketRef.current) return;
@@ -456,19 +541,33 @@ export const VerEnVivoPage = () => {
       return;
     }
 
-    // Validar solo emoticones
+    // Validar tipo de mensajes
     const esEmoticon = /^[\p{Emoji}\s]+$/u.test(mensajeActual);
-    if (chatConfig.soloEmoticonos && !esEmoticon) {
-      setAlertaChat('❌ Solo se permiten emoticones en el chat');
+    
+    const ambosActivos = chatConfig.soloEmoticonos && chatConfig.soloMensajes;
+    const ambosInactivos = !chatConfig.soloEmoticonos && !chatConfig.soloMensajes;
+    
+    // Si ambos están inactivos, bloquear todo
+    if (ambosInactivos) {
+      setAlertaChat('❌ El chat está deshabilitado');
       setTimeout(() => setAlertaChat(null), 3000);
       return;
     }
-
-    // Validar solo mensajes (sin emoticones)
-    if (chatConfig.soloMensajes && esEmoticon) {
-      setAlertaChat('❌ Solo se permiten mensajes de texto, no emoticones');
-      setTimeout(() => setAlertaChat(null), 3000);
-      return;
+    
+    // Si ambos están activos, permitir todo (no validar)
+    // Si solo uno está activo, validar según corresponda
+    if (!ambosActivos) {
+      if (chatConfig.soloEmoticonos && !esEmoticon) {
+        setAlertaChat('❌ Solo se permiten emoticones en el chat');
+        setTimeout(() => setAlertaChat(null), 3000);
+        return;
+      }
+      
+      if (chatConfig.soloMensajes && esEmoticon) {
+        setAlertaChat('❌ Solo se permiten mensajes de texto, no emoticones');
+        setTimeout(() => setAlertaChat(null), 3000);
+        return;
+      }
     }
 
     // Validar palabras restringidas
@@ -486,25 +585,13 @@ export const VerEnVivoPage = () => {
       return;
     }
 
-    const nuevoMensaje: ChatMessage = {
-      id: Date.now().toString(),
-      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
-      mensaje: mensajeActual,
-      isVIP: false, // TODO: verificar suscripción
-      avatar: 'https://via.placeholder.com/32',
-      timestamp: new Date()
-    };
-
-    // Agregar mensaje localmente PRIMERO para que el espectador lo vea inmediatamente
-    setChatMessages(prev => [...prev, nuevoMensaje]);
-
-    // Luego enviar al servidor para que otros lo vean
+    // Enviar mensaje al servidor - el servidor lo reenviará a todos (incluido este usuario)
     socketRef.current.emit('chat-message', {
       channelName,
       mensaje: mensajeActual,
-      user: nuevoMensaje.user,
+      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
       isVIP: false,
-      avatar: 'https://via.placeholder.com/32'
+      avatar: '👤'
     });
 
     setMensajeActual('');
@@ -528,7 +615,7 @@ export const VerEnVivoPage = () => {
       giftId,
       user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
       isVIP: false,
-      avatar: 'https://via.placeholder.com/32',
+      avatar: '🎁',
       gift
     });
 
@@ -664,6 +751,7 @@ export const VerEnVivoPage = () => {
                         key={uid}
                         id={`remote-player-${uid}`}
                         className="w-full h-full"
+                        style={{ objectFit: 'contain' }}
                       />
                     ))}
 
@@ -680,6 +768,69 @@ export const VerEnVivoPage = () => {
                         </div>
                       </div>
                     )}
+
+                    {/* Corazones flotantes */}
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                      {floatingHearts.map((heart) => {
+                        // Generar variaciones aleatorias para cada corazón
+                        const variation = parseInt(heart.id.slice(-1)) % 5;
+                        const gradients = [
+                          'from-pink-500 via-rose-500 to-red-500',
+                          'from-red-500 via-pink-500 to-rose-400',
+                          'from-rose-500 via-pink-400 to-red-400',
+                          'from-pink-600 via-red-500 to-rose-500',
+                          'from-red-400 via-rose-500 to-pink-500'
+                        ];
+                        const sizes = ['w-10 h-10', 'w-12 h-12', 'w-9 h-9', 'w-11 h-11', 'w-8 h-8'];
+                        
+                        return (
+                          <div
+                            key={heart.id}
+                            className="absolute bottom-0 animate-float-up"
+                            style={{
+                              left: `${heart.left}%`,
+                              animationDuration: `${heart.animationDuration}s`,
+                              animationDelay: `${heart.delay}s`
+                            }}
+                          >
+                            <div className={`${sizes[variation]} relative`}>
+                              {/* Corazón con gradiente */}
+                              <svg viewBox="0 0 24 24" className="w-full h-full drop-shadow-2xl">
+                                <defs>
+                                  <linearGradient id={`gradient-${heart.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" className="text-pink-400" style={{ stopColor: 'currentColor' }} />
+                                    <stop offset="50%" className="text-rose-500" style={{ stopColor: 'currentColor' }} />
+                                    <stop offset="100%" className="text-red-500" style={{ stopColor: 'currentColor' }} />
+                                  </linearGradient>
+                                  {/* Sombra interior */}
+                                  <filter id={`shadow-${heart.id}`}>
+                                    <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+                                    <feOffset dx="0" dy="1" result="offsetblur"/>
+                                    <feComponentTransfer>
+                                      <feFuncA type="linear" slope="0.3"/>
+                                    </feComponentTransfer>
+                                    <feMerge>
+                                      <feMergeNode/>
+                                      <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                  </filter>
+                                </defs>
+                                <path
+                                  d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                  fill={`url(#gradient-${heart.id})`}
+                                  filter={`url(#shadow-${heart.id})`}
+                                  stroke="white"
+                                  strokeWidth="0.5"
+                                  strokeOpacity="0.6"
+                                />
+                              </svg>
+                              {/* Brillo/destello */}
+                              <div className="absolute inset-0 bg-white/30 rounded-full blur-md animate-pulse" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
 
                     {/* Controles */}
                     <div className="absolute bottom-4 right-4 flex gap-2">
@@ -738,7 +889,7 @@ export const VerEnVivoPage = () => {
                     <span className="text-gray-400">Nivel Premium</span>
                   </div>
                 </div>
-                <button className="px-8 py-3 bg-gradient-to-r from-pink-500 via-purple-500 to-pink-500 text-white rounded-full font-bold hover:shadow-lg hover:shadow-pink-500/30 transition-all duration-300 hover:scale-105">
+                <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg">
                   Suscribirse
                 </button>
               </div>
@@ -775,11 +926,13 @@ export const VerEnVivoPage = () => {
                       // Es un mensaje de chat
                       return (
                         <div key={item.id} className="flex items-start gap-2 animate-fade-in">
-                          <img
-                            src={item.avatar}
-                            alt={item.user}
-                            className="w-8 h-8 rounded-full flex-shrink-0 border-2 border-purple-300"
-                          />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            item.isVIP 
+                              ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
+                              : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                          }`}>
+                            <span className="text-sm">{item.avatar || item.user[0]}</span>
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 mb-1">
                               <p className={`text-sm font-semibold truncate ${
@@ -796,29 +949,40 @@ export const VerEnVivoPage = () => {
                         </div>
                       );
                     } else {
-                      // Es un regalo
+                      // Es un regalo - Diseño premium con efectos
                       return (
                         <div key={item.id} className="animate-fade-in">
-                          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-400/40 rounded-lg p-2.5">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <img
-                                src={item.avatar}
-                                alt={item.user}
-                                className="w-5 h-5 rounded-full border border-yellow-500/50"
-                              />
-                              <p className="text-xs font-bold text-gray-800">
-                                {item.user}
-                              </p>
-                              {item.isVIP && <Crown className="w-3 h-3 text-yellow-500" />}
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-2xl">{item.gift.emoji}</span>
-                              <div className="flex-1">
-                                <p className="text-gray-900 font-bold text-sm">{item.gift.nombre}</p>
-                                <div className="flex items-center gap-1 text-orange-600">
-                                  <DollarSign className="w-3 h-3" />
-                                  <span className="text-xs font-bold">{item.gift.valor} coins</span>
+                          <div className="relative bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border-2 border-amber-300/50 rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            {/* Efecto de brillo sutil */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                            
+                            <div className="relative z-10">
+                              <div className="flex items-center gap-2 mb-2">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
+                                  item.isVIP 
+                                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
+                                    : 'bg-gradient-to-br from-blue-500 to-purple-600'
+                                }`}>
+                                  <span className="text-sm">{item.avatar || item.user[0]}</span>
                                 </div>
+                                <p className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                                  {item.user}
+                                  {item.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
+                                </p>
+                                <span className="ml-auto text-xs text-gray-500 font-medium">envió un regalo</span>
+                              </div>
+                              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-lg p-2.5 border border-amber-200/50">
+                                <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg border border-amber-300/40">
+                                  <span className="text-2xl">{item.gift.emoji}</span>
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-gray-900 font-bold text-base leading-tight">{item.gift.nombre}</p>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    <DollarSign className="w-4 h-4 text-amber-600" />
+                                    <span className="text-sm font-bold text-amber-700">{item.gift.valor} coins</span>
+                                  </div>
+                                </div>
+                                <Sparkles className="w-5 h-5 text-amber-500" />
                               </div>
                             </div>
                           </div>
@@ -832,38 +996,72 @@ export const VerEnVivoPage = () => {
 
               {/* Input de mensaje premium */}
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={mensajeActual}
-                    onChange={(e) => setMensajeActual(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleEnviarMensaje()}
-                    placeholder="Mensaje exclusivo..."
-                    disabled={!conectado}
-                    className="flex-1 px-4 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all disabled:opacity-50 shadow-sm"
-                  />
-                  <button
-                    onClick={handleEnviarMensaje}
-                    disabled={!conectado || !mensajeActual.trim()}
-                    className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center hover:shadow-lg hover:shadow-pink-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-                  >
-                    <Send className="w-5 h-5 text-white" />
-                  </button>
+                <div className="relative">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={mensajeActual}
+                        onChange={(e) => setMensajeActual(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && !transmisionFinalizada && handleEnviarMensaje()}
+                        placeholder={transmisionFinalizada ? "La transmisión ha finalizado" : "Mensaje exclusivo..."}
+                        disabled={!conectado || transmisionFinalizada}
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all disabled:opacity-50 shadow-sm"
+                      />
+                      {/* Botón de emoticones */}
+                      <button
+                        type="button"
+                        onClick={() => setMostrarEmojis(!mostrarEmojis)}
+                        disabled={!conectado || transmisionFinalizada}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center hover:bg-gray-100 rounded-full transition disabled:opacity-50"
+                      >
+                        <span className="text-lg">😊</span>
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleEnviarMensaje}
+                      disabled={!conectado || !mensajeActual.trim() || transmisionFinalizada}
+                      className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center hover:shadow-lg hover:shadow-pink-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+                    >
+                      <Send className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                  
+                  {/* Panel de emoticones */}
+                  {mostrarEmojis && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-300 rounded-xl shadow-lg p-3 z-10">
+                      <div className="grid grid-cols-8 gap-2">
+                        {emojisPopulares.map((emoji, index) => (
+                          <button
+                            key={index}
+                            onClick={() => {
+                              setMensajeActual(prev => prev + emoji);
+                              setMostrarEmojis(false);
+                            }}
+                            className="text-2xl hover:bg-gray-100 rounded-lg p-1 transition"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Botones de interacción premium */}
                 <div className="grid grid-cols-2 gap-2">
                   <button 
-                    disabled={!conectado}
-                    className="py-2.5 px-4 bg-gradient-to-r from-pink-500 via-red-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-pink-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02]"
+                    onClick={handleMeGusta}
+                    disabled={!conectado || transmisionFinalizada}
+                    className="py-2.5 px-4 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95"
                   >
                     <Heart className="w-4 h-4" />
                     <span className="text-sm">Me gusta</span>
                   </button>
                   <button 
-                    onClick={() => setMostrarCatalogoRegalos(true)}
-                    disabled={!conectado}
-                    className="py-2.5 px-4 bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-yellow-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 hover:scale-[1.02]"
+                    onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
+                    disabled={!conectado || transmisionFinalizada}
+                    className="py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500"
                   >
                     <Gift className="w-4 h-4" />
                     <span className="text-sm">Regalo</span>

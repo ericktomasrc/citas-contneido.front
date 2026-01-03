@@ -213,6 +213,16 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Me gusta / Like
+  socket.on('send-like', (data) => {
+    const { channelName, user, timestamp } = data;
+    // Broadcast a todos en el canal (incluido el remitente)
+    io.to(channelName).emit('new-like', {
+      user,
+      timestamp
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('👋 Usuario desconectado:', socket.id);
   });

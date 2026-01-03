@@ -14,6 +14,7 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
   const handleCardClick = () => {
     if (creator.slug) {
       navigate(`/perfil/${creator.slug}`);
+     //navigate(`/perfil-publico-creadora/`);
     }
   };
 
@@ -63,7 +64,8 @@ export const CreatorCard = ({ creator, onLike, onClick }: CreatorCardProps) => {
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              navigate(`/perfil/${creator.slug}`); 
+               navigate(`/perfil/${creator.slug}`); 
+              //navigate(`/perfil-publico-creadora/`); 
             }}
             className="w-full bg-white text-gray-900 px-4 py-2 rounded-xl font-medium text-sm hover:bg-gray-100 transition"
           >

@@ -29,7 +29,10 @@ import {
   Maximize,
   Minimize,
   Crown,
-  DollarSign
+  DollarSign,
+  ChevronLeft,
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
@@ -80,6 +83,7 @@ interface ScreenNotification {
   valor?: number;
   tier: 'small' | 'medium' | 'large';
   timestamp: Date;
+  isExiting?: boolean;
 }
 
 interface Evento {
@@ -139,11 +143,26 @@ export const EnVivoPage = () => {
   const [showMonthCalendar, setShowMonthCalendar] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [isEventoProgramado, setIsEventoProgramado] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [mensajeChat, setMensajeChat] = useState('');
   
   const [eventos, setEventos] = useState<Evento[]>([]);
+  
+  // Sistema de Metas
+  const [metaActual, setMetaActual] = useState(500); // Meta en coins
+  const [progresoMeta, setProgresoMeta] = useState(0); // Progreso actual en coins
+  const [showMetaModal, setShowMetaModal] = useState(false);
+  const [metaAlcanzada, setMetaAlcanzada] = useState(false);
+  const [topDonadores, setTopDonadores] = useState<{user: string, total: number, avatar?: string}[]>([]);
+  const [showTopDonadores, setShowTopDonadores] = useState(false); // Colapsable
+  
+  // Sistema de Moderación
+  const [usuariosSilenciados, setUsuariosSilenciados] = useState<string[]>([]);
+  const [showModeracionModal, setShowModeracionModal] = useState(false);
+  const [nuevoUsuarioSilenciar, setNuevoUsuarioSilenciar] = useState('');
   
   // Remover chat mensajes estáticos - ahora viene de Socket.io
   
@@ -161,17 +180,25 @@ export const EnVivoPage = () => {
     isProcessingRef.current = true;
     const notification = notificationQueueRef.current.shift()!;
     
-    setScreenNotifications(prev => [...prev, notification]);
+    setScreenNotifications(prev => [...prev, { ...notification, isExiting: false }]);
     
     const duration = notification.tier === 'large' ? 5000 : notification.tier === 'medium' ? 4000 : 3000;
     
     setTimeout(() => {
-      setScreenNotifications(prev => prev.filter(n => n.id !== notification.id));
-      isProcessingRef.current = false;
+      // Marcar como "saliendo" para aplicar animación
+      setScreenNotifications(prev => 
+        prev.map(n => n.id === notification.id ? { ...n, isExiting: true } : n)
+      );
       
-      if (notificationQueueRef.current.length > 0) {
-        setTimeout(() => processNotificationQueue(), 500);
-      }
+      // Esperar que termine la animación antes de remover
+      setTimeout(() => {
+        setScreenNotifications(prev => prev.filter(n => n.id !== notification.id));
+        isProcessingRef.current = false;
+        
+        if (notificationQueueRef.current.length > 0) {
+          setTimeout(() => processNotificationQueue(), 500);
+        }
+      }, 800); // Duración de la animación pixel-dissolve
     }, duration);
   };
 
@@ -234,6 +261,34 @@ export const EnVivoPage = () => {
       socketRef.current.on('new-gift', (gift: GiftMessage) => {
         setGiftMessages(prev => [...prev, gift]);
         
+        // Actualizar progreso de meta
+        setProgresoMeta(prev => {
+          const nuevoProgreso = prev + gift.gift.valor;
+          
+          // Verificar si se alcanzó la meta
+          if (nuevoProgreso >= metaActual && prev < metaActual) {
+            setMetaAlcanzada(true);
+            // Ocultar la animación después de 5 segundos
+            setTimeout(() => setMetaAlcanzada(false), 5000);
+          }
+          
+          return nuevoProgreso;
+        });
+        
+        // Actualizar ranking de donadores
+        setTopDonadores(prev => {
+          const donadorExistente = prev.find(d => d.user === gift.user);
+          if (donadorExistente) {
+            return prev
+              .map(d => d.user === gift.user ? {...d, total: d.total + gift.gift.valor} : d)
+              .sort((a, b) => b.total - a.total);
+          } else {
+            return [...prev, { user: gift.user, total: gift.gift.valor, avatar: gift.avatar }]
+              .sort((a, b) => b.total - a.total)
+              .slice(0, 10); // Top 10
+          }
+        });
+        
         // Crear notificación en pantalla
         const screenNotif: ScreenNotification = {
           id: 'screen-' + gift.id,
@@ -270,6 +325,11 @@ export const EnVivoPage = () => {
     try {
       setCargando(true);
       setError(null);
+
+      // Reiniciar meta al iniciar nueva transmisión
+      setProgresoMeta(0);
+      setTopDonadores([]);
+      setMetaAlcanzada(false);
 
       // 1. Verificar permisos
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -551,6 +611,7 @@ export const EnVivoPage = () => {
     if (isDatePast(day, selectedMonth, year)) return;
 
     setSelectedDate(new Date(year, selectedMonth, day));
+    setIsEventoProgramado(true); // Evento programado = hora editable
     setNuevoEvento({
       tipo: 'gratis',
       precio: 0,
@@ -580,6 +641,60 @@ export const EnVivoPage = () => {
   const handleEliminarEvento = (eventoId: string) => {
     setEventos(eventos.filter(e => e.id !== eventoId));
   };
+
+  // Funciones de Moderación
+  const handleSilenciarUsuario = (username: string) => {
+    if (!usuariosSilenciados.includes(username)) {
+      setUsuariosSilenciados(prev => [...prev, username]);
+      // Emitir evento al backend
+      socketRef.current?.emit('silenciar-usuario', { channelName, username });
+    }
+  };
+
+  const handleDesilenciarUsuario = (username: string) => {
+    setUsuariosSilenciados(prev => prev.filter(u => u !== username));
+    socketRef.current?.emit('desilenciar-usuario', { channelName, username });
+  };
+
+  // Funciones de Meta
+  const handleGuardarMeta = (nuevaMeta: number) => {
+    setMetaActual(nuevaMeta);
+    setProgresoMeta(0);
+    setTopDonadores([]);
+    setShowMetaModal(false);
+  };
+
+  const porcentajeMeta = Math.min((progresoMeta / metaActual) * 100, 100);
+
+  // Verificador automático de eventos programados
+  useEffect(() => {
+    const checkScheduledEvents = () => {
+      const now = new Date();
+      const currentDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const currentTime = now.toTimeString().slice(0, 5); // HH:MM
+
+      // Buscar eventos que coincidan con fecha y hora actual
+      const matchingEvent = eventos.find(evento => {
+        const eventoDate = new Date(evento.fecha).toISOString().split('T')[0];
+        return eventoDate === currentDate && evento.hora === currentTime;
+      });
+
+      // Si hay un evento programado que llegó a su hora, habilitar el botón de transmisión
+      if (matchingEvent && !enVivo) {
+        console.log('🎬 Evento programado listo:', matchingEvent);
+        // Puedes agregar una notificación visual aquí si lo deseas
+        // setShowNotification({ type: 'info', message: `¡Es hora de: ${matchingEvent.titulo}!` });
+      }
+    };
+
+    // Verificar cada minuto (60000 ms)
+    const intervalId = setInterval(checkScheduledEvents, 60000);
+    
+    // Verificar inmediatamente al montar
+    checkScheduledEvents();
+
+    return () => clearInterval(intervalId);
+  }, [eventos, enVivo]);
 
   const handleEnviarMensaje = () => {
     if (!mensajeChat.trim() || !socketRef.current) return;
@@ -725,6 +840,51 @@ export const EnVivoPage = () => {
         <div id="video-container-transmision" className="relative bg-black rounded-2xl overflow-hidden mb-4 h-[600px]">
           <div id="local-player" className="w-full h-full" />
           
+          {/* Barra de Progreso de Meta - SOLO VISIBLE EN VIVO */}
+          {enVivo && (
+            <div className="absolute top-4 left-4 right-4 z-30">
+              <div className="bg-black/60 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🎯</span>
+                    <div>
+                      <p className="text-white text-xs font-semibold">Meta del Stream</p>
+                      <p className="text-white/60 text-[10px]">{progresoMeta} / {metaActual} coins</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowMetaModal(true)}
+                    className="text-white/60 hover:text-white text-xs underline"
+                  >
+                    Editar
+                  </button>
+                </div>
+                <div className="relative w-full h-3 bg-gray-700/50 rounded-full overflow-hidden">
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500 rounded-full"
+                    style={{ width: `${porcentajeMeta}%` }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-white drop-shadow-lg">
+                      {porcentajeMeta.toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Animación de Meta Alcanzada */}
+          {metaAlcanzada && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-pulse">
+              <div className="text-center">
+                <div className="text-8xl mb-4 animate-bounce">🎉</div>
+                <h2 className="text-white text-4xl font-bold mb-2">¡META ALCANZADA!</h2>
+                <p className="text-white/80 text-xl">¡Increíble trabajo!</p>
+              </div>
+            </div>
+          )}
+          
           {!enVivo && !cargando && (
             <div className="absolute inset-0 flex items-center justify-center bg-black">
               <div className="text-center">
@@ -843,6 +1003,7 @@ export const EnVivoPage = () => {
         <button
           onClick={() => {
             setSelectedDate(new Date());
+            setIsEventoProgramado(false); // Evento inmediato = hora bloqueada
             setNuevoEvento({ tipo: 'gratis', precio: 0, actividadObjetivo: '', titulo: '', hora: new Date().toTimeString().slice(0, 5) });
             setShowCrearEventoModal(true);
           }}
@@ -895,12 +1056,12 @@ export const EnVivoPage = () => {
       {screenNotifications.map((notif) => (
         <div key={notif.id} className="fixed inset-0 pointer-events-none z-40 flex items-start justify-center pt-20">
           {notif.tier === 'large' && (
-            <div className="animate-slide-down pointer-events-none">
-              <div className="bg-gradient-to-r from-yellow-400/95 via-orange-500/95 to-pink-500/95 rounded-2xl p-5 shadow-xl border-2 border-white/40 backdrop-blur-lg relative overflow-hidden max-w-md">
+            <div className={notif.isExiting ? 'animate-pixel-dissolve' : 'animate-elegant-entrance'}>
+              <div className="bg-gradient-to-r from-yellow-400/95 via-orange-500/95 to-pink-500/95 rounded-2xl p-5 shadow-2xl border-2 border-white/40 backdrop-blur-lg relative overflow-hidden max-w-md animate-soft-glow">
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-300/10 via-orange-300/10 to-pink-300/10 animate-pulse" />
                 
                 <div className="relative z-10 flex items-center gap-4">
-                  <div className="text-5xl">{notif.content}</div>
+                  <div className="text-5xl animate-bounce">{notif.content}</div>
                   <div className="text-left flex-1">
                     <p className="text-white text-lg font-bold mb-1">{notif.user}</p>
                     <p className="text-white text-2xl font-extrabold mb-1">{notif.title}</p>
@@ -915,8 +1076,8 @@ export const EnVivoPage = () => {
           )}
 
           {notif.tier === 'medium' && (
-            <div className="animate-slide-down pointer-events-none">
-              <div className="bg-gradient-to-r from-purple-500/95 via-pink-500/95 to-red-500/95 rounded-xl p-4 shadow-lg border-2 border-white/30 backdrop-blur-lg max-w-sm">
+            <div className={notif.isExiting ? 'animate-pixel-dissolve' : 'animate-elegant-entrance'}>
+              <div className="bg-gradient-to-r from-purple-500/95 via-pink-500/95 to-red-500/95 rounded-xl p-4 shadow-xl border-2 border-white/30 backdrop-blur-lg max-w-sm">
                 <div className="flex items-center gap-3">
                   <div className="text-4xl">{notif.content}</div>
                   <div className="flex-1">
@@ -933,8 +1094,8 @@ export const EnVivoPage = () => {
           )}
 
           {notif.tier === 'small' && (
-            <div className="animate-slide-down pointer-events-none">
-              <div className="bg-gradient-to-r from-pink-400/90 to-purple-400/90 rounded-lg p-3 shadow-md border border-white/20 backdrop-blur-md max-w-xs">
+            <div className={notif.isExiting ? 'animate-pixel-dissolve' : 'animate-elegant-entrance'}>
+              <div className="bg-gradient-to-r from-pink-400/90 to-purple-400/90 rounded-lg p-3 shadow-lg border border-white/20 backdrop-blur-md max-w-xs">
                 <div className="flex items-center gap-2.5">
                   <span className="text-3xl">{notif.content}</span>
                   <div className="flex-1">
@@ -954,7 +1115,7 @@ export const EnVivoPage = () => {
 
       {/* Chat - PREMIUM CON REGALOS */}
       {showChat && (
-        <div className="fixed right-16 top-16 bottom-0 w-96 bg-white shadow-2xl z-50 flex flex-col rounded-l-3xl border border-gray-200">
+        <div className="fixed right-16 top-16 bottom-20 w-96 bg-white shadow-2xl z-50 flex flex-col rounded-l-3xl border border-gray-200">
           <div className="bg-gradient-to-r from-pink-600 to-purple-600 px-4 py-3 flex items-center justify-between flex-shrink-0 rounded-tl-3xl">
             <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-white" />
@@ -963,10 +1124,55 @@ export const EnVivoPage = () => {
                 <span className="text-xs text-white font-bold">{chatMessages.length + giftMessages.length}</span>
               </div>
             </div>
-            <button onClick={() => setShowChat(false)} className="text-white/80 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setShowModeracionModal(true)}
+                className="text-white/80 hover:text-white text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition"
+                title="Moderación"
+              >
+                🛡️
+              </button>
+              <button onClick={() => setShowChat(false)} className="text-white/80 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
+
+          {/* Top Donadores - Colapsable */}
+          {topDonadores.length > 0 && (
+            <div className="border-b border-gray-200 flex-shrink-0">
+              <button
+                onClick={() => setShowTopDonadores(!showTopDonadores)}
+                className="w-full bg-gradient-to-br from-yellow-50 to-orange-50 hover:from-yellow-100 hover:to-orange-100 px-4 py-2 flex items-center justify-between transition"
+              >
+                <h4 className="text-xs font-bold text-gray-700 flex items-center gap-1">
+                  <span>👑</span> Top Donadores ({topDonadores.length})
+                </h4>
+                <span className="text-xs text-gray-500">
+                  {showTopDonadores ? '▲' : '▼'}
+                </span>
+              </button>
+              
+              {showTopDonadores && (
+                <div className="bg-gradient-to-br from-yellow-50 to-orange-50 px-4 pb-3 space-y-1">
+                  {topDonadores.slice(0, 3).map((donador, index) => (
+                    <div key={donador.user} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`
+                          ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-orange-600'}
+                          font-bold
+                        `}>
+                          #{index + 1}
+                        </span>
+                        <span className="text-gray-700 font-medium">{donador.user}</span>
+                      </div>
+                      <span className="text-green-600 font-bold">{donador.total} 💎</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-gray-50">
             {/* Combinar mensajes y regalos ordenados por timestamp */}
@@ -1004,8 +1210,9 @@ export const EnVivoPage = () => {
                 
                 // Es un mensaje
                 const msg = item as ChatMessage;
+                const estaSilenciado = usuariosSilenciados.includes(msg.user);
                 return (
-                  <div key={msg.id} className="flex items-start gap-2">
+                  <div key={msg.id} className="flex items-start gap-2 group">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       msg.isVIP 
                         ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
@@ -1019,6 +1226,7 @@ export const EnVivoPage = () => {
                           {msg.user}
                         </p>
                         {msg.isVIP && <Crown className="w-3 h-3 text-yellow-500" />}
+                        {estaSilenciado && <span className="text-[10px] text-red-500">🔇</span>}
                       </div>
                       <div className={`rounded-xl px-3 py-2 ${
                         msg.isVIP 
@@ -1028,45 +1236,50 @@ export const EnVivoPage = () => {
                         <p className="text-sm text-gray-800 break-words">{msg.mensaje}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={() => estaSilenciado ? handleDesilenciarUsuario(msg.user) : handleSilenciarUsuario(msg.user)}
+                      className="opacity-0 group-hover:opacity-100 transition text-xs px-2 py-1 rounded bg-red-100 hover:bg-red-200 text-red-600"
+                      title={estaSilenciado ? 'Desilenciar' : 'Silenciar'}
+                    >
+                      {estaSilenciado ? '🔊' : '🔇'}
+                    </button>
                   </div>
                 );
               })}
             <div ref={chatEndRef} />
           </div>
 
-          {!chatConfig.soloMensajes && (
-            <div className="px-3 py-2 bg-white border-t border-gray-200 flex-shrink-0">
-              <div className="flex flex-wrap gap-1">
-                {emoticones.map((emoticon, index) => (
-                  <button 
-                    key={index} 
-                    onClick={() => handleEnviarEmoticon(emoticon)} 
-                    className="text-xl hover:scale-125 transition hover:bg-gray-100 rounded-lg p-1"
-                  >
-                    {emoticon}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!chatConfig.soloEmoticonos && (
-            <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0 rounded-bl-3xl">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={mensajeChat}
-                  onChange={(e) => setMensajeChat(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleEnviarMensaje()}
-                  placeholder="Escribe un mensaje..."
-                  className="flex-1 bg-gray-100 text-gray-900 text-sm px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 border border-gray-300 placeholder-gray-400"
-                />
-                <button onClick={handleEnviarMensaje} className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-2 rounded-full transition shadow-lg hover:scale-105">
-                  <Send className="w-4 h-4" />
+          {/* Emoticones - SIEMPRE VISIBLE PARA CREADORA */}
+          <div className="px-3 py-2 bg-white border-t border-gray-200 flex-shrink-0">
+            <div className="flex flex-wrap gap-1">
+              {emoticones.map((emoticon, index) => (
+                <button 
+                  key={index} 
+                  onClick={() => handleEnviarEmoticon(emoticon)} 
+                  className="text-xl hover:scale-125 transition hover:bg-gray-100 rounded-lg p-1"
+                >
+                  {emoticon}
                 </button>
-              </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          {/* Input de mensajes - SIEMPRE VISIBLE PARA CREADORA */}
+          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0 rounded-bl-3xl">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={mensajeChat}
+                onChange={(e) => setMensajeChat(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleEnviarMensaje()}
+                placeholder="Escribe un mensaje..."
+                className="flex-1 bg-gray-100 text-gray-900 text-sm px-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 border border-gray-300 placeholder-gray-400"
+              />
+              <button onClick={handleEnviarMensaje} className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-2 rounded-full transition shadow-lg hover:scale-105">
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1264,86 +1477,167 @@ export const EnVivoPage = () => {
         </div>
       )}
 
-      {/* Modal Calendario Mensual */}
+      {/* Modal Calendario Mensual - Vista Split */}
       {showMonthCalendar && selectedMonth !== null && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 px-4 py-3 flex items-center justify-between sticky top-0">
-              <h2 className="text-sm font-bold text-gray-900">{meses[selectedMonth]} 2026</h2>
-              <button onClick={() => setShowMonthCalendar(false)}>
-                <X className="w-4 h-4" />
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[600px] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 px-5 py-3 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setSelectedMonth(selectedMonth === 0 ? 11 : selectedMonth - 1)}
+                  className="p-1.5 hover:bg-purple-100 rounded-lg transition"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-700" />
+                </button>
+                <h2 className="text-base font-bold text-gray-900">{meses[selectedMonth]} 2026</h2>
+                <button 
+                  onClick={() => setSelectedMonth(selectedMonth === 11 ? 0 : selectedMonth + 1)}
+                  className="p-1.5 hover:bg-purple-100 rounded-lg transition"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-700" />
+                </button>
+              </div>
+              <button onClick={() => {
+                setShowMonthCalendar(false);
+                setSelectedDay(null);
+              }} className="text-gray-500 hover:text-gray-700">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4">
-              {/* Calendario */}
-              <div className="grid grid-cols-7 gap-2 mb-4">
-                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day) => (
-                  <div key={day} className="text-center font-bold text-gray-600 text-xs py-1">
-                    {day}
-                  </div>
-                ))}
-
-                {Array.from({ length: getFirstDayOfMonth(selectedMonth, 2026) }).map((_, i) => (
-                  <div key={`empty-${i}`} />
-                ))}
-
-                {Array.from({ length: getDaysInMonth(selectedMonth, 2026) }).map((_, i) => {
-                  const day = i + 1;
-                  const isPast = isDatePast(day, selectedMonth, 2026);
-                  const eventosDelDia = getEventosForDay(day, selectedMonth, 2026);
-
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => handleDayClick(day)}
-                      disabled={isPast}
-                      className={`aspect-square p-1 rounded-lg text-xs font-medium transition relative ${
-                        isPast
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : eventosDelDia.length > 0
-                          ? 'bg-green-100 border-2 border-green-400 text-green-900 hover:bg-green-200'
-                          : 'bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300'
-                      }`}
-                    >
+            {/* Contenido Split */}
+            <div className="flex-1 flex overflow-hidden min-h-0">
+              {/* Panel Izquierdo: Calendario Mini */}
+              <div className="w-[55%] border-r border-gray-200 p-4 flex-shrink-0">
+                <div className="grid grid-cols-7 gap-1.5">
+                  {['D', 'L', 'M', 'M', 'J', 'V', 'S'].map((day) => (
+                    <div key={day} className="text-center font-bold text-gray-600 text-xs py-1.5">
                       {day}
-                      {eventosDelDia.length > 0 && (
-                        <div className="absolute top-0 right-0 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                          <span className="text-[8px] text-white font-bold">{eventosDelDia.length}</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                    </div>
+                  ))}
+
+                  {Array.from({ length: getFirstDayOfMonth(selectedMonth, 2026) }).map((_, i) => (
+                    <div key={`empty-${i}`} />
+                  ))}
+
+                  {Array.from({ length: getDaysInMonth(selectedMonth, 2026) }).map((_, i) => {
+                    const day = i + 1;
+                    const isPast = isDatePast(day, selectedMonth, 2026);
+                    const eventosDelDia = getEventosForDay(day, selectedMonth, 2026);
+                    const isSelected = selectedDay === day;
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => {
+                          if (!isPast) {
+                            setSelectedDay(day);
+                          }
+                        }}
+                        disabled={isPast}
+                        className={`aspect-square p-2 rounded-lg text-sm font-medium transition relative ${
+                          isPast
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : isSelected
+                            ? 'bg-purple-500 text-white ring-2 ring-purple-300'
+                            : eventosDelDia.length > 0
+                            ? 'bg-green-100 border-2 border-green-400 text-green-900 hover:bg-green-200'
+                            : 'bg-white border border-gray-200 hover:bg-purple-50 hover:border-purple-300'
+                        }`}
+                      >
+                        {day}
+                        {eventosDelDia.length > 0 && (
+                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                            <span className="text-[10px] text-white font-bold">{eventosDelDia.length}</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Lista de eventos del mes */}
-              {eventos.filter(e => new Date(e.fecha).getMonth() === selectedMonth).length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-gray-700">Eventos programados:</p>
-                  {eventos
-                    .filter(e => new Date(e.fecha).getMonth() === selectedMonth)
-                    .map(evento => (
-                      <div key={evento.id} className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-xs font-bold text-gray-900">{evento.titulo}</p>
-                          <p className="text-xs text-gray-600">
-                            {new Date(evento.fecha).toLocaleDateString('es-ES')} - {evento.hora}
-                          </p>
-                          <p className="text-xs text-green-600">
-                            {evento.tipo === 'pagado' ? `S/. ${evento.precio}` : 'Gratis'}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => handleEliminarEvento(evento.id)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+              {/* Panel Derecho: Eventos del día seleccionado */}
+              <div className="w-[45%] flex flex-col bg-gray-50">
+                {selectedDay === null ? (
+                  <div className="flex-1 flex items-center justify-center p-6 text-center">
+                    <div className="space-y-3">
+                      <Calendar className="w-12 h-12 text-gray-300 mx-auto" />
+                      <p className="text-sm text-gray-500 font-medium">Selecciona un día del calendario</p>
+                      <p className="text-xs text-gray-400">Haz clic en un día para ver o crear eventos</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Header del día con botón al costado */}
+                    <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0 flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-sm font-bold text-gray-900">
+                          {['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][
+                            new Date(2026, selectedMonth, selectedDay).getDay()
+                          ]} {selectedDay}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {getEventosForDay(selectedDay, selectedMonth, 2026).length} evento(s) programado(s)
+                        </p>
                       </div>
-                    ))}
-                </div>
-              )}
+                      <button
+                        onClick={() => handleDayClick(selectedDay)}
+                        className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-medium rounded-lg transition inline-flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Nuevo
+                      </button>
+                    </div>
+
+                    {/* Lista de eventos con scroll */}
+                    <div className="flex-1 overflow-y-auto p-4 min-h-0">
+                      {getEventosForDay(selectedDay, selectedMonth, 2026).length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-xs text-gray-400">No hay eventos programados para este día</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {getEventosForDay(selectedDay, selectedMonth, 2026).map(evento => (
+                            <div key={evento.id} className="bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <p className="text-sm font-bold text-gray-900">{evento.titulo}</p>
+                                  <p className="text-xs text-gray-600 flex items-center gap-1 mt-1">
+                                    <Clock className="w-3 h-3" />
+                                    {evento.hora}
+                                  </p>
+                                  {evento.actividad && (
+                                    <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{evento.actividad}</p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => handleEliminarEvento(evento.id)}
+                                  className="text-red-500 hover:text-red-700 p-1"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {evento.tipo === 'pagado' ? (
+                                  <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                                    S/. {evento.precio}
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-medium rounded">
+                                    Gratis
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1369,16 +1663,25 @@ export const EnVivoPage = () => {
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5 flex items-center gap-1">
                   <Clock className="w-3.5 h-3.5" />
-                  Hora (Actual - Bloqueada)
+                  {isEventoProgramado ? 'Hora Programada' : 'Hora (Actual - Bloqueada)'}
                 </label>
                 <input
                   type="time"
                   value={nuevoEvento.hora}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 cursor-not-allowed"
+                  onChange={(e) => setNuevoEvento({ ...nuevoEvento, hora: e.target.value })}
+                  readOnly={!isEventoProgramado}
+                  disabled={!isEventoProgramado}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                    isEventoProgramado 
+                      ? 'border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500' 
+                      : 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                  }`}
                 />
-                <p className="text-xs text-gray-500 mt-1">Se usa la hora actual automáticamente</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {isEventoProgramado 
+                    ? 'Elige la hora para tu transmisión programada' 
+                    : 'Se usa la hora actual automáticamente'}
+                </p>
               </div>
 
               <div>
@@ -1454,6 +1757,136 @@ export const EnVivoPage = () => {
                 }`}
               >
                 Guardar Evento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Configurar Meta */}
+      {showMetaModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span>🎯</span> Configurar Meta
+              </h3>
+              <button onClick={() => setShowMetaModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Meta de Coins
+                </label>
+                <input
+                  type="number"
+                  value={metaActual}
+                  onChange={(e) => setMetaActual(Number(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="500"
+                  min="1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Coins a recaudar en este stream</p>
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-xs text-gray-600">
+                  <strong>Progreso actual:</strong> {progresoMeta} / {metaActual} coins ({porcentajeMeta.toFixed(0)}%)
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleGuardarMeta(metaActual)}
+                  className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-2 rounded-lg font-semibold transition"
+                >
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setShowMetaModal(false)}
+                  className="px-6 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Moderación */}
+      {showModeracionModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span>🛡️</span> Moderación
+              </h3>
+              <button onClick={() => setShowModeracionModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Usuarios Silenciados */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-2">Usuarios Silenciados</h4>
+                
+                {/* Input para agregar usuario */}
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={nuevoUsuarioSilenciar}
+                    onChange={(e) => setNuevoUsuarioSilenciar(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && nuevoUsuarioSilenciar.trim()) {
+                        handleSilenciarUsuario(nuevoUsuarioSilenciar.trim());
+                        setNuevoUsuarioSilenciar('');
+                      }
+                    }}
+                    placeholder="Nombre de usuario..."
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                  <button
+                    onClick={() => {
+                      if (nuevoUsuarioSilenciar.trim()) {
+                        handleSilenciarUsuario(nuevoUsuarioSilenciar.trim());
+                        setNuevoUsuarioSilenciar('');
+                      }
+                    }}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition"
+                  >
+                    🔇 Silenciar
+                  </button>
+                </div>
+
+                {usuariosSilenciados.length === 0 ? (
+                  <p className="text-xs text-gray-500 italic">No hay usuarios silenciados</p>
+                ) : (
+                  <div className="space-y-2">
+                    {usuariosSilenciados.map(user => (
+                      <div key={user} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                        <span className="text-sm text-gray-700">{user}</span>
+                        <button
+                          onClick={() => handleDesilenciarUsuario(user)}
+                          className="text-xs bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded transition"
+                        >
+                          Desilenciar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowModeracionModal(false)}
+                className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 py-2 rounded-lg font-semibold transition"
+              >
+                Cerrar
               </button>
             </div>
           </div>
