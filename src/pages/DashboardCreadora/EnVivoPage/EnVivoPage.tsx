@@ -1545,6 +1545,23 @@ export const EnVivoPage = () => {
 
         <button
           onClick={() => {
+            setShowCalendarioModal(true);
+            if (showChat) setShowChat(false);
+            if (showConfig) setShowConfig(false);
+          }}
+          className="group relative w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+        >
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="4" stroke="currentColor" strokeWidth="2" fill="none" />
+            <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="2" />
+          </svg>
+          <span className="absolute right-16 bg-gray-900/95 backdrop-blur-sm text-white text-xs px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg">
+            Calendario
+          </span>
+        </button>
+
+        <button
+          onClick={() => {
             setShowConfig(!showConfig);
             if (showChat) setShowChat(false);
           }}
@@ -2098,7 +2115,7 @@ export const EnVivoPage = () => {
         </div>
       )}
 
-  {/* Modal Calendario - 12 Meses - Premium */}
+     {/* Modal Calendario - 12 Meses - Premium */}
       {showCalendarioModal && !showMonthCalendar && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-gray-100 overflow-hidden">

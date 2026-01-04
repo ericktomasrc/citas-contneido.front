@@ -8,6 +8,8 @@ import AgoraRTC, {
 import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize, Crown, DollarSign, Send, Sparkles, X } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { SuperChatModal } from './SuperChatModal';
+import { RecargarCoinsModal } from '../../../components/Modals/RecargarCoinsModal';
+import { CatalogoRegalosModal } from './CatalogoRegalosModal';
 import RuletaModal from '../../../components/Dashboard/CreatorProfile/LiveStream/RuletaModal';
 import { verificarSuscripcion, verificarAccesoPPV, crearSuscripcion, pagarPPV } from '../../../shared/services/subscription.service';
 import { PLANES_SUSCRIPCION } from '../../../shared/types/subscription.types';
@@ -83,6 +85,16 @@ interface FloatingHeart {
 }
 
 export const VerEnVivoPage = () => {
+  const [transmisionFinalizada, setTransmisionFinalizada] = useState(false);
+    // Cerrar todos los modales cuando la transmisión finaliza
+    useEffect(() => {
+      if (transmisionFinalizada) {
+        setMostrarCatalogoRegalos(false);
+        setMostrarModalSuperChat(false);
+        setMostrarModalRecarga(false);
+        setMostrarModalAcceso(false);
+      }
+    }, [transmisionFinalizada]);
   const { slug } = useParams<{ slug: string }>();
   const channelName = slug; // El slug es el nombre del canal
   const [client] = useState<IAgoraRTCClient>(() => 
@@ -96,7 +108,6 @@ export const VerEnVivoPage = () => {
   const [audioMuted, setAudioMuted] = useState(false);
   const [remoteUsers, setRemoteUsers] = useState<Map<UID, IAgoraRTCRemoteUser>>(new Map());
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [transmisionFinalizada, setTransmisionFinalizada] = useState(false);
   
   // Estados del chat
   const socketRef = useRef<Socket | null>(null);
@@ -246,7 +257,6 @@ export const VerEnVivoPage = () => {
           regalosPropiosRef.current.delete(gift.id);
           return;
         }
-        
         // Agregar notificación en pantalla para regalos de otros usuarios
         const tier = getTier(gift.gift.valor);
         const notification: ScreenNotification = {
@@ -1036,6 +1046,10 @@ export const VerEnVivoPage = () => {
     });
 
     console.log('⭐ Super Chat enviado:', { mensaje, tier });
+    // Mostrar mensaje de confirmación en español
+    setToastMessage('✅ ¡Tu Mensaje Brillante fue enviado exitosamente!');
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2500);
   };
 
   // Manejar giro de ruleta
@@ -1152,23 +1166,90 @@ export const VerEnVivoPage = () => {
                     </div>
                   </div>
                 ) : !conectado ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 z-10">
-                    <div className="text-center">
-                      <h2 className="text-white text-4xl font-bold mb-6">
-                        Transmisión en Vivo
-                      </h2>
-                      <button
-                        onClick={unirseATransmision}
-                        disabled={cargando}
-                        className="px-12 py-4 bg-white text-purple-600 rounded-full font-bold text-lg hover:bg-gray-100 transition disabled:opacity-50 shadow-xl"
-                      >
-                        {cargando ? 'Conectando...' : 'Ver Transmisión'}
-                      </button>
-                        {error && (
-                          <p className="text-red-200 mt-6 text-base">{error}</p>
-                        )}
-                      </div>
-                    </div>
+             /* ============================================
+   PANTALLA DE INICIO PREMIUM
+   Reemplaza la sección "Ver Transmisión" en VerEnVivoPage
+   ============================================ */
+
+<div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 z-10">
+  <div className="text-center px-6 max-w-md">
+    {/* Icono/Logo Premium */}
+    <div className="relative mb-8">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl"></div>
+      <div className="relative w-24 h-24 mx-auto bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-purple-500/30 rotate-3 hover:rotate-0 transition-transform">
+        <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      </div>
+    </div>
+
+    {/* Título */}
+    <h2 className="text-white text-3xl md:text-4xl font-bold mb-3">
+      Transmisión en Vivo
+    </h2>
+    
+    {/* Subtítulo */}
+    <p className="text-slate-400 text-sm md:text-base mb-8">
+      Prepárate para una experiencia premium
+    </p>
+
+    {/* Botón Premium */}
+    <button
+      onClick={unirseATransmision}
+      disabled={cargando}
+      className="group relative px-10 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-bold text-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-2xl shadow-purple-600/30 hover:shadow-purple-500/50 hover:scale-105 disabled:hover:scale-100 overflow-hidden"
+    >
+      {/* Efecto de brillo */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+      
+      {/* Contenido del botón */}
+      <span className="relative flex items-center justify-center gap-2">
+        {cargando ? (
+          <>
+            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Conectando...</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+            </svg>
+            <span>Ver Transmisión</span>
+          </>
+        )}
+      </span>
+    </button>
+
+    {/* Mensaje de error premium */}
+    {error && (
+              <div className="mt-6 animate-fade-in">
+                <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4 backdrop-blur-sm">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-red-300 text-sm font-medium">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Indicadores visuales */}
+            <div className="mt-8 flex items-center justify-center gap-6 text-slate-400 text-xs">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span>HD Quality</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span>Low Latency</span>
+              </div>
+            </div>
+          </div>
+        </div>
                   ) : (
                     <>
                       <div id="video-container" className="absolute inset-0 bg-gray-900 z-10">
@@ -1393,378 +1474,371 @@ export const VerEnVivoPage = () => {
       </div>
 
       {/* Chat lateral flotante - Premium */}
-      <div className="absolute top-0 right-0 bottom-0 w-[420px] bg-gradient-to-b from-gray-50 to-white border-l border-gray-300 flex flex-col z-30 shadow-2xl">
-              {/* Header del chat */}
-              <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
-                <h3 className="font-bold text-xl text-gray-900 flex items-center gap-2">
-                  <MessageCircle className="w-6 h-6 text-pink-500" />
-                  Chat Exclusivo
-                </h3>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-100 rounded-full">
-                  <Users className="w-4 h-4 text-pink-600" />
-                  <span className="text-sm text-pink-600 font-semibold">{espectadores}</span>
+{/* Chat lateral flotante - Premium */}
+<div className="absolute top-0 right-0 bottom-0 w-[420px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-l border-slate-700/50 flex flex-col z-30 shadow-2xl">
+  {/* Header del chat */}
+  <div className="flex items-center justify-between p-5 border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm">
+    <h3 className="font-bold text-lg text-white flex items-center gap-2">
+      <MessageCircle className="w-5 h-5 text-purple-400" />
+      Chat en Vivo
+    </h3>
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
+      <Users className="w-4 h-4 text-slate-400" />
+      <span className="text-sm text-white font-semibold">{espectadores}</span>
+    </div>
+  </div>
+  
+  {/* Super Chat Fijado */}
+  {pinnedSuperChat && (() => {
+    let bgClass = '';
+    let borderClass = '';
+    let amountClass = '';
+    let badgeText = '';
+    if (pinnedSuperChat.tier === 'elite') {
+      bgClass = 'from-amber-900/40 to-yellow-900/40';
+      borderClass = 'border-amber-500/50';
+      amountClass = 'bg-gradient-to-r from-amber-500 to-yellow-600';
+      badgeText = '👑 Legendario';
+    } else if (pinnedSuperChat.tier === 'premium') {
+      bgClass = 'from-purple-900/40 to-violet-900/40';
+      borderClass = 'border-purple-500/50';
+      amountClass = 'bg-purple-600';
+      badgeText = '⭐ Plus';
+    } else {
+      bgClass = 'from-blue-900/40 to-cyan-900/40';
+      borderClass = 'border-blue-500/50';
+      amountClass = 'bg-blue-600';
+      badgeText = '💎 Brillante';
+    }
+    return (
+      <div className="mb-3 bg-slate-900/50 flex-shrink-0 shadow-lg rounded-xl overflow-hidden border border-slate-700/50 mx-3 mt-3">
+        <div className={`p-3 bg-gradient-to-r ${bgClass} border-l-4 ${borderClass}`}>
+          <div className="flex items-center gap-1 mb-1.5">
+            <span className="text-xs font-bold text-slate-300">{badgeText}</span>
+            <span className="ml-auto text-[10px] text-slate-400">
+              {pinnedSuperChat.tier === 'basic' ? '30s' : pinnedSuperChat.tier === 'premium' ? '60s' : '120s'}
+            </span>
+            <button
+              onClick={() => setPinnedSuperChat(null)}
+              className="text-slate-400 hover:text-white transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex items-start gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-sm text-white font-bold">{pinnedSuperChat.avatar || '⭐'}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1 mb-1">
+                <p className="text-sm font-bold text-white">{pinnedSuperChat.user}</p>
+                {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                <div className={`ml-auto flex items-center gap-0.5 ${amountClass} rounded-lg px-2 py-0.5`}>
+                  <DollarSign className="w-3 h-3 text-white" />
+                  <span className="text-xs text-white font-bold">{pinnedSuperChat.monto}</span>
                 </div>
               </div>
-              
-              {/* Super Chat Fijado */}
-              {pinnedSuperChat && (
-                <div className="mb-3 bg-white flex-shrink-0 shadow-lg rounded-xl overflow-hidden border-2 border-gray-200">
-                  <div className={`p-3 bg-gradient-to-r ${
-                    pinnedSuperChat.tier === 'elite' 
-                      ? 'from-yellow-500/30 via-orange-500/30 to-pink-500/30' 
-                      : pinnedSuperChat.tier === 'premium'
-                      ? 'from-purple-600/30 to-indigo-600/30'
-                      : 'from-blue-600/30 to-cyan-600/30'
-                  } border-l-4 ${
-                    pinnedSuperChat.tier === 'elite' 
-                      ? 'border-yellow-500' 
-                      : pinnedSuperChat.tier === 'premium'
-                      ? 'border-purple-600'
-                      : 'border-blue-600'
-                  }`}>
-                    <div className="flex items-center gap-1 mb-1.5">
-                      <span className="text-xs font-bold text-gray-700">📌 Super Chat Fijado</span>
-                      <span className="ml-auto text-[10px] text-gray-500">
-                        {pinnedSuperChat.tier === 'basic' ? '30s' : pinnedSuperChat.tier === 'premium' ? '60s' : '120s'}
-                      </span>
-                      <button
-                        onClick={() => setPinnedSuperChat(null)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm text-white font-bold">{pinnedSuperChat.avatar || '⭐'}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1 mb-1">
-                          <p className="text-sm font-bold text-gray-900">{pinnedSuperChat.user}</p>
-                          {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
-                          <div className={`ml-auto flex items-center gap-0.5 ${
-                            pinnedSuperChat.tier === 'elite' 
-                              ? 'bg-gradient-to-r from-yellow-500 to-orange-500' 
-                              : pinnedSuperChat.tier === 'premium'
-                              ? 'bg-purple-500'
-                              : 'bg-blue-500'
-                          } rounded-lg px-2 py-0.5`}>
-                            <DollarSign className="w-3 h-3 text-white" />
-                            <span className="text-xs text-white font-bold">{pinnedSuperChat.monto}</span>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-800 break-words leading-snug">{pinnedSuperChat.mensaje}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {/* Timeline de mensajes y regalos */}
-              <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {timeline.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">Sé el primero en saludar</p>
-                    </div>
-                  </div>
-                ) : (
-                  timeline.map((item) => {
-                    // Es un Super Chat
-                    if ('tier' in item && 'monto' in item && 'mensaje' in item) {
-                      const superChat = item as SuperChatMessage;
-                      const tierConfig = {
-                        basic: { gradient: 'from-blue-500/20 to-blue-600/20', border: 'border-blue-500/50', text: 'text-blue-700', badge: 'bg-blue-500' },
-                        premium: { gradient: 'from-purple-500/20 to-purple-600/20', border: 'border-purple-500/50', text: 'text-purple-700', badge: 'bg-purple-500' },
-                        elite: { gradient: 'from-yellow-500/20 to-orange-600/20', border: 'border-yellow-500/50', text: 'text-yellow-700', badge: 'bg-gradient-to-r from-yellow-500 to-orange-500' }
-                      };
-                      const config = tierConfig[superChat.tier];
-                      
-                      return (
-                        <div key={superChat.id} className="animate-fade-in">
-                          <div className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-lg p-3 shadow-lg`}>
-                            <div className="flex items-start gap-2">
-                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm text-white font-bold">{superChat.avatar || '⭐'}</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1 mb-1">
-                                  <p className={`text-sm font-bold ${config.text}`}>{superChat.user}</p>
-                                  {superChat.isVIP && <Crown className="w-4 h-4 text-yellow-400" />}
-                                  <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1`}>
-                                    <DollarSign className="w-3 h-3 text-white" />
-                                    <p className="text-xs text-white font-bold">{superChat.monto}</p>
-                                  </div>
-                                </div>
-                                <p className="text-sm text-gray-800 font-medium break-words">{superChat.mensaje}</p>
-                                <p className="text-[10px] text-gray-500 mt-1">Super Chat • {superChat.tier === 'basic' ? '30s' : superChat.tier === 'premium' ? '60s' : '120s'} destacado</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    // Es una propina
-                    if ('monto' in item && !('gift' in item)) {
-                      return (
-                        <div key={item.id} className="animate-fade-in">
-                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-300/50 rounded-lg p-2.5 shadow-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm">{item.avatar || '💵'}</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1">
-                                  <p className="text-xs font-bold text-green-700 truncate">{item.user}</p>
-                                  {item.isVIP && <Crown className="w-3 h-3 text-yellow-500 flex-shrink-0" />}
-                                </div>
-                                <p className="text-[10px] text-gray-600">envió una propina</p>
-                              </div>
-                              <div className="flex items-center gap-0.5 bg-green-600 rounded-md px-2 py-1 flex-shrink-0">
-                                <DollarSign className="w-3 h-3 text-white" />
-                                <span className="text-xs text-white font-bold">{item.monto}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                    
-                    if ('mensaje' in item) {
-                      // Es un mensaje de chat
-                      return (
-                        <div key={item.id} className="flex items-start gap-2 animate-fade-in">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            item.isVIP 
-                              ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
-                              : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                          }`}>
-                            <span className="text-sm">{item.avatar || item.user[0]}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1 mb-1">
-                              <p className={`text-sm font-semibold truncate ${
-                                item.isVIP ? 'text-orange-600' : 'text-purple-600'
-                              }`}>
-                                {item.user}
-                              </p>
-                              {item.isVIP && <Crown className="w-3 h-3 text-yellow-500 flex-shrink-0" />}
-                            </div>
-                            <div className="bg-white border border-gray-300 rounded-xl px-3 py-2 shadow-sm">
-                              <p className="text-sm text-gray-800 break-words">{item.mensaje}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    } else {
-                      // Es un regalo - Diseño premium con efectos
-                      const giftItem = item as GiftMessage;
-                      return (
-                        <div key={giftItem.id} className="animate-fade-in">
-                          <div className="relative bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border-2 border-amber-300/50 rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-                            {/* Efecto de brillo sutil */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                            
-                            <div className="relative z-10">
-                              <div className="flex items-center gap-2 mb-2">
-                                <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                                  giftItem.isVIP 
-                                    ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
-                                    : 'bg-gradient-to-br from-blue-500 to-purple-600'
-                                }`}>
-                                  <span className="text-sm">{giftItem.avatar || giftItem.user[0]}</span>
-                                </div>
-                                <p className="text-sm font-bold text-gray-900 flex items-center gap-1">
-                                  {giftItem.user}
-                                  {giftItem.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
-                                </p>
-                                <span className="ml-auto text-xs text-gray-500 font-medium">envió un regalo</span>
-                              </div>
-                              <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-lg p-2.5 border border-amber-200/50">
-                                <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg border border-amber-300/40">
-                                  <span className="text-2xl">{giftItem.gift.emoji}</span>
-                                </div>
-                                <div className="flex-1">
-                                  <p className="text-gray-900 font-bold text-base leading-tight">{giftItem.gift.nombre}</p>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
-                                    <DollarSign className="w-4 h-4 text-amber-600" />
-                                    <span className="text-sm font-bold text-amber-700">{giftItem.gift.valor} coins</span>
-                                  </div>
-                                </div>
-                                <Sparkles className="w-5 h-5 text-amber-500" />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-                  })
-                )}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Input de mensaje premium */}
-              <div className="space-y-3">
-                <div className="relative">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={mensajeActual}
-                        onChange={(e) => setMensajeActual(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && !transmisionFinalizada && handleEnviarMensaje()}
-                        placeholder={transmisionFinalizada ? "La transmisión ha finalizado" : "Mensaje exclusivo..."}
-                        disabled={!conectado || transmisionFinalizada}
-                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-300 text-gray-900 placeholder-gray-400 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all disabled:opacity-50 shadow-sm"
-                      />
-                      {/* Botón de emoticones */}
-                      <button
-                        type="button"
-                        onClick={() => setMostrarEmojis(!mostrarEmojis)}
-                        disabled={!conectado || transmisionFinalizada}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center hover:bg-gray-100 rounded-full transition disabled:opacity-50"
-                      >
-                        <span className="text-lg">😊</span>
-                      </button>
-                    </div>
-                    <button
-                      onClick={handleEnviarMensaje}
-                      disabled={!conectado || !mensajeActual.trim() || transmisionFinalizada}
-                      className="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center hover:shadow-lg hover:shadow-pink-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-                    >
-                      <Send className="w-5 h-5 text-white" />
-                    </button>
-                  </div>
-                  
-                  {/* Panel de emoticones */}
-                  {mostrarEmojis && (
-                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-300 rounded-xl shadow-lg p-3 z-10">
-                      <div className="grid grid-cols-8 gap-2">
-                        {emojisPopulares.map((emoji, index) => (
-                          <button
-                            key={index}
-                            onClick={() => {
-                              setMensajeActual(prev => prev + emoji);
-                              setMostrarEmojis(false);
-                            }}
-                            className="text-2xl hover:bg-gray-100 rounded-lg p-1 transition"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Propinas Rápidas */}
-                <div className="mb-3">
-                  <p className="text-xs font-semibold text-gray-400 mb-2 px-1">💸 Propinas Rápidas</p>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    <button 
-                      onClick={() => handleEnviarPropina(1)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>1</span>
-                    </button>
-                    <button 
-                      onClick={() => handleEnviarPropina(3)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>3</span>
-                    </button>
-                    <button 
-                      onClick={() => handleEnviarPropina(5)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-700 hover:bg-green-800 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>5</span>
-                    </button>
-                    <button 
-                      onClick={() => handleEnviarPropina(10)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-800 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>10</span>
-                    </button>
-                    <button 
-                      onClick={() => handleEnviarPropina(15)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-900 hover:bg-green-950 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>15</span>
-                    </button>
-                    <button 
-                      onClick={() => handleEnviarPropina(20)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-1 bg-green-950 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <DollarSign className="w-3.5 h-3.5" />
-                      <span>20</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Botones de interacción premium */}
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 mb-2 px-1">✨ Interacciones</p>
-                  
-                  {/* Fila 1: Me gusta y Regalo */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={handleMeGusta}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95 shadow-md hover:shadow-lg text-xs"
-                    >
-                      <Heart className="w-4 h-4" />
-                      <span>Me gusta</span>
-                    </button>
-                    <button 
-                      onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500 shadow-md hover:shadow-lg text-xs"
-                    >
-                      <Gift className="w-4 h-4" />
-                      <span>Regalo</span>
-                    </button>
-                  </div>
-
-                  {/* Fila 2: Super Chat y Ruleta */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button 
-                      onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
-                      disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400 shadow-md hover:shadow-lg text-xs"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Super Chat</span>
-                    </button>
-                    <button 
-                      onClick={() => ruletaActiva && setShowRuletaModal(true)}
-                      disabled={!conectado || transmisionFinalizada || !ruletaActiva}
-                      className={`py-2.5 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 border shadow-md text-xs ${
-                        ruletaActiva 
-                          ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 border-pink-400 animate-pulse cursor-pointer hover:shadow-lg' 
-                          : 'bg-gray-700 border-gray-600 opacity-50 cursor-not-allowed'
-                      } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-                      title={ruletaActiva ? 'Gira la ruleta' : 'Ruleta no disponible'}
-                    >
-                      <span className="text-base">🎰</span>
-                      <span>Ruleta</span>
-                    </button>
-                  </div>
-                </div> 
-              </div>
+              <p className="text-sm text-white break-words leading-snug">{pinnedSuperChat.mensaje}</p>
+            </div>
+          </div>
+        </div>
       </div>
+    );
+  })()}
+  
+  {/* Timeline de mensajes */}
+  <div className="flex-1 overflow-y-auto space-y-3 px-3 py-2">
+    {timeline.length === 0 ? (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-2" />
+          <p className="text-slate-500 text-sm">Sé el primero en saludar</p>
+        </div>
+      </div>
+    ) : (
+      timeline.map((item) => {
+        // Super Chat
+        if ('tier' in item && 'monto' in item && 'mensaje' in item) {
+          const superChat = item as SuperChatMessage;
+          const tierConfig = {
+            basic: { 
+              gradient: 'from-blue-900/30 to-cyan-900/30', 
+              border: 'border-blue-500/40', 
+              text: 'text-blue-400', 
+              badge: 'bg-blue-600',
+              icon: '💎'
+            },
+            premium: { 
+              gradient: 'from-purple-900/30 to-violet-900/30', 
+              border: 'border-purple-500/40', 
+              text: 'text-purple-400', 
+              badge: 'bg-purple-600',
+              icon: '⭐'
+            },
+            elite: { 
+              gradient: 'from-amber-900/30 to-yellow-900/30', 
+              border: 'border-amber-500/40', 
+              text: 'text-amber-400', 
+              badge: 'bg-gradient-to-r from-amber-500 to-yellow-600',
+              icon: '👑'
+            }
+          };
+          const config = tierConfig[superChat.tier];
+          
+          return (
+            <div key={superChat.id} className="animate-fade-in">
+              <div className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-lg p-3 shadow-lg`}>
+                <div className="flex items-start gap-2">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm text-white">{config.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 mb-1">
+                      <p className={`text-sm font-bold ${config.text}`}>{superChat.user}</p>
+                      {superChat.isVIP && <Crown className="w-4 h-4 text-amber-400" />}
+                      <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1`}>
+                        <DollarSign className="w-3 h-3 text-white" />
+                        <p className="text-xs text-white font-bold">{superChat.monto}</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-white font-medium break-words">{superChat.mensaje}</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      {superChat.tier === 'basic' ? '30s' : superChat.tier === 'premium' ? '60s' : '120s'} destacado
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        
+        // Propina
+        if ('monto' in item && !('gift' in item)) {
+          return (
+            <div key={item.id} className="animate-fade-in">
+              <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/40 rounded-lg p-2.5 shadow-md">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm">💵</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-bold text-emerald-400 truncate">{item.user}</p>
+                      {item.isVIP && <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                    </div>
+                    <p className="text-[10px] text-slate-400">envió una propina</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 bg-emerald-600 rounded-md px-2 py-1 flex-shrink-0">
+                    <DollarSign className="w-3 h-3 text-white" />
+                    <span className="text-xs text-white font-bold">{item.monto}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+        
+        // Mensaje de chat
+        if ('mensaje' in item) {
+          return (
+            <div key={item.id} className="flex items-start gap-2 animate-fade-in">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                item.isVIP 
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
+                  : 'bg-gradient-to-br from-purple-500 to-pink-600'
+              }`}>
+                <span className="text-sm">{item.avatar || item.user[0]}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1 mb-1">
+                  <p className={`text-sm font-semibold truncate ${
+                    item.isVIP ? 'text-amber-400' : 'text-purple-400'
+                  }`}>
+                    {item.user}
+                  </p>
+                  {item.isVIP && <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                </div>
+                <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2">
+                  <p className="text-sm text-white break-words">{item.mensaje}</p>
+                </div>
+              </div>
+            </div>
+          );
+        } else {
+          // Regalo
+          const giftItem = item as GiftMessage;
+          return (
+            <div key={giftItem.id} className="animate-fade-in">
+              <div className="relative bg-gradient-to-br from-amber-900/20 to-yellow-900/20 border border-amber-500/40 rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                      giftItem.isVIP 
+                        ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
+                        : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                    }`}>
+                      <span className="text-sm">{giftItem.avatar || giftItem.user[0]}</span>
+                    </div>
+                    <p className="text-sm font-bold text-white flex items-center gap-1">
+                      {giftItem.user}
+                      {giftItem.isVIP && <Crown className="w-3.5 h-3.5 text-amber-400" />}
+                    </p>
+                    <span className="ml-auto text-xs text-slate-400 font-medium">envió un regalo</span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-slate-900/40 backdrop-blur-sm rounded-lg p-2.5 border border-amber-500/20">
+                    <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg border border-amber-500/30">
+                      <span className="text-2xl">{giftItem.gift.emoji}</span>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-bold text-base leading-tight">{giftItem.gift.nombre}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <DollarSign className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-bold text-amber-400">{giftItem.gift.valor} coins</span>
+                      </div>
+                    </div>
+                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+      })
+    )}
+    <div ref={chatEndRef} />
+  </div>
+
+  {/* Input de mensaje premium */}
+  <div className="p-3 space-y-3 border-t border-slate-700/50 bg-slate-900/50">
+    <div className="relative">
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={mensajeActual}
+            onChange={(e) => setMensajeActual(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && !transmisionFinalizada && handleEnviarMensaje()}
+            placeholder={transmisionFinalizada ? "Transmisión finalizada" : "Escribe un mensaje..."}
+            disabled={!conectado || transmisionFinalizada}
+            className="w-full pl-4 pr-10 py-2.5 bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50"
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarEmojis(!mostrarEmojis)}
+            disabled={!conectado || transmisionFinalizada}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center hover:bg-slate-700 rounded-lg transition disabled:opacity-50"
+          >
+            <span className="text-lg">😊</span>
+          </button>
+        </div>
+        <button
+          onClick={handleEnviarMensaje}
+          disabled={!conectado || !mensajeActual.trim() || transmisionFinalizada}
+          className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+        >
+          <Send className="w-5 h-5 text-white" />
+        </button>
+      </div>
+      
+      {/* Panel de emoticones */}
+      {mostrarEmojis && (
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-3 z-10">
+          <div className="grid grid-cols-8 gap-2">
+            {emojisPopulares.map((emoji, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setMensajeActual(prev => prev + emoji);
+                  setMostrarEmojis(false);
+                }}
+                className="text-2xl hover:bg-slate-700 rounded-lg p-1 transition"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* Propinas Rápidas */}
+    <div>
+      <p className="text-xs font-semibold text-slate-400 mb-2 px-1">Propinas Rápidas</p>
+      <div className="grid grid-cols-6 gap-1.5">
+        {[1, 3, 5, 10, 15, 20].map((monto, idx) => (
+          <button 
+            key={monto}
+            onClick={() => handleEnviarPropina(monto)}
+            disabled={!conectado || transmisionFinalizada}
+            className={`py-2.5 px-1 bg-gradient-to-br rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-0.5 ${
+              idx === 0 ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
+              idx === 1 ? 'from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600' :
+              idx === 2 ? 'from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700' :
+              idx === 3 ? 'from-emerald-900 to-teal-900 hover:from-emerald-800 hover:to-teal-800' :
+              idx === 4 ? 'from-green-900 to-emerald-900 hover:from-green-800 hover:to-emerald-800' :
+              'from-green-950 to-emerald-950 hover:from-green-900 hover:to-emerald-900'
+            } text-white`}
+          >
+            <DollarSign className="w-3.5 h-3.5" />
+            <span>{monto}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* Botones de interacción */}
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-slate-400 mb-2 px-1">Interacciones</p>
+      
+      {/* Fila 1: Me gusta y Regalo */}
+      <div className="grid grid-cols-2 gap-2">
+        <button 
+          onClick={handleMeGusta}
+          disabled={!conectado || transmisionFinalizada}
+          className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 active:scale-95 shadow-md hover:shadow-lg text-xs"
+        >
+          <Heart className="w-4 h-4" />
+          <span>Me gusta</span>
+        </button>
+        <button 
+          onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
+          disabled={!conectado || transmisionFinalizada}
+          className="py-2.5 px-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-xs"
+        >
+          <Gift className="w-4 h-4" />
+          <span>Regalos</span>
+        </button>
+      </div>
+
+      {/* Fila 2: Super Chat y Ruleta */}
+      <div className="grid grid-cols-2 gap-2">
+        <button 
+          onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
+          disabled={!conectado || transmisionFinalizada}
+          className="py-2.5 px-3 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-xs"
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Destacado</span>
+        </button>
+        <button 
+          onClick={() => ruletaActiva && setShowRuletaModal(true)}
+          disabled={!conectado || transmisionFinalizada || !ruletaActiva}
+          className={`py-2.5 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 shadow-md text-xs ${
+            ruletaActiva 
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 animate-pulse cursor-pointer hover:shadow-lg' 
+              : 'bg-slate-700 border-slate-600 opacity-50 cursor-not-allowed'
+          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+          title={ruletaActiva ? 'Gira la ruleta' : 'Ruleta no disponible'}
+        >
+          <span className="text-base">🎰</span>
+          <span>Ruleta</span>
+        </button>
+      </div>
+    </div> 
+  </div>
+</div>
       
       {/* Overlay de notificaciones en pantalla */}
       {screenNotifications.map((notif) => (
@@ -1837,64 +1911,17 @@ export const VerEnVivoPage = () => {
       ))}
 
       {/* Modal de catálogo de regalos premium */}
-      {mostrarCatalogoRegalos && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl border border-pink-500/30 p-6 max-w-lg w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Gift className="w-6 h-6 text-pink-400" />
-                Catálogo Exclusivo
-              </h3>
-              <button
-                onClick={() => setMostrarCatalogoRegalos(false)}
-                className="text-gray-400 hover:text-white transition"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-pink-500/20 scrollbar-track-transparent">
-              {catalogoRegalos.map((regalo) => (
-                <button
-                  key={regalo.id}
-                  onClick={() => handleEnviarRegalo(regalo)}
-                  className="bg-gradient-to-br from-gray-800 to-gray-900 border border-pink-500/20 rounded-xl p-4 hover:border-pink-500/50 hover:shadow-lg hover:shadow-pink-500/20 transition-all group hover:scale-105"
-                >
-                  <div className="text-4xl mb-2">{regalo.emoji}</div>
-                  <p className="text-white font-bold text-sm mb-1 group-hover:text-pink-400 transition">
-                    {regalo.nombre}
-                  </p>
-                  <div className="flex items-center justify-center gap-1 text-yellow-400">
-                    <DollarSign className="w-4 h-4" />
-                    <span className="text-sm font-bold">{regalo.valor}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-gray-800">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Tu balance:</span>
-                <div className="flex items-center gap-1 text-yellow-400 font-bold">
-                  <DollarSign className="w-4 h-4" />
-                  <span>{coinsBalance.toLocaleString()} coins</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => {
-                  setAccionPendiente({ tipo: 'regalo' });
-                  setMostrarModalRecarga(true);
-                }}
-                className="w-full mt-3 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all hover:scale-[1.02]"
-              >
-                + Recargar Coins
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CatalogoRegalosModal
+        isOpen={mostrarCatalogoRegalos}
+        onClose={() => setMostrarCatalogoRegalos(false)}
+        catalogoRegalos={catalogoRegalos}
+        coinsBalance={coinsBalance}
+        onEnviarRegalo={handleEnviarRegalo}
+        onRecargarCoins={() => {
+          setAccionPendiente({ tipo: 'regalo' });
+          setMostrarModalRecarga(true);
+        }}
+      />
 
       {/* Modal de Super Chat */}
       <SuperChatModal 
@@ -1910,138 +1937,246 @@ export const VerEnVivoPage = () => {
 
       {/* Modal de Control de Acceso */}
       {mostrarModalAcceso && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-pink-500/50 p-6 max-w-md w-full shadow-2xl">
-            {tipoTransmision === 'suscriptores' ? (
-              // Modal de Suscripción Requerida
-              <>
-                <div className="text-center mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Crown className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Contenido Exclusivo</h3>
-                  <p className="text-gray-300 text-sm">
-                    Este live es solo para suscriptores
-                  </p>
-                </div>
-                
-                <div className="space-y-3 mb-6">
-                  {PLANES_SUSCRIPCION.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className={`${
-                        plan.tipo === 'basico' 
-                          ? 'bg-purple-500/20 border-purple-500/50' 
-                          : plan.tipo === 'vip'
-                          ? 'bg-purple-600/20 border-purple-400/50'
-                          : 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-yellow-400/50'
-                      } border rounded-xl p-4 hover:scale-105 transition-transform cursor-pointer`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-bold flex items-center gap-1">
-                          <span className="text-lg">{plan.icono}</span>
-                          {plan.nombre}
-                        </span>
-                        <span className="text-white font-bold">S/. {plan.precio}/mes</span>
-                      </div>
-                      <ul className="text-gray-300 text-sm space-y-1">
-                        {plan.beneficios.slice(0, 3).map((beneficio, idx) => (
-                          <li key={idx}>✓ {beneficio}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => window.history.back()}
-                    className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
-                  >
-                    Volver
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setProcesandoPago(true);
-                      const creadoraId = 'temp_creadora_123'; // TODO: BACKEND - ID real
-                      const resultado = await crearSuscripcion(creadoraId, 'basico');
-                      
-                      if (resultado.success) {
-                        setEsSuscriptor(true);
-                        setMostrarModalAcceso(false);
-                        unirseATransmision();
-                      } else {
-                        alert('Error al procesar suscripción: ' + resultado.error);
-                      }
-                      setProcesandoPago(false);
-                    }}
-                    disabled={procesandoPago}
-                    className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold transition shadow-lg disabled:opacity-50"
-                  >
-                    {procesandoPago ? 'Procesando...' : 'Suscribirme'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              // Modal de PPV (Pago por Entrada)
-              <>
-                <div className="text-center mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-4xl">🎫</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Live Premium</h3>
-                  <p className="text-gray-300 text-sm mb-4">
-                    {descripcionPPV || 'Live especial con contenido exclusivo'}
-                  </p>
-                  <div className="inline-flex items-center gap-2 bg-pink-500/20 border border-pink-500/50 rounded-full px-6 py-2">
-                    <DollarSign className="w-5 h-5 text-pink-400" />
-                    <span className="text-white text-2xl font-bold">S/. {precioPPV}</span>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-800/50 rounded-xl p-4 mb-6">
-                  <h4 className="text-white font-semibold mb-2">Lo que incluye:</h4>
-                  <ul className="text-gray-300 text-sm space-y-1">
-                    <li>✓ Acceso completo a este live</li>
-                    <li>✓ Chat sin restricciones</li>
-                    <li>✓ Envío de regalos y propinas</li>
-                    <li>✓ Experiencia premium HD</li>
-                  </ul>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => window.history.back()}
-                    className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (!channelName) return;
-                      
-                      setProcesandoPago(true);
-                      const resultado = await pagarPPV(channelName, precioPPV);
-                      
-                      if (resultado.success) {
-                        setAccesoPermitido(true);
-                        setMostrarModalAcceso(false);
-                        unirseATransmision();
-                      } else {
-                        alert('Error al procesar pago: ' + resultado.error);
-                      }
-                      setProcesandoPago(false);
-                    }}
-                    disabled={procesandoPago}
-                    className="flex-1 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white rounded-lg font-semibold transition shadow-lg disabled:opacity-50"
-                  >
-                    {procesandoPago ? 'Procesando...' : `Pagar S/. ${precioPPV}`}
-                  </button>
-                </div>
-              </>
-            )}
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
+  <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-slate-700/50 shadow-2xl max-w-md w-full overflow-hidden">
+    {tipoTransmision === 'suscriptores' ? (
+      // ========================================
+      // MODAL DE SUSCRIPCIÓN REQUERIDA - PREMIUM
+      // ========================================
+      <>
+        {/* Header Premium */}
+        <div className="relative bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-purple-600/10 border-b border-slate-700/50 px-6 py-6">
+          <div className="text-center">
+            <div className="relative inline-block mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-2xl"></div>
+              <div className="relative w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-purple-500/30">
+                <Crown className="w-10 h-10 text-white" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Contenido Exclusivo</h3>
+            <p className="text-slate-400 text-sm">
+              Esta transmisión es solo para suscriptores
+            </p>
           </div>
         </div>
+
+        {/* Planes de Suscripción */}
+        <div className="p-6 space-y-3">
+          {PLANES_SUSCRIPCION.map((plan) => {
+            const planStyles = {
+              basico: {
+                bg: 'from-purple-900/30 to-violet-900/30',
+                border: 'border-purple-500/50',
+                shadow: 'hover:shadow-purple-500/20'
+              },
+              vip: {
+                bg: 'from-blue-900/30 to-cyan-900/30',
+                border: 'border-blue-500/50',
+                shadow: 'hover:shadow-blue-500/20'
+              },
+              premium: {
+                bg: 'from-amber-900/30 to-yellow-900/30',
+                border: 'border-amber-500/50',
+                shadow: 'hover:shadow-amber-500/20'
+              }
+            };
+            
+            const style = planStyles[plan.tipo as keyof typeof planStyles] || planStyles.basico;
+            
+            return (
+              <div
+                key={plan.id}
+                className={`relative group bg-gradient-to-br ${style.bg} border ${style.border} rounded-xl p-4 hover:scale-[1.02] transition-all cursor-pointer shadow-lg ${style.shadow}`}
+              >
+                {/* Efecto de brillo */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{plan.icono}</span>
+                      <span className="text-white font-bold text-lg">{plan.nombre}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white font-bold text-lg">S/. {plan.precio}</div>
+                      <div className="text-slate-400 text-xs">/mes</div>
+                    </div>
+                  </div>
+                  <ul className="text-slate-300 text-sm space-y-1.5">
+                    {plan.beneficios.slice(0, 3).map((beneficio, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>{beneficio}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Botones de Acción */}
+        <div className="px-6 pb-6">
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.history.back()}
+              className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all hover:scale-[1.02]"
+            >
+              Volver
+            </button>
+            <button
+              onClick={async () => {
+                setProcesandoPago(true);
+                const creadoraId = 'temp_creadora_123'; // TODO: BACKEND - ID real
+                const resultado = await crearSuscripcion(creadoraId, 'basico');
+                
+                if (resultado.success) {
+                  setEsSuscriptor(true);
+                  setMostrarModalAcceso(false);
+                  unirseATransmision();
+                } else {
+                  alert('Error al procesar suscripción: ' + resultado.error);
+                }
+                setProcesandoPago(false);
+              }}
+              disabled={procesandoPago}
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-purple-600/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+            >
+              {procesandoPago ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                <>
+                  <Crown className="w-4 h-4" />
+                  <span>Suscribirme</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </>
+    ) : (
+      // ========================================
+      // MODAL DE PPV (PAGO POR ENTRADA) - PREMIUM
+      // ========================================
+      <>
+        {/* Header Premium */}
+        <div className="relative bg-gradient-to-r from-pink-600/10 via-purple-600/10 to-pink-600/10 border-b border-slate-700/50 px-6 py-6">
+          <div className="text-center">
+            <div className="relative inline-block mb-4">
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-full blur-2xl"></div>
+              <div className="relative w-20 h-20 bg-gradient-to-br from-pink-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-pink-500/30">
+                <span className="text-5xl">🎫</span>
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">Live Premium</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              {descripcionPPV || 'Transmisión especial con contenido exclusivo'}
+            </p>
+            
+            {/* Precio Badge */}
+            <div className="inline-flex items-center gap-2 bg-pink-500/20 border border-pink-500/50 rounded-xl px-6 py-3 shadow-lg">
+              <DollarSign className="w-6 h-6 text-pink-400" />
+              <span className="text-white text-3xl font-bold">S/. {precioPPV}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido del Live */}
+        <div className="p-6 space-y-4">
+          {/* Card de Beneficios */}
+          <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+            <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <svg className="w-5 h-5 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Lo que incluye:</span>
+            </h4>
+            <ul className="text-slate-300 text-sm space-y-2">
+              <li className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Acceso completo a esta transmisión</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Chat sin restricciones</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Envío de regalos y propinas</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Calidad HD premium</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Botones de Acción */}
+          <div className="flex gap-3">
+            <button
+              onClick={() => window.history.back()}
+              className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all hover:scale-[1.02]"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                if (!channelName) return;
+                
+                setProcesandoPago(true);
+                const resultado = await pagarPPV(channelName, precioPPV);
+                
+                if (resultado.success) {
+                  setAccesoPermitido(true);
+                  setMostrarModalAcceso(false);
+                  unirseATransmision();
+                } else {
+                  alert('Error al procesar pago: ' + resultado.error);
+                }
+                setProcesandoPago(false);
+              }}
+              disabled={procesandoPago}
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white rounded-xl font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-pink-600/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+            >
+              {procesandoPago ? (
+                <>
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Procesando...</span>
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-4 h-4" />
+                  <span>Pagar S/. {precioPPV}</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+</div>
+
       )}
 
       {/* Toast de notificación - Z-INDEX MÁXIMO para aparecer ADELANTE del modal */}
@@ -2077,134 +2212,22 @@ export const VerEnVivoPage = () => {
       />
 
       {/* Modal Universal de Recarga de Coins */}
-      {mostrarModalRecarga && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[60] p-4">
-          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-yellow-500/50 p-6 max-w-lg w-full shadow-2xl animate-scale-in">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
-                  <DollarSign className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-bold text-white">Recargar Coins</h3>
-                  <p className="text-gray-400 text-sm">Elige tu paquete favorito</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setMostrarModalRecarga(false);
-                  setAccionPendiente(null);
-                }}
-                className="text-gray-400 hover:text-white transition"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Paquetes de Coins */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              {/* Paquete Básico */}
-              <button
-                onClick={() => {
-                  setCoinsBalance(prev => prev + 100);
-                  setMostrarModalRecarga(false);
-                  setToastMessage('✅ ¡100 coins agregados!');
-                  setToastVisible(true);
-                  setTimeout(() => setToastVisible(false), 2000);
-                  setAccionPendiente(null);
-                }}
-                className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-yellow-500/50 rounded-xl p-4 transition-all hover:scale-105 group"
-              >
-                <div className="text-4xl mb-2">💰</div>
-                <div className="text-2xl font-bold text-white mb-1">100</div>
-                <div className="text-xs text-gray-400 mb-3">coins</div>
-                <div className="text-green-400 font-bold text-lg">S/. 5</div>
-              </button>
-
-              {/* Paquete Popular */}
-              <button
-                onClick={() => {
-                  setCoinsBalance(prev => prev + 500);
-                  setMostrarModalRecarga(false);
-                  setToastMessage('✅ ¡500 coins agregados!');
-                  setToastVisible(true);
-                  setTimeout(() => setToastVisible(false), 2000);
-                  setAccionPendiente(null);
-                }}
-                className="relative bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-500 rounded-xl p-4 transition-all hover:scale-105 group overflow-hidden"
-              >
-                <div className="absolute top-1 right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-xs font-bold px-2 py-0.5 rounded-full text-black">
-                  Popular
-                </div>
-                <div className="text-4xl mb-2">💎</div>
-                <div className="text-2xl font-bold text-white mb-1">500</div>
-                <div className="text-xs text-purple-300 mb-1">coins</div>
-                <div className="text-[10px] text-purple-400 line-through mb-1">S/. 25</div>
-                <div className="text-green-400 font-bold text-lg">S/. 20</div>
-                <div className="text-xs text-yellow-400 font-semibold mt-1">Ahorra 20%</div>
-              </button>
-
-              {/* Paquete Mejor Valor */}
-              <button
-                onClick={() => {
-                  setCoinsBalance(prev => prev + 1000);
-                  setMostrarModalRecarga(false);
-                  setToastMessage('✅ ¡1000 coins agregados!');
-                  setToastVisible(true);
-                  setTimeout(() => setToastVisible(false), 2000);
-                  setAccionPendiente(null);
-                }}
-                className="relative bg-gradient-to-br from-blue-900 to-blue-800 border-2 border-blue-500 rounded-xl p-4 transition-all hover:scale-105 group"
-              >
-                <div className="absolute top-1 right-1 bg-gradient-to-r from-blue-400 to-cyan-400 text-xs font-bold px-2 py-0.5 rounded-full text-black">
-                  Mejor Valor
-                </div>
-                <div className="text-4xl mb-2">👑</div>
-                <div className="text-2xl font-bold text-white mb-1">1000</div>
-                <div className="text-xs text-blue-300 mb-1">coins</div>
-                <div className="text-[10px] text-blue-400 line-through mb-1">S/. 50</div>
-                <div className="text-green-400 font-bold text-lg">S/. 35</div>
-                <div className="text-xs text-yellow-400 font-semibold mt-1">Ahorra 30%</div>
-              </button>
-
-              {/* Paquete VIP */}
-              <button
-                onClick={() => {
-                  setCoinsBalance(prev => prev + 2500);
-                  setMostrarModalRecarga(false);
-                  setToastMessage('✅ ¡2500 coins agregados!');
-                  setToastVisible(true);
-                  setTimeout(() => setToastVisible(false), 2000);
-                  setAccionPendiente(null);
-                }}
-                className="relative bg-gradient-to-br from-yellow-600 to-orange-600 border-2 border-yellow-400 rounded-xl p-4 transition-all hover:scale-105 group"
-              >
-                <div className="absolute top-1 right-1 bg-gradient-to-r from-yellow-300 to-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full text-black">
-                  VIP
-                </div>
-                <div className="text-4xl mb-2">🔥</div>
-                <div className="text-2xl font-bold text-white mb-1">2500</div>
-                <div className="text-xs text-yellow-200 mb-1">coins</div>
-                <div className="text-[10px] text-yellow-300 line-through mb-1">S/. 125</div>
-                <div className="text-green-400 font-bold text-lg">S/. 80</div>
-                <div className="text-xs text-yellow-200 font-semibold mt-1">Ahorra 36%</div>
-              </button>
-            </div>
-
-            {/* Balance Actual */}
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-400 text-sm">Tu balance actual:</span>
-                <div className="flex items-center gap-1 text-yellow-400 font-bold text-lg">
-                  <DollarSign className="w-5 h-5" />
-                  <span>{coinsBalance.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <RecargarCoinsModal
+        isOpen={mostrarModalRecarga}
+        onClose={() => {
+          setMostrarModalRecarga(false);
+          setAccionPendiente(null);
+        }}
+        onRecargar={(cantidad) => {
+          setCoinsBalance(prev => prev + cantidad);
+          setMostrarModalRecarga(false);
+          setToastMessage(`✅ ¡${cantidad} coins agregados!`);
+          setToastVisible(true);
+          setTimeout(() => setToastVisible(false), 2000);
+          setAccionPendiente(null);
+        }}
+        coinsBalance={coinsBalance}
+      />
     </div>
   );
 };
