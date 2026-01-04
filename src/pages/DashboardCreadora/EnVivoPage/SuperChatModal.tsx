@@ -5,9 +5,11 @@ interface SuperChatModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSend: (mensaje: string, tier: 'basic' | 'premium' | 'elite') => void;
+  coinsBalance?: number;
+  onRecargarCoins?: () => void;
 }
 
-export const SuperChatModal = ({ isOpen, onClose, onSend }: SuperChatModalProps) => {
+export const SuperChatModal = ({ isOpen, onClose, onSend, coinsBalance = 0, onRecargarCoins }: SuperChatModalProps) => {
   const [mensaje, setMensaje] = React.useState('');
   const [tierSeleccionado, setTierSeleccionado] = React.useState<'basic' | 'premium' | 'elite'>('basic');
 
@@ -132,13 +134,21 @@ export const SuperChatModal = ({ isOpen, onClose, onSend }: SuperChatModalProps)
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-800">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm mb-3">
             <span className="text-gray-400">Tu balance:</span>
             <div className="flex items-center gap-1 text-yellow-400 font-bold">
               <DollarSign className="w-4 h-4" />
-              <span>1,250 coins</span>
+              <span>{coinsBalance.toLocaleString()} coins</span>
             </div>
           </div>
+          {onRecargarCoins && (
+            <button
+              onClick={onRecargarCoins}
+              className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all hover:scale-[1.02]"
+            >
+              + Recargar Coins
+            </button>
+          )}
         </div>
       </div>
     </div>

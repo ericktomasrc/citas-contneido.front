@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Settings, Play, Trophy, Sparkles, Plus, Trash2 } from 'lucide-react';
+import { X, Settings, Play, Trophy, Sparkles, Plus, Trash2, DollarSign } from 'lucide-react';
 import { PremioRuleta } from '../../../../shared/types/ruleta.types';
 
 interface RuletaModalProps {
@@ -21,6 +21,8 @@ interface RuletaModalProps {
   premiosDisponibles?: PremioRuleta[]; // Premios recibidos del servidor
   usuarioGirando?: string | null; // Nombre del usuario que está girando
   currentUserName?: string; // Nombre del usuario actual
+  coinsBalance?: number; // Balance de coins del espectador
+  onRecargarCoins?: () => void; // Callback para abrir modal de recarga
 }
 
 // Galería de iconos disponibles
@@ -53,7 +55,9 @@ export default function RuletaModal({
   girando = false,
   premiosDisponibles,
   usuarioGirando = null,
-  currentUserName = ''
+  currentUserName = '',
+  coinsBalance = 0,
+  onRecargarCoins
 }: RuletaModalProps) {
   const [costoGiroInput, setCostoGiroInput] = useState(10);
   const [premios, setPremios] = useState<PremioRuleta[]>([
@@ -653,6 +657,25 @@ export default function RuletaModal({
                     </span>
                   )}
                 </button>
+
+                {/* Balance y botón de recarga */}
+                <div className="w-full max-w-sm mt-4 pt-4 border-t border-purple-500/20">
+                  <div className="flex items-center justify-between text-sm mb-3">
+                    <span className="text-slate-400">Tu balance:</span>
+                    <div className="flex items-center gap-1 text-yellow-400 font-bold">
+                      <DollarSign className="w-4 h-4" />
+                      <span>{coinsBalance.toLocaleString()} coins</span>
+                    </div>
+                  </div>
+                  {onRecargarCoins && (
+                    <button
+                      onClick={onRecargarCoins}
+                      className="w-full py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all hover:scale-[1.02]"
+                    >
+                      + Recargar Coins
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

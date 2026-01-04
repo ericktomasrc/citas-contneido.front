@@ -128,6 +128,11 @@ export const VerEnVivoPage = () => {
   // Estado para rastrear quién está girando la ruleta
   const [usuarioGirandoRuleta, setUsuarioGirandoRuleta] = useState<string | null>(null);
   
+  // Estados para el sistema de coins
+  const [coinsBalance, setCoinsBalance] = useState(1250); // Balance de coins del usuario
+  const [mostrarModalRecarga, setMostrarModalRecarga] = useState(false);
+  const [accionPendiente, setAccionPendiente] = useState<{ tipo: 'ruleta' | 'regalo' | 'superchat', dato?: any } | null>(null);
+  
   // Estados para notificaciones en pantalla
   const [screenNotifications, setScreenNotifications] = useState<ScreenNotification[]>([]);
   const notificationQueueRef = useRef<ScreenNotification[]>([]);
@@ -911,6 +916,19 @@ export const VerEnVivoPage = () => {
   const handleEnviarRegalo = (gift: { id: string; nombre: string; emoji: string; valor: number }) => {
     if (!socketRef.current) return;
 
+    // Validar saldo suficiente
+    if (coinsBalance < gift.valor) {
+      setAccionPendiente({ tipo: 'regalo', dato: gift });
+      setMostrarModalRecarga(true);
+      setToastMessage('⚠️ No tienes suficientes coins');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2000);
+      return;
+    }
+
+    // Descontar coins
+    setCoinsBalance(prev => prev - gift.valor);
+
     // Generar un ID único para este regalo
     const giftId = Date.now().toString();
     
@@ -936,6 +954,19 @@ export const VerEnVivoPage = () => {
   // Manejar propinas rápidas
   const handleEnviarPropina = (monto: number) => {
     if (!socketRef.current) return;
+
+    // Validar saldo suficiente
+    if (coinsBalance < monto) {
+      setAccionPendiente({ tipo: 'regalo', dato: { monto } });
+      setMostrarModalRecarga(true);
+      setToastMessage('⚠️ No tienes suficientes coins');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2000);
+      return;
+    }
+
+    // Descontar coins
+    setCoinsBalance(prev => prev - monto);
 
     const tipId = Date.now().toString();
 
@@ -978,12 +1009,27 @@ export const VerEnVivoPage = () => {
       elite: 20
     };
 
+    const costoTier = tiersPrecios[tier];
+
+    // Validar saldo suficiente
+    if (coinsBalance < costoTier) {
+      setAccionPendiente({ tipo: 'superchat', dato: { mensaje, tier } });
+      setMostrarModalRecarga(true);
+      setToastMessage('⚠️ No tienes suficientes coins');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2000);
+      return;
+    }
+
+    // Descontar coins
+    setCoinsBalance(prev => prev - costoTier);
+
     socketRef.current.emit('send-superchat', {
       channelName,
       superChatId: Date.now().toString(),
       user: currentUserName,
       mensaje: mensaje,
-      monto: tiersPrecios[tier],
+      monto: costoTier,
       tier: tier,
       isVIP: false,
       avatar: '⭐'
@@ -996,6 +1042,16 @@ export const VerEnVivoPage = () => {
   const handleGirarRuleta = async () => {
     if (!socketRef.current) return;
     
+    // Validar saldo suficiente
+    if (coinsBalance < costoGiroRuleta) {
+      setAccionPendiente({ tipo: 'ruleta' });
+      setMostrarModalRecarga(true);
+      setToastMessage('⚠️ No tienes suficientes coins');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2000);
+      return;
+    }
+    
     // Validar si alguien ya está girando (validación LOCAL)
     if (girandoRuleta) {
       setToastMessage('⏳ Otro espectador está usando la ruleta. Espera tu turno...');
@@ -1003,6 +1059,9 @@ export const VerEnVivoPage = () => {
       setTimeout(() => setToastVisible(false), 2500);
       return;
     }
+    
+    // Descontar coins
+    setCoinsBalance(prev => prev - costoGiroRuleta);
     
     // Bloquear INMEDIATAMENTE de forma local (UI responsive)
     setGirandoRuleta(true);
@@ -1820,11 +1879,17 @@ export const VerEnVivoPage = () => {
                 <span className="text-gray-400">Tu balance:</span>
                 <div className="flex items-center gap-1 text-yellow-400 font-bold">
                   <DollarSign className="w-4 h-4" />
-                  <span>1,250 coins</span>
+                  <span>{coinsBalance.toLocaleString()} coins</span>
                 </div>
               </div>
-              <button className="w-full mt-3 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all hover:scale-[1.02]">
-                Comprar más coins
+              <button 
+                onClick={() => {
+                  setAccionPendiente({ tipo: 'regalo' });
+                  setMostrarModalRecarga(true);
+                }}
+                className="w-full mt-3 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all hover:scale-[1.02]"
+              >
+                + Recargar Coins
               </button>
             </div>
           </div>
@@ -1836,6 +1901,11 @@ export const VerEnVivoPage = () => {
         isOpen={mostrarModalSuperChat}
         onClose={() => setMostrarModalSuperChat(false)}
         onSend={handleEnviarSuperChat}
+        coinsBalance={coinsBalance}
+        onRecargarCoins={() => {
+          setAccionPendiente({ tipo: 'superchat' });
+          setMostrarModalRecarga(true);
+        }}
       />
 
       {/* Modal de Control de Acceso */}
@@ -1999,7 +2069,142 @@ export const VerEnVivoPage = () => {
         premiosDisponibles={premiosRuleta}
         usuarioGirando={usuarioGirandoRuleta}
         currentUserName={currentUserName}
+        coinsBalance={coinsBalance}
+        onRecargarCoins={() => {
+          setAccionPendiente({ tipo: 'ruleta' });
+          setMostrarModalRecarga(true);
+        }}
       />
+
+      {/* Modal Universal de Recarga de Coins */}
+      {mostrarModalRecarga && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[60] p-4">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl border-2 border-yellow-500/50 p-6 max-w-lg w-full shadow-2xl animate-scale-in">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                  <DollarSign className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white">Recargar Coins</h3>
+                  <p className="text-gray-400 text-sm">Elige tu paquete favorito</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setMostrarModalRecarga(false);
+                  setAccionPendiente(null);
+                }}
+                className="text-gray-400 hover:text-white transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Paquetes de Coins */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {/* Paquete Básico */}
+              <button
+                onClick={() => {
+                  setCoinsBalance(prev => prev + 100);
+                  setMostrarModalRecarga(false);
+                  setToastMessage('✅ ¡100 coins agregados!');
+                  setToastVisible(true);
+                  setTimeout(() => setToastVisible(false), 2000);
+                  setAccionPendiente(null);
+                }}
+                className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 hover:border-yellow-500/50 rounded-xl p-4 transition-all hover:scale-105 group"
+              >
+                <div className="text-4xl mb-2">💰</div>
+                <div className="text-2xl font-bold text-white mb-1">100</div>
+                <div className="text-xs text-gray-400 mb-3">coins</div>
+                <div className="text-green-400 font-bold text-lg">S/. 5</div>
+              </button>
+
+              {/* Paquete Popular */}
+              <button
+                onClick={() => {
+                  setCoinsBalance(prev => prev + 500);
+                  setMostrarModalRecarga(false);
+                  setToastMessage('✅ ¡500 coins agregados!');
+                  setToastVisible(true);
+                  setTimeout(() => setToastVisible(false), 2000);
+                  setAccionPendiente(null);
+                }}
+                className="relative bg-gradient-to-br from-purple-900 to-purple-800 border-2 border-purple-500 rounded-xl p-4 transition-all hover:scale-105 group overflow-hidden"
+              >
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-xs font-bold px-2 py-0.5 rounded-full text-black">
+                  Popular
+                </div>
+                <div className="text-4xl mb-2">💎</div>
+                <div className="text-2xl font-bold text-white mb-1">500</div>
+                <div className="text-xs text-purple-300 mb-1">coins</div>
+                <div className="text-[10px] text-purple-400 line-through mb-1">S/. 25</div>
+                <div className="text-green-400 font-bold text-lg">S/. 20</div>
+                <div className="text-xs text-yellow-400 font-semibold mt-1">Ahorra 20%</div>
+              </button>
+
+              {/* Paquete Mejor Valor */}
+              <button
+                onClick={() => {
+                  setCoinsBalance(prev => prev + 1000);
+                  setMostrarModalRecarga(false);
+                  setToastMessage('✅ ¡1000 coins agregados!');
+                  setToastVisible(true);
+                  setTimeout(() => setToastVisible(false), 2000);
+                  setAccionPendiente(null);
+                }}
+                className="relative bg-gradient-to-br from-blue-900 to-blue-800 border-2 border-blue-500 rounded-xl p-4 transition-all hover:scale-105 group"
+              >
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-blue-400 to-cyan-400 text-xs font-bold px-2 py-0.5 rounded-full text-black">
+                  Mejor Valor
+                </div>
+                <div className="text-4xl mb-2">👑</div>
+                <div className="text-2xl font-bold text-white mb-1">1000</div>
+                <div className="text-xs text-blue-300 mb-1">coins</div>
+                <div className="text-[10px] text-blue-400 line-through mb-1">S/. 50</div>
+                <div className="text-green-400 font-bold text-lg">S/. 35</div>
+                <div className="text-xs text-yellow-400 font-semibold mt-1">Ahorra 30%</div>
+              </button>
+
+              {/* Paquete VIP */}
+              <button
+                onClick={() => {
+                  setCoinsBalance(prev => prev + 2500);
+                  setMostrarModalRecarga(false);
+                  setToastMessage('✅ ¡2500 coins agregados!');
+                  setToastVisible(true);
+                  setTimeout(() => setToastVisible(false), 2000);
+                  setAccionPendiente(null);
+                }}
+                className="relative bg-gradient-to-br from-yellow-600 to-orange-600 border-2 border-yellow-400 rounded-xl p-4 transition-all hover:scale-105 group"
+              >
+                <div className="absolute top-1 right-1 bg-gradient-to-r from-yellow-300 to-yellow-400 text-xs font-bold px-2 py-0.5 rounded-full text-black">
+                  VIP
+                </div>
+                <div className="text-4xl mb-2">🔥</div>
+                <div className="text-2xl font-bold text-white mb-1">2500</div>
+                <div className="text-xs text-yellow-200 mb-1">coins</div>
+                <div className="text-[10px] text-yellow-300 line-through mb-1">S/. 125</div>
+                <div className="text-green-400 font-bold text-lg">S/. 80</div>
+                <div className="text-xs text-yellow-200 font-semibold mt-1">Ahorra 36%</div>
+              </button>
+            </div>
+
+            {/* Balance Actual */}
+            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400 text-sm">Tu balance actual:</span>
+                <div className="flex items-center gap-1 text-yellow-400 font-bold text-lg">
+                  <DollarSign className="w-5 h-5" />
+                  <span>{coinsBalance.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
