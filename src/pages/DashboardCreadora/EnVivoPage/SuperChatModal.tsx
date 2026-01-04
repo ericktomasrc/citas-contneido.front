@@ -101,7 +101,7 @@ export const SuperChatModal = ({ isOpen, onClose, onSend }: SuperChatModalProps)
         </div>
 
         {/* Preview del tier seleccionado */}
-        <div className={`mb-4 p-3 rounded-lg border ${
+        <div className={`mb-4 p-3 rounded-lg border overflow-hidden ${
           tierSeleccionado === 'basic' 
             ? 'bg-blue-500/10 border-blue-500/50' 
             : tierSeleccionado === 'premium'
@@ -109,7 +109,7 @@ export const SuperChatModal = ({ isOpen, onClose, onSend }: SuperChatModalProps)
             : 'bg-yellow-500/10 border-yellow-500/50'
         }`}>
           <div className="text-xs text-gray-400 mb-1">Vista previa:</div>
-          <div className="text-sm text-white font-medium">
+          <div className="text-sm text-white font-medium break-words overflow-wrap-anywhere">
             {mensaje || 'Tu mensaje aparecerá aquí...'}
           </div>
         </div>

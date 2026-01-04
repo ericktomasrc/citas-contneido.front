@@ -35,7 +35,7 @@ interface ContenidoComprable {
   createdAt: string;
 }
 
-type ContentTabType = 'fotos' | 'videos' | 'premium-fotos' | 'premium-videos' | 'contenido-comprable';
+type ContentTabType = 'informacion' | 'fotos' | 'videos' | 'premium-fotos' | 'premium-videos' | 'contenido-comprable';
 
 export const CreatorProfilePageFullscreen = () => {
   const navigate = useNavigate();
@@ -43,7 +43,8 @@ export const CreatorProfilePageFullscreen = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [recommend, setRecommend] = useState(false);
   const [notRecommend, setNotRecommend] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTabType>('fotos');
+  const [activeCategory, setActiveCategory] = useState<'public' | 'premium' | 'shop'>('public');
+  const [activeTab, setActiveTab] = useState<ContentTabType>('informacion');
   const [isSubscribedToPhotos, setIsSubscribedToPhotos] = useState(false);
   const [isSubscribedToVideos, setIsSubscribedToVideos] = useState(false);
   const [activeMediaIndex, setActiveMediaIndex] = useState(0);
@@ -141,15 +142,17 @@ export const CreatorProfilePageFullscreen = () => {
   ];
 
   const tabs = [
-    { id: 'fotos' as ContentTabType, label: 'Fotos', icon: Image, count: fotosPublicas.length, isPublic: true },
-    { id: 'videos' as ContentTabType, label: 'Videos', icon: Video, count: videosPublicos.length, isPublic: true },
-    { id: 'premium-fotos' as ContentTabType, label: 'Premium Fotos', icon: Crown, count: contenidoPremiumFotos.length, isPublic: false },
-    { id: 'premium-videos' as ContentTabType, label: 'Premium Videos', icon: Crown, count: contenidoPremiumVideos.length, isPublic: false },
-    { id: 'contenido-comprable' as ContentTabType, label: 'Contenido ($)', icon: ShoppingBag, count: contenidoComprable.length, isPublic: false },
+    { id: 'informacion' as ContentTabType, label: 'Sobre mí', icon: Users, count: 0, isPublic: true, category: 'public' },
+    { id: 'fotos' as ContentTabType, label: 'Fotos', icon: Image, count: fotosPublicas.length, isPublic: true, category: 'public' },
+    { id: 'videos' as ContentTabType, label: 'Videos', icon: Video, count: videosPublicos.length, isPublic: true, category: 'public' },
+    { id: 'premium-fotos' as ContentTabType, label: 'Fotos', icon: Image, count: contenidoPremiumFotos.length, isPublic: false, category: 'premium' },
+    { id: 'premium-videos' as ContentTabType, label: 'Videos', icon: Video, count: contenidoPremiumVideos.length, isPublic: false, category: 'premium' },
+    { id: 'contenido-comprable' as ContentTabType, label: 'Packs Premium', icon: ShoppingBag, count: contenidoComprable.length, isPublic: false, category: 'shop' },
   ];
 
   const getContent = () => {
     switch (activeTab) {
+      case 'informacion': return null; // Muestra información estática
       case 'fotos': return fotosPublicas;
       case 'videos': return videosPublicos;
       case 'premium-fotos': return contenidoPremiumFotos;
@@ -314,12 +317,12 @@ export const CreatorProfilePageFullscreen = () => {
 
               {/* Premium */}
               <div className="bg-gray-900 rounded-lg p-4 text-center mb-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Star className="w-4 h-4 text-white" />
-                  <span className="text-sm font-semibold text-white">Premium</span>
+                <div className="flex items-center justify-center gap-1.5 mb-2">
+                  <Star className="w-3.5 h-3.5 text-white" />
+                  <span className="text-xs font-semibold text-white">Premium</span>
                 </div>
-                <p className="text-2xl font-bold text-white mb-3">S/. {creadora.precioSuscripcion}/mes</p>
-                <button className="w-full py-2.5 bg-white text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-100 transition">
+                <p className="text-lg font-bold text-white mb-2">S/. {creadora.precioSuscripcion}/mes</p>
+                <button className="w-full py-2 bg-white text-gray-900 rounded-lg font-semibold text-xs hover:bg-gray-100 transition">
                   Suscribirse
                 </button>
               </div>
@@ -367,19 +370,79 @@ export const CreatorProfilePageFullscreen = () => {
 
           {/* Content Area */}
           <div className="lg:col-span-3">
-            {/* Tabs */}
-            <div className="bg-white rounded-lg border border-gray-200 mb-4">
-              <div className="overflow-x-auto">
+            {/* Selector de Categoría */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-4 p-2">
+              <div className="flex gap-2">
+                {/* Público - Prominente */}
+                <button
+                  onClick={() => {
+                    setActiveCategory('public');
+                    setActiveTab('informacion');
+                  }}
+                  className={`flex-1 px-4 py-3 rounded-lg font-semibold text-sm transition flex items-center justify-center gap-2 ${
+                    activeCategory === 'public'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>Contenido Público</span>
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded uppercase">
+                    Gratis
+                  </span>
+                </button>
+
+                {/* Premium y Tienda - Discretos (solo íconos + texto pequeño) */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setActiveCategory('premium');
+                      setActiveTab('premium-fotos');
+                    }}
+                    className={`px-3 py-3 rounded-lg text-xs font-medium transition flex flex-col items-center gap-1 ${
+                      activeCategory === 'premium'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+                    }`}
+                  >
+                    <Crown className="w-4 h-4" />
+                    <span>Exclusivo</span>
+                    <Lock className="w-2.5 h-2.5" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setActiveCategory('shop');
+                      setActiveTab('contenido-comprable');
+                    }}
+                    className={`px-3 py-3 rounded-lg text-xs font-medium transition flex flex-col items-center gap-1 ${
+                      activeCategory === 'shop'
+                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                        : 'bg-white text-gray-500 hover:bg-gray-50 border border-gray-200'
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>Packs</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabs Específicos por Categoría */}
+            {activeCategory !== 'shop' && (
+              <div className="bg-white rounded-lg border border-gray-200 mb-4">
                 <div className="flex border-b border-gray-200">
-                  {tabs.map((tab) => {
+                  {tabs.filter(t => t.category === activeCategory).map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition relative whitespace-nowrap ${
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 font-medium text-sm transition relative ${
                           isActive 
-                            ? 'text-gray-900 border-b-2 border-gray-900 -mb-px' 
+                            ? activeCategory === 'public'
+                              ? 'text-gray-900 border-b-2 border-gray-900 -mb-px'
+                              : 'text-blue-600 border-b-2 border-blue-600 -mb-px'
                             : 'text-gray-500 hover:text-gray-700'
                         }`}
                       >
@@ -387,24 +450,128 @@ export const CreatorProfilePageFullscreen = () => {
                         <span>{tab.label}</span>
                         {tab.count > 0 && (
                           <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            isActive ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
+                            isActive 
+                              ? activeCategory === 'public'
+                                ? 'bg-gray-900 text-white'
+                                : 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-600'
                           }`}>
                             {tab.count}
                           </span>
-                        )}
-                        {!tab.isPublic && (
-                          <Lock className="w-3 h-3 text-gray-400" />
                         )}
                       </button>
                     );
                   })}
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Content */}
             <div>
-              {activeTab === 'contenido-comprable' ? (
+              {activeTab === 'informacion' ? (
+                /* Información Personal Completa */
+                <div className="space-y-4">
+                  {/* Biografía */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Sobre mí
+                    </h3>
+                    <p className="text-sm text-gray-700 leading-relaxed">{creadora.bio}</p>
+                  </div>
+
+                  {/* Características Físicas */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-base font-bold text-gray-900 mb-4">Características</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Altura</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.altura} cm</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Tipo de cuerpo</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.tipoCuerpo}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Apariencia</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.apariencia}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Etnia</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.etnia}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Idiomas */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-base font-bold text-gray-900 mb-3">Idiomas</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {creadora.idiomas.map((idioma) => (
+                        <span key={idioma} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
+                          {idioma}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 mb-1">Nivel de inglés</p>
+                      <p className="text-sm font-medium text-gray-900">{creadora.nivelIngles}</p>
+                    </div>
+                  </div>
+
+                  {/* Estilo de Vida */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-base font-bold text-gray-900 mb-4">Estilo de vida</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">¿Fumas?</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.fumas}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Hijos</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.hijos}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Buscando</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {creadora.buscando.map((item) => (
+                            <span key={item} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Ingresos anuales (USD)</p>
+                        <p className="text-sm font-medium text-gray-900">{creadora.ingresos}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Información de Cuenta */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <h3 className="text-base font-bold text-gray-900 mb-4">Información de cuenta</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-600">Miembro desde</span>
+                        <span className="font-medium text-gray-900">{creadora.miembroDesde}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Shield className="w-4 h-4 text-gray-400" />
+                        <span className="text-gray-600">Estado:</span>
+                        <span className="font-medium text-green-600">{creadora.ultimaConexion}</span>
+                      </div>
+                      {creadora.verificada && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <CheckCircle className="w-4 h-4 text-blue-500" />
+                          <span className="font-medium text-blue-600">Perfil verificado</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : activeTab === 'contenido-comprable' ? (
                 /* Contenido Comprable */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {contenidoComprable.map((item) => (
@@ -441,22 +608,58 @@ export const CreatorProfilePageFullscreen = () => {
                             </div>
                           </div>
                         )}
+                        
+                        {/* Contador de fotos y videos - NO borroso */}
+                        <div className="absolute bottom-2 left-2 flex gap-1.5">
+                          {item.cantidadFotos && item.cantidadFotos > 0 && (
+                            <div className="px-2 py-1 bg-black/70 rounded flex items-center gap-1">
+                              <Image className="w-3 h-3 text-white" />
+                              <span className="text-xs font-semibold text-white">{item.cantidadFotos}</span>
+                            </div>
+                          )}
+                          {item.cantidadVideos && item.cantidadVideos > 0 && (
+                            <div className="px-2 py-1 bg-black/70 rounded flex items-center gap-1">
+                              <Video className="w-3 h-3 text-white" />
+                              <span className="text-xs font-semibold text-white">{item.cantidadVideos}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <div className="p-4">
                         <h3 className="font-semibold text-gray-900 mb-1 text-sm">{item.titulo}</h3>
                         <p className="text-xs text-gray-600 mb-3 line-clamp-2">{item.descripcion}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500">{item.cantidadItems} items</span>
+                        
+                        {/* Botones */}
+                        <div className="flex items-center gap-2">
+                          {/* Botón Comprar/Comprado */}
                           <button 
                             disabled={item.isPurchased}
-                            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                            className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold transition ${
                               item.isPurchased
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-gray-900 text-white hover:bg-gray-800'
                             }`}
                           >
-                            {item.isPurchased ? 'Comprado' : 'Comprar'}
+                            {item.isPurchased ? 'Comprado' : `Comprar S/. ${item.precio}`}
                           </button>
+                          
+                          {/* Botón Descargar - Solo si está comprado */}
+                          {item.isPurchased && (
+                            <button 
+                              onClick={() => {
+                                // Aquí iría la lógica de descarga
+                                console.log('Descargando pack:', item.titulo);
+                                alert(`Descargando: ${item.titulo}`);
+                              }}
+                              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition flex items-center gap-1.5"
+                              title="Descargar contenido"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                              <span className="text-xs font-semibold">Descargar</span>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

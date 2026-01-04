@@ -233,22 +233,22 @@ export const LiveStreamPage = () => {
   if (!hasAccess) return null;
 
   return (
-    <div className="flex h-screen bg-black">
-      {/* Video Container */}
-      <div className="flex-1 relative">
+    <div className="fixed inset-0 bg-black">
+      {/* Video Container - Pantalla Completa */}
+      <div className="absolute inset-0">
         {/* Video Player */}
         <div className="w-full h-full bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
           <div className="text-center text-white">
-            <div className="w-20 h-20 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
-              <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+            <div className="w-24 h-24 mx-auto mb-6 bg-red-500/20 rounded-full flex items-center justify-center">
+              <div className="w-5 h-5 bg-red-500 rounded-full animate-pulse"></div>
             </div>
-            <p className="text-2xl font-bold">{liveStream.titulo}</p>
-            <p className="text-sm text-gray-400 mt-2">@{liveStream.creatorName}</p>
+            <p className="text-3xl font-bold">{liveStream.titulo}</p>
+            <p className="text-base text-gray-400 mt-3">@{liveStream.creatorName}</p>
           </div>
         </div>
 
         {/* Top Bar */}
-        <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
+        <div className="absolute top-6 left-6 right-6 flex items-center justify-between z-20">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -277,84 +277,84 @@ export const LiveStreamPage = () => {
         </div>
 
         {/* Bottom Actions */}
-        <div className="absolute bottom-6 left-6 right-6">
+        <div className="absolute bottom-6 left-6 right-[420px] z-20">
           {/* Reacciones */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-3 mb-4">
             <button
               onClick={() => handleReaction('❤️')}
-              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-3 rounded-full transition"
+              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-4 rounded-full transition shadow-xl"
             >
-              <span className="text-2xl">❤️</span>
+              <span className="text-3xl">❤️</span>
             </button>
             <button
               onClick={() => handleReaction('👏')}
-              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-3 rounded-full transition"
+              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-4 rounded-full transition shadow-xl"
             >
-              <span className="text-2xl">👏</span>
+              <span className="text-3xl">👏</span>
             </button>
             <button
               onClick={() => handleReaction('🔥')}
-              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-3 rounded-full transition"
+              className="bg-white/10 backdrop-blur-md hover:bg-white/20 p-4 rounded-full transition shadow-xl"
             >
-              <span className="text-2xl">🔥</span>
+              <span className="text-3xl">🔥</span>
             </button>
 
             <div className="flex-1"></div>
 
             {/* Total Earnings */}
-            <div className="flex items-center gap-2 bg-green-500/90 backdrop-blur-md px-4 py-2 rounded-full">
-              <DollarSign className="w-5 h-5 text-white" />
-              <span className="text-white font-bold">S/. {liveStream.totalEarnings}</span>
+            <div className="flex items-center gap-3 bg-green-500/90 backdrop-blur-md px-5 py-3 rounded-full shadow-xl">
+              <DollarSign className="w-6 h-6 text-white" />
+              <span className="text-white font-bold text-lg">S/. {liveStream.totalEarnings}</span>
             </div>
           </div>
 
           {/* Propinas Rápidas */}
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-3 mb-3">
             <button
               onClick={() => handleSendTip(1)}
-              className="bg-green-500/80 backdrop-blur-md hover:bg-green-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+              className="bg-green-500/80 backdrop-blur-md hover:bg-green-600 text-white px-4 py-3 rounded-xl text-sm font-bold transition shadow-xl"
             >
               💵 S/. 1
             </button>
             <button
               onClick={() => handleSendTip(5)}
-              className="bg-green-600/80 backdrop-blur-md hover:bg-green-700 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+              className="bg-green-600/80 backdrop-blur-md hover:bg-green-700 text-white px-4 py-3 rounded-xl text-sm font-bold transition shadow-xl"
             >
               💵 S/. 5
             </button>
             <button
               onClick={() => handleSendTip(10)}
-              className="bg-green-700/80 backdrop-blur-md hover:bg-green-800 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+              className="bg-green-700/80 backdrop-blur-md hover:bg-green-800 text-white px-4 py-3 rounded-xl text-sm font-bold transition shadow-xl"
             >
               💵 S/. 10
             </button>
             <button
               onClick={() => handleSendTip(20)}
-              className="bg-green-800/80 backdrop-blur-md hover:bg-green-900 text-white px-3 py-2 rounded-lg text-xs font-bold transition shadow-lg"
+              className="bg-green-800/80 backdrop-blur-md hover:bg-green-900 text-white px-4 py-3 rounded-xl text-sm font-bold transition shadow-xl"
             >
               💵 S/. 20
             </button>
           </div>
 
           {/* Botones de Regalos */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => handleSendGift(5)}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-4 py-3 rounded-xl font-bold transition shadow-lg flex items-center gap-2"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-5 py-3 rounded-xl font-bold transition shadow-xl flex items-center gap-2"
             >
               <Gift className="w-5 h-5" />
               S/. 5
             </button>
             <button
               onClick={() => handleSendGift(20)}
-              className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-lg flex items-center gap-2"
+              className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-5 py-3 rounded-xl font-bold transition shadow-xl flex items-center gap-2"
             >
               <Gift className="w-5 h-5" />
               S/. 20
             </button>
             <button
               onClick={() => handleSendGift(50)}
-              className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-4 py-3 rounded-xl font-bold transition shadow-lg flex items-center gap-2"
+              className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white px-5 py-3 rounded-xl font-bold transition shadow-xl flex items-center gap-2"
             >
               <Sparkles className="w-5 h-5" />
               S/. 50
@@ -363,17 +363,17 @@ export const LiveStreamPage = () => {
         </div>
       </div>
 
-      {/* Chat Sidebar */}
-      <div className="w-96 bg-gray-900 flex flex-col border-l border-gray-800">
+      {/* Chat Sidebar - Flotante a la Derecha */}
+      <div className="absolute top-0 right-0 bottom-0 w-[400px] bg-gray-900/95 backdrop-blur-md flex flex-col border-l border-gray-800 shadow-2xl z-30">
         {/* Chat Header */}
-        <div className="p-4 border-b border-gray-800">
+        <div className="p-5 border-b border-gray-800">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-white font-bold text-lg">Chat en vivo</h3>
+            <h3 className="text-white font-bold text-xl">Chat en vivo</h3>
             {liveStream.tipo === 'premium' && (
-              <span className="text-xs bg-purple-500 text-white px-2 py-1 rounded-full">Premium</span>
+              <span className="text-xs bg-purple-500 text-white px-3 py-1 rounded-full font-bold">Premium</span>
             )}
           </div>
-          <p className="text-gray-400 text-xs">
+          <p className="text-gray-400 text-sm">
             {liveStream.tipo === 'publico' 
               ? 'Cooldown: 30 seg entre mensajes' 
               : 'Sin límites de mensajes'}
@@ -381,25 +381,25 @@ export const LiveStreamPage = () => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {messages.map((msg) => (
             <div 
               key={msg.id} 
-              className={`${msg.isGift ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-3 rounded-lg border border-pink-500/30' : ''}`}
+              className={`${msg.isGift ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-4 rounded-xl border border-pink-500/30' : ''}`}
             >
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`font-bold text-sm ${msg.isGift ? 'text-pink-400' : 'text-gray-300'}`}>
+                    <span className={`font-bold text-base ${msg.isGift ? 'text-pink-400' : 'text-gray-300'}`}>
                       {msg.username}
                     </span>
                     {msg.isGift && (
-                      <span className="text-xs bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-0.5 rounded-full font-bold">
+                      <span className="text-xs bg-gradient-to-r from-pink-500 to-purple-600 text-white px-2 py-1 rounded-full font-bold">
                         S/. {msg.giftAmount} 🎁
                       </span>
                     )}
                   </div>
-                  <p className="text-white text-sm mt-0.5">{msg.message}</p>
+                  <p className="text-white text-base mt-1">{msg.message}</p>
                 </div>
               </div>
             </div>
@@ -407,8 +407,8 @@ export const LiveStreamPage = () => {
         </div>
 
         {/* Message Input */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="flex gap-2">
+        <div className="p-5 border-t border-gray-800">
+          <div className="flex gap-3">
             <input
               type="text"
               value={newMessage}
@@ -416,14 +416,14 @@ export const LiveStreamPage = () => {
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               disabled={!canSendMessage}
               placeholder={canSendMessage ? "Escribe un mensaje..." : `Espera ${cooldownSeconds}s...`}
-              className="flex-1 bg-gray-800 text-white px-4 py-2 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-gray-800 text-white px-5 py-3 rounded-full text-base focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSendMessage}
               disabled={!canSendMessage || !newMessage.trim()}
-              className="bg-pink-500 hover:bg-pink-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-full transition"
+              className="bg-pink-500 hover:bg-pink-600 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-3 rounded-full transition shadow-xl"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-6 h-6" />
             </button>
           </div>
         </div>

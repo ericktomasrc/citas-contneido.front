@@ -32,8 +32,11 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
+import RuletaModal from '../../../components/Dashboard/CreatorProfile/LiveStream/RuletaModal';
+import { PremioRuleta } from '../../../shared/types/ruleta.types';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -198,6 +201,11 @@ export const EnVivoPage = () => {
   const [usuariosSilenciados, setUsuariosSilenciados] = useState<string[]>([]);
   const [showModeracionModal, setShowModeracionModal] = useState(false);
   const [nuevoUsuarioSilenciar, setNuevoUsuarioSilenciar] = useState('');
+  
+  // Sistema de Ruleta
+  const [showRuletaModal, setShowRuletaModal] = useState(false);
+  const [ruletaActiva, setRuletaActiva] = useState(false);
+  const [costoGiroRuleta, setCostoGiroRuleta] = useState(10);
   
   // Sistema de Sonidos con Web Audio API
   const playSound = (type: 'small' | 'medium' | 'large' | 'goal') => {
@@ -554,6 +562,39 @@ export const EnVivoPage = () => {
         }, duration);
       });
 
+      // Escuchar resultados de ruleta
+      socketRef.current.on('ruleta-resultado', (data: { usuario: string; premio: PremioRuleta }) => {
+        console.log('🎰 Resultado de ruleta recibido:', data);
+        
+        // Crear notificación en pantalla para la creadora
+        const notificacion = document.createElement('div');
+        notificacion.className = 'fixed top-20 right-6 z-50 animate-fade-in-right';
+        notificacion.innerHTML = `
+          <div class="bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-4 rounded-xl shadow-2xl border border-purple-400 max-w-sm">
+            <div class="flex items-center gap-3">
+              <div class="text-4xl">${data.premio.icono}</div>
+              <div>
+                <div class="font-bold text-lg">¡Ruleta Girada! 🎉</div>
+                <div class="text-sm opacity-90 mt-1">
+                  <span class="font-semibold">${data.usuario}</span> ganó:<br/>
+                  <span class="font-bold text-yellow-300">${data.premio.nombre}</span>
+                </div>
+                <div class="text-xs opacity-75 mt-1">${data.premio.descripcion}</div>
+              </div>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(notificacion);
+        
+        // Reproducir sonido de celebración
+        playSound('large');
+        
+        // Remover notificación después de 6 segundos
+        setTimeout(() => {
+          notificacion.remove();
+        }, 6000);
+      });
+
       return () => {
         socketRef.current?.disconnect();
         console.log('🔌 Socket.io desconectado');
@@ -724,6 +765,11 @@ export const EnVivoPage = () => {
       setTopDonadores([]);
       setMetaActiva(false);
       setMetaAlcanzada(false);
+      
+      // Resetear ruleta
+      setRuletaActiva(false);
+      setCostoGiroRuleta(10);
+      setShowRuletaModal(false);
       
     } catch (error) {
       console.error('Error al detener transmisión:', error);
@@ -937,6 +983,59 @@ export const EnVivoPage = () => {
   const handleDesilenciarUsuario = (username: string) => {
     setUsuariosSilenciados(prev => prev.filter(u => u !== username));
     socketRef.current?.emit('desilenciar-usuario', { channelName, username });
+  };
+
+  // Funciones de Ruleta
+  const handleActivarRuleta = (costoGiro: number, premios: PremioRuleta[]) => {
+    setCostoGiroRuleta(costoGiro);
+    setRuletaActiva(true);
+    setShowRuletaModal(false);
+    
+    // TODO: BACKEND C# - Guardar configuración de ruleta
+    // await fetch(`${BACKEND_URL}/api/ruleta/configurar`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ channelName, costoGiro, premios, activa: true })
+    // });
+    
+    // Emitir evento Socket.io para notificar espectadores
+    socketRef.current?.emit('ruleta-activada', {
+      channelName,
+      costoGiro,
+      premios
+    });
+  };
+
+  const handleDesactivarRuleta = () => {
+    setRuletaActiva(false);
+    // NO cerrar el modal, mantenerlo abierto para editar
+    // setShowRuletaModal(false); <- REMOVIDO
+    
+    // Mostrar mensaje de desactivación
+    const mensajeDesactivado = document.createElement('div');
+    mensajeDesactivado.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-down';
+    mensajeDesactivado.innerHTML = `
+      <div class="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-orange-400">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+        </svg>
+        <span class="font-semibold">¡Ruleta desactivada! Puedes editar los premios 📝</span>
+      </div>
+    `;
+    document.body.appendChild(mensajeDesactivado);
+    
+    setTimeout(() => {
+      mensajeDesactivado.remove();
+    }, 3000);
+    
+    // TODO: BACKEND C# - Desactivar ruleta
+    // await fetch(`${BACKEND_URL}/api/ruleta/configurar`, {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ channelName, activa: false })
+    // });
+    
+    socketRef.current?.emit('ruleta-desactivada', { channelName });
   };
 
   // Funciones de Meta
@@ -1172,6 +1271,57 @@ export const EnVivoPage = () => {
               </div>
             ))}
           </div>
+
+          {/* Super Chat Flotante sobre el video */}
+          {pinnedSuperChat && (
+            <div className="absolute top-4 left-4 max-w-2xl z-30 animate-slide-down">
+              {pinnedSuperChat.tier === 'elite' && (
+                <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-lg p-3 shadow-2xl border-2 border-yellow-400/80 backdrop-blur-lg">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Crown className="w-4 h-4 text-yellow-300 animate-pulse" />
+                    <p className="text-yellow-300 text-xs font-bold uppercase tracking-wider">Super Chat Elite</p>
+                    <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-400" />}
+                    <p className="text-white text-sm font-bold">{pinnedSuperChat.user}</p>
+                    <span className="text-yellow-300 text-sm font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                  </div>
+                  <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                </div>
+              )}
+
+              {pinnedSuperChat.tier === 'premium' && (
+                <div className="bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-600 rounded-lg p-3 shadow-xl border-2 border-yellow-300/60 backdrop-blur-lg">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
+                    <p className="text-white text-xs font-bold uppercase tracking-wide">Super Chat Premium</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-200" />}
+                    <p className="text-white text-sm font-bold">{pinnedSuperChat.user}</p>
+                    <span className="text-white text-sm font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                  </div>
+                  <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                </div>
+              )}
+
+              {pinnedSuperChat.tier === 'basic' && (
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2.5 shadow-lg border border-cyan-300/50 backdrop-blur-md">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <MessageCircle className="w-3.5 h-3.5 text-white" />
+                    <p className="text-white text-xs font-bold uppercase tracking-wide">Super Chat</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-200" />}
+                    <p className="text-white text-xs font-bold">{pinnedSuperChat.user}</p>
+                    <span className="text-white text-xs font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                  </div>
+                  <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Barra de Progreso de Meta - SOLO VISIBLE CUANDO ESTÁ ACTIVA */}
           {enVivo && metaActiva && metaActual > 0 && (
@@ -1270,6 +1420,19 @@ export const EnVivoPage = () => {
                     title="Moderación"
                   >
                     <span className="text-lg">🛡️</span>
+                  </button>
+                  
+                  {/* Botón Ruleta */}
+                  <button 
+                    onClick={() => setShowRuletaModal(true)}
+                    className={`p-2 rounded-full transition-all ${
+                      ruletaActiva 
+                        ? 'bg-yellow-500 hover:bg-yellow-600 shadow-lg shadow-yellow-500/50' 
+                        : 'bg-white/10 hover:bg-white/20'
+                    }`}
+                    title={ruletaActiva ? 'Ruleta Activa' : 'Activar Ruleta'}
+                  >
+                    <Sparkles className={`w-5 h-5 ${ruletaActiva ? 'text-white' : 'text-yellow-400'}`} />
                   </button>
                   
                   {/* Divisor */}
@@ -2613,6 +2776,17 @@ export const EnVivoPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Ruleta */}
+      <RuletaModal
+        isOpen={showRuletaModal}
+        onClose={() => setShowRuletaModal(false)}
+        isCreadora={true}
+        channelName={channelName}
+        onActivarRuleta={handleActivarRuleta}
+        onDesactivarRuleta={handleDesactivarRuleta}
+        ruletaActiva={ruletaActiva}
+      />
     </div>
   );
 };

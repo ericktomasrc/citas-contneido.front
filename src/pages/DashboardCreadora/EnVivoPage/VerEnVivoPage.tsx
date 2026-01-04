@@ -8,8 +8,10 @@ import AgoraRTC, {
 import { Users, Heart, Gift, MessageCircle, Volume2, VolumeX, Maximize, Minimize, Crown, DollarSign, Send, Sparkles, X } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { SuperChatModal } from './SuperChatModal';
+import RuletaModal from '../../../components/Dashboard/CreatorProfile/LiveStream/RuletaModal';
 import { verificarSuscripcion, verificarAccesoPPV, crearSuscripcion, pagarPPV } from '../../../shared/services/subscription.service';
 import { PLANES_SUSCRIPCION } from '../../../shared/types/subscription.types';
+import { PremioRuleta, PREMIOS_DEFAULT } from '../../../shared/types/ruleta.types';
 
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
@@ -98,6 +100,7 @@ export const VerEnVivoPage = () => {
   
   // Estados del chat
   const socketRef = useRef<Socket | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string>(''); // Nombre del usuario actual
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [giftMessages, setGiftMessages] = useState<GiftMessage[]>([]);
   const [tipMessages, setTipMessages] = useState<TipMessage[]>([]);
@@ -148,6 +151,14 @@ export const VerEnVivoPage = () => {
   });
   const [alertaChat, setAlertaChat] = useState<string | null>(null);
   
+  // Estados para Ruleta
+  const [showRuletaModal, setShowRuletaModal] = useState(false);
+  const [ruletaActiva, setRuletaActiva] = useState(false);
+  const [costoGiroRuleta, setCostoGiroRuleta] = useState(10);
+  const [girandoRuleta, setGirandoRuleta] = useState(false);
+  const [premioGanado, setPremioGanado] = useState<any>(null);
+  const [premiosRuleta, setPremiosRuleta] = useState<PremioRuleta[]>(PREMIOS_DEFAULT);
+  
   // Estados para procesamiento de pagos
   const [procesandoPago, setProcesandoPago] = useState(false);
   
@@ -183,10 +194,15 @@ export const VerEnVivoPage = () => {
       // Conectar al servidor Socket.io
       socketRef.current = io(BACKEND_URL);
 
+      // Generar y guardar nombre del usuario actual - VERDADERAMENTE Único
+      const userName = 'Espectador_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+      setCurrentUserName(userName);
+      console.log('👤 [INIT] Mi nombre de usuario único:', userName);
+
       // Unirse al canal
       socketRef.current.emit('join-channel', {
         channelName,
-        userName: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real del usuario
+        userName,
         isVIP: false // TODO: verificar suscripción del usuario
       });
 
@@ -215,6 +231,28 @@ export const VerEnVivoPage = () => {
           console.log(`📊 Actualizando progreso: ${prev} + ${gift.gift.valor} = ${nuevoProgreso}`);
           return nuevoProgreso;
         });
+        
+        // No mostrar notificación en pantalla si fue enviado por este usuario
+        if (regalosPropiosRef.current.has(gift.id)) {
+          console.log('🎁 Regalo propio detectado, no mostrar notificación:', gift.id);
+          regalosPropiosRef.current.delete(gift.id);
+          return;
+        }
+        
+        // Agregar notificación en pantalla para regalos de otros usuarios
+        const tier = getTier(gift.gift.valor);
+        const notification: ScreenNotification = {
+          id: gift.id,
+          type: 'gift',
+          user: gift.user,
+          isVIP: gift.isVIP,
+          content: gift.gift.emoji,
+          title: gift.gift.nombre,
+          valor: gift.gift.valor,
+          tier,
+          timestamp: gift.timestamp
+        };
+        addScreenNotification(notification);
       });
 
       // Escuchar estado inicial del canal (cuando se une)
@@ -240,23 +278,139 @@ export const VerEnVivoPage = () => {
         console.log('🎯 [ESPECTADOR] Progreso actual DESPUÉS:', data.progreso);
       });
 
+      // Escuchar activación/desactivación de ruleta
+      socketRef.current.on('ruleta-activada', (data: { channelName: string, costoGiro: number, premios: PremioRuleta[] }) => {
+        console.log('🎰 [ESPECTADOR] Ruleta activada recibida:', data);
+        setRuletaActiva(true);
+        setCostoGiroRuleta(data.costoGiro);
+        setPremiosRuleta(data.premios); // Guardar premios recibidos
+      });
+
+      socketRef.current.on('ruleta-desactivada', () => {
+        console.log('🎰 [ESPECTADOR] Ruleta desactivada');
+        setRuletaActiva(false);
+        
+        // Mostrar mensaje antes de cerrar
+        setToastMessage('⚠️ La creadora desactivó la ruleta');
+        setToastVisible(true);
+        setTimeout(() => {
+          setToastVisible(false);
+          setShowRuletaModal(false);
+        }, 2500);
+      });
+
+      // Solicitar estado actual de la ruleta al unirse
+      socketRef.current.emit('solicitar-estado-ruleta', { channelName });
+      
+      socketRef.current.on('estado-ruleta', (data: { activa: boolean, costoGiro: number, premios?: PremioRuleta[] }) => {
+        console.log('🎰 [ESPECTADOR] Estado inicial de ruleta:', data);
+        setRuletaActiva(data.activa);
+        if (data.activa) {
+          setCostoGiroRuleta(data.costoGiro);
+          if (data.premios && data.premios.length > 0) {
+            setPremiosRuleta(data.premios);
+          }
+        }
+      });
+
+      // Escuchar cuando el servidor RECHAZA el giro (alguien ya está girando)
+      socketRef.current.on('ruleta-ocupada', () => {
+        console.log('❌ [ESPECTADOR] Ruleta ocupada - solicitud rechazada');
+        setToastMessage('⏳ Otro espectador está girando. Espera tu turno...');
+        setToastVisible(true);
+        setTimeout(() => setToastVisible(false), 2500);
+        setGirandoRuleta(false); // Desbloquear para que pueda reintentar
+      });
+
+      // Escuchar cuando el servidor OTORGA permiso para girar (solo al solicitante)
+      socketRef.current.on('permiso-giro-concedido', (data: { usuario: string }) => {
+        console.log('✅ [ESPECTADOR] Permiso concedido para girar');
+        
+        // TODO: BACKEND C# - Validar saldo y cobrar antes de ejecutar el giro
+        
+        // SIMULACIÓN: Esperar animación y seleccionar premio aleatorio
+        setTimeout(() => {
+          // Seleccionar premio basado en probabilidades de premiosRuleta (NO hardcoded)
+          const totalProbabilidad = premiosRuleta.reduce((sum, p) => sum + p.probabilidad, 0);
+          let random = Math.random() * totalProbabilidad;
+          let premioSeleccionado = premiosRuleta[0];
+          
+          for (const premio of premiosRuleta) {
+            random -= premio.probabilidad;
+            if (random <= 0) {
+              premioSeleccionado = premio;
+              break;
+            }
+          }
+          
+          setPremioGanado(premioSeleccionado);
+          
+          console.log('🎰 [ESPECTADOR] Emitiendo resultado:', { channelName, usuario: userName, premio: premioSeleccionado.nombre });
+          
+          // Emitir resultado a todos via Socket.io (esto también desbloquea los botones)
+          socketRef.current?.emit('girar-ruleta', {
+            channelName,
+            usuario: userName,
+            premio: premioSeleccionado
+          });
+          
+          setToastMessage(`¡Ganaste: ${premioSeleccionado.nombre}!`);
+          setToastVisible(true);
+          setTimeout(() => setToastVisible(false), 3000);
+          
+          // Limpiar premio después de 5 segundos
+          setTimeout(() => setPremioGanado(null), 5000);
+        }, 3000);
+      });
+
+      // Escuchar cuando alguien INICIA un giro (bloquear botón para TODOS)
+      socketRef.current.on('ruleta-iniciando-giro', (data: { usuario: string }) => {
+        console.log('='.repeat(80));
+        console.log('🔴 [EVENTO RECIBIDO] ruleta-iniciando-giro');
+        console.log('🎰 Usuario que está girando:', data.usuario);
+        console.log('👤 Mi nombre:', userName);
+        console.log('🔒 BLOQUEANDO BOTÓN PARA TODOS');
+        console.log('='.repeat(80));
+        setGirandoRuleta(true); // Bloquear para TODOS sin excepción
+      });
+
+      // Escuchar resultados de giros (cuando termina un giro)
+      socketRef.current.on('ruleta-resultado', (data: { usuario: string, premio: PremioRuleta }) => {
+        console.log('🎰 [ESPECTADOR] Resultado recibido:', data);
+        console.log('🎰 [ESPECTADOR] Desbloqueando botón para TODOS');
+        setToastMessage(`${data.usuario} ganó: ${data.premio.nombre} ${data.premio.icono}`);
+        setToastVisible(true);
+        setTimeout(() => setToastVisible(false), 3000);
+        
+        // Desbloquear botón para TODOS después del resultado
+        setTimeout(() => {
+          setGirandoRuleta(false);
+          console.log('🎰 [ESPECTADOR] Botón desbloqueado');
+        }, 500);
+      });
+
       // Escuchar Super Chats
       socketRef.current.on('new-superchat', (superchat: SuperChatMessage) => {
         console.log('💬💰 [ESPECTADOR] Super Chat recibido:', superchat);
         setSuperChatMessages(prev => [...prev, superchat]);
         
-        // Fijar el super chat en el chat
-        const duration = superchat.tier === 'elite' ? 120000 : superchat.tier === 'premium' ? 60000 : 30000;
-        const expiresAt = new Date(Date.now() + duration);
-        setPinnedSuperChat({ ...superchat, expiresAt });
+        // Solo fijar el super chat flotante si fue enviado por este usuario
+        if (superchat.user === currentUserName) {
+          console.log('✅ Super chat propio, mostrando flotante');
+          const duration = superchat.tier === 'elite' ? 120000 : superchat.tier === 'premium' ? 60000 : 30000;
+          const expiresAt = new Date(Date.now() + duration);
+          setPinnedSuperChat({ ...superchat, expiresAt });
+          
+          // Desfijar después del tiempo
+          setTimeout(() => {
+            setPinnedSuperChat(prev => prev?.id === superchat.id ? null : prev);
+          }, duration);
+        } else {
+          console.log('ℹ️ Super chat de otro usuario, solo en chat');
+        }
         
         // Actualizar progreso de meta localmente
         setProgresoMeta(prev => prev + superchat.monto);
-        
-        // Desfijar después del tiempo
-        setTimeout(() => {
-          setPinnedSuperChat(prev => prev?.id === superchat.id ? null : prev);
-        }, duration);
       });
 
       // Cleanup
@@ -819,6 +973,34 @@ export const VerEnVivoPage = () => {
     console.log('⭐ Super Chat enviado:', { mensaje, tier });
   };
 
+  // Manejar giro de ruleta
+  const handleGirarRuleta = async () => {
+    if (!socketRef.current) return;
+    
+    // Validar si alguien ya está girando (validación LOCAL)
+    if (girandoRuleta) {
+      setToastMessage('⏳ Otro espectador está usando la ruleta. Espera tu turno...');
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2500);
+      return;
+    }
+    
+    // Bloquear INMEDIATAMENTE de forma local (UI responsive)
+    setGirandoRuleta(true);
+    
+    const nombreUsuario = currentUserName || 'Espectador' + Math.floor(Math.random() * 1000);
+    console.log('🎰 [HANDLEGIRAR] Solicitando permiso para girar:', { channelName, usuario: nombreUsuario });
+    
+    // SOLICITAR PERMISO al servidor (validación CENTRALIZADA)
+    socketRef.current.emit('solicitar-giro-ruleta', {
+      channelName,
+      usuario: nombreUsuario
+    });
+    
+    // La lógica del giro se ejecutará SOLO cuando el servidor responda con 'permiso-giro-concedido'
+    // Ver listener en useEffect de Socket.io
+  };
+
   // Catálogo de regalos premium
   const catalogoRegalos = [
     { id: '1', nombre: 'Rosa', emoji: '🌹', valor: 10 },
@@ -835,19 +1017,19 @@ export const VerEnVivoPage = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-950 via-gray-900 to-black">
+    <div className="fixed inset-0 bg-black">
       {/* Alerta de restricción de chat */}
       {alertaChat && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-down">
-          <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl px-5 py-3.5 shadow-2xl border-2 border-white/30 backdrop-blur-lg max-w-sm">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl px-6 py-4 shadow-2xl border-2 border-white/30 backdrop-blur-lg max-w-md">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-white font-bold text-sm">{alertaChat}</p>
+                <p className="text-white font-bold text-base">{alertaChat}</p>
               </div>
             </div>
           </div>
@@ -856,18 +1038,18 @@ export const VerEnVivoPage = () => {
       
       {/* Notificación de regalo enviado */}
       {regaloEnviado.show && regaloEnviado.gift && (
-        <div className="fixed top-4 right-4 z-50 animate-slide-down">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
           <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl px-6 py-4 shadow-2xl border-2 border-white/30 backdrop-blur-lg">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-2xl">{regaloEnviado.gift.emoji}</span>
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-3xl">{regaloEnviado.gift.emoji}</span>
               </div>
               <div>
-                <p className="text-white font-bold text-sm">¡Regalo Enviado!</p>
-                <p className="text-white/90 text-xs">{regaloEnviado.gift.nombre} • ${regaloEnviado.gift.valor}</p>
+                <p className="text-white font-bold text-base">¡Regalo Enviado!</p>
+                <p className="text-white/90 text-sm">{regaloEnviado.gift.nombre} • ${regaloEnviado.gift.valor}</p>
               </div>
               <div className="ml-2">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
@@ -876,15 +1058,12 @@ export const VerEnVivoPage = () => {
         </div>
       )}
       
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          
-          {/* Video principal */}
-          <div className="lg:col-span-3">
-            <div className="bg-gray-950 rounded-2xl overflow-hidden shadow-2xl border border-gray-800/50">
-              <div className="relative aspect-video">
+      {/* Video principal - Pantalla Completa */}
+      <div className="absolute inset-0 z-10">
+            <div className="w-full h-full">
+              <div className="relative w-full h-full">
                 {!channelName ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600 z-10">
                     <div className="text-center">
                       <h2 className="text-white text-2xl font-bold mb-4">
                         Canal no encontrado
@@ -895,26 +1074,26 @@ export const VerEnVivoPage = () => {
                     </div>
                   </div>
                 ) : !conectado ? (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600 z-10">
                     <div className="text-center">
-                      <h2 className="text-white text-2xl font-bold mb-4">
+                      <h2 className="text-white text-4xl font-bold mb-6">
                         Transmisión en Vivo
                       </h2>
                       <button
                         onClick={unirseATransmision}
                         disabled={cargando}
-                        className="px-8 py-3 bg-white text-purple-600 rounded-full font-bold hover:bg-gray-100 transition disabled:opacity-50"
+                        className="px-12 py-4 bg-white text-purple-600 rounded-full font-bold text-lg hover:bg-gray-100 transition disabled:opacity-50 shadow-xl"
                       >
                         {cargando ? 'Conectando...' : 'Ver Transmisión'}
                       </button>
                         {error && (
-                          <p className="text-red-200 mt-4 text-sm">{error}</p>
+                          <p className="text-red-200 mt-6 text-base">{error}</p>
                         )}
                       </div>
                     </div>
                   ) : (
                     <>
-                      <div id="video-container" className="absolute inset-0 bg-gray-900">
+                      <div id="video-container" className="absolute inset-0 bg-gray-900 z-10">
                         {remoteUsers.size === 0 && (
                           <div className="absolute inset-0 flex items-center justify-center">
                             {transmisionFinalizada ? (
@@ -959,6 +1138,57 @@ export const VerEnVivoPage = () => {
                           <Users className="w-4 h-4 text-white" />
                           <span className="text-white text-sm font-bold">{espectadores}</span>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Super Chats Flotantes sobre el video */}
+                    {pinnedSuperChat && (
+                      <div className="absolute top-4 left-4 max-w-2xl z-30 animate-slide-down">
+                        {pinnedSuperChat.tier === 'elite' && (
+                          <div className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 rounded-lg p-3 shadow-2xl border-2 border-yellow-400/80 backdrop-blur-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Crown className="w-4 h-4 text-yellow-300 animate-pulse" />
+                              <p className="text-yellow-300 text-xs font-bold uppercase tracking-wider">Super Chat Elite</p>
+                              <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                            </div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-400" />}
+                              <p className="text-white text-sm font-bold">{pinnedSuperChat.user}</p>
+                              <span className="text-yellow-300 text-sm font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                            </div>
+                            <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                          </div>
+                        )}
+
+                        {pinnedSuperChat.tier === 'premium' && (
+                          <div className="bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-600 rounded-lg p-3 shadow-xl border-2 border-yellow-300/60 backdrop-blur-lg">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
+                              <p className="text-white text-xs font-bold uppercase tracking-wide">Super Chat Premium</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-200" />}
+                              <p className="text-white text-sm font-bold">{pinnedSuperChat.user}</p>
+                              <span className="text-white text-sm font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                            </div>
+                            <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                          </div>
+                        )}
+
+                        {pinnedSuperChat.tier === 'basic' && (
+                          <div className="bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg p-2.5 shadow-lg border border-cyan-300/50 backdrop-blur-md">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <MessageCircle className="w-3.5 h-3.5 text-white" />
+                              <p className="text-white text-xs font-bold uppercase tracking-wide">Super Chat</p>
+                            </div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              {pinnedSuperChat.isVIP && <Crown className="w-3 h-3 text-yellow-200" />}
+                              <p className="text-white text-xs font-bold">{pinnedSuperChat.user}</p>
+                              <span className="text-white text-xs font-bold ml-auto">S/.{pinnedSuperChat.monto}</span>
+                            </div>
+                            <p className="text-white text-xs font-medium leading-relaxed break-words whitespace-pre-wrap word-break-all">{pinnedSuperChat.mensaje}</p>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1052,29 +1282,29 @@ export const VerEnVivoPage = () => {
                     </div>
 
                     {/* Controles */}
-                    <div className="absolute bottom-4 right-4 flex gap-2">
+                    <div className="absolute bottom-6 right-[430px] flex gap-3 z-20">
                       {/* Control de audio */}
                       <button
                         onClick={toggleAudio}
-                        className="w-12 h-12 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition"
+                        className="w-14 h-14 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition shadow-xl"
                       >
                         {audioMuted ? (
-                          <VolumeX className="w-6 h-6 text-white" />
+                          <VolumeX className="w-7 h-7 text-white" />
                         ) : (
-                          <Volume2 className="w-6 h-6 text-white" />
+                          <Volume2 className="w-7 h-7 text-white" />
                         )}
                       </button>
 
-                      {/* Control de pantalla completa */}
-                      <button
-                        onClick={toggleFullscreen}
-                        className="w-12 h-12 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition"
-                      >
-                        {isFullscreen ? (
-                          <Minimize className="w-6 h-6 text-white" />
-                        ) : (
-                          <Maximize className="w-6 h-6 text-white" />
-                        )}
+                        {/* Control de pantalla completa */}
+                        <button
+                          onClick={toggleFullscreen}
+                          className="w-14 h-14 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-black/80 transition shadow-xl"
+                        >
+                          {isFullscreen ? (
+                            <Minimize className="w-7 h-7 text-white" />
+                          ) : (
+                            <Maximize className="w-7 h-7 text-white" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -1082,51 +1312,19 @@ export const VerEnVivoPage = () => {
                 )}
               </div>
             </div>
+      </div>
 
-            {/* Información del creador */}
-            <div className="bg-gradient-to-br from-gray-900 to-gray-950 rounded-2xl p-6 mt-6 shadow-2xl border border-pink-500/20">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <img
-                    src="https://via.placeholder.com/80"
-                    alt="Creadora"
-                    className="w-20 h-20 rounded-full border-2 border-pink-500/30"
-                  />
-                  <div className="absolute -top-1 -right-1 bg-pink-500 rounded-full p-1">
-                    <Sparkles className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-white">Nombre Creadora</h3>
-                    <Crown className="w-5 h-5 text-yellow-400" />
-                  </div>
-                  <p className="text-gray-400">@username</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm">
-                    <span className="text-pink-400 font-semibold">15.2K seguidores</span>
-                    <span className="text-gray-500">•</span>
-                    <span className="text-gray-400">Nivel Premium</span>
-                  </div>
-                </div>
-                <button className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                  Suscribirse
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Chat lateral premium */}
-          <div className="lg:col-span-1">
-            <div className="bg-gradient-to-b from-gray-50 to-white rounded-2xl shadow-2xl border border-gray-200 p-4 h-[600px] flex flex-col">
+      {/* Chat lateral flotante - Premium */}
+      <div className="absolute top-0 right-0 bottom-0 w-[420px] bg-gradient-to-b from-gray-50 to-white border-l border-gray-300 flex flex-col z-30 shadow-2xl">
               {/* Header del chat */}
-              <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
-                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5 text-pink-500" />
+              <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
+                <h3 className="font-bold text-xl text-gray-900 flex items-center gap-2">
+                  <MessageCircle className="w-6 h-6 text-pink-500" />
                   Chat Exclusivo
                 </h3>
-                <div className="flex items-center gap-1 px-2 py-1 bg-pink-100 rounded-full">
-                  <Users className="w-3 h-3 text-pink-600" />
-                  <span className="text-xs text-pink-600 font-semibold">{espectadores}</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-pink-100 rounded-full">
+                  <Users className="w-4 h-4 text-pink-600" />
+                  <span className="text-sm text-pink-600 font-semibold">{espectadores}</span>
                 </div>
               </div>
               
@@ -1284,8 +1482,9 @@ export const VerEnVivoPage = () => {
                       );
                     } else {
                       // Es un regalo - Diseño premium con efectos
+                      const giftItem = item as GiftMessage;
                       return (
-                        <div key={item.id} className="animate-fade-in">
+                        <div key={giftItem.id} className="animate-fade-in">
                           <div className="relative bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 border-2 border-amber-300/50 rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
                             {/* Efecto de brillo sutil */}
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
@@ -1293,27 +1492,27 @@ export const VerEnVivoPage = () => {
                             <div className="relative z-10">
                               <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-7 h-7 rounded-full flex items-center justify-center ${
-                                  item.isVIP 
+                                  giftItem.isVIP 
                                     ? 'bg-gradient-to-br from-yellow-400 to-orange-500' 
                                     : 'bg-gradient-to-br from-blue-500 to-purple-600'
                                 }`}>
-                                  <span className="text-sm">{item.avatar || item.user[0]}</span>
+                                  <span className="text-sm">{giftItem.avatar || giftItem.user[0]}</span>
                                 </div>
                                 <p className="text-sm font-bold text-gray-900 flex items-center gap-1">
-                                  {item.user}
-                                  {item.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
+                                  {giftItem.user}
+                                  {giftItem.isVIP && <Crown className="w-3.5 h-3.5 text-yellow-500" />}
                                 </p>
                                 <span className="ml-auto text-xs text-gray-500 font-medium">envió un regalo</span>
                               </div>
                               <div className="flex items-center gap-3 bg-white/60 backdrop-blur-sm rounded-lg p-2.5 border border-amber-200/50">
                                 <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg border border-amber-300/40">
-                                  <span className="text-2xl">{item.gift.emoji}</span>
+                                  <span className="text-2xl">{giftItem.gift.emoji}</span>
                                 </div>
                                 <div className="flex-1">
-                                  <p className="text-gray-900 font-bold text-base leading-tight">{item.gift.nombre}</p>
+                                  <p className="text-gray-900 font-bold text-base leading-tight">{giftItem.gift.nombre}</p>
                                   <div className="flex items-center gap-1.5 mt-0.5">
                                     <DollarSign className="w-4 h-4 text-amber-600" />
-                                    <span className="text-sm font-bold text-amber-700">{item.gift.valor} coins</span>
+                                    <span className="text-sm font-bold text-amber-700">{giftItem.gift.valor} coins</span>
                                   </div>
                                 </div>
                                 <Sparkles className="w-5 h-5 text-amber-500" />
@@ -1383,76 +1582,96 @@ export const VerEnVivoPage = () => {
                 </div>
 
                 {/* Propinas Rápidas */}
-                <div className="mb-2">
-                  <div className="grid grid-cols-4 gap-1.5">
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-400 mb-2 px-1">💸 Propinas Rápidas</p>
+                  <div className="grid grid-cols-4 gap-2">
                     <button 
                       onClick={() => handleEnviarPropina(1)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-1.5 px-1.5 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                      className="py-2.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-3 h-3" />
-                      <span>1</span>
+                      <DollarSign className="w-4 h-4" />
+                      <span>S/.1</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(5)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-1.5 px-1.5 bg-green-700 hover:bg-green-800 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                      className="py-2.5 px-3 bg-green-700 hover:bg-green-800 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-3 h-3" />
-                      <span>5</span>
+                      <DollarSign className="w-4 h-4" />
+                      <span>S/.5</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(10)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-1.5 px-1.5 bg-green-800 hover:bg-green-900 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                      className="py-2.5 px-3 bg-green-800 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-3 h-3" />
-                      <span>10</span>
+                      <DollarSign className="w-4 h-4" />
+                      <span>S/.10</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(20)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-1.5 px-1.5 bg-green-900 hover:bg-green-950 text-white rounded-md font-semibold transition-colors text-[10px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex items-center justify-center gap-0.5"
+                      className="py-2.5 px-3 bg-green-900 hover:bg-green-950 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-3 h-3" />
-                      <span>20</span>
+                      <DollarSign className="w-4 h-4" />
+                      <span>S/.20</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Botones de interacción premium */}
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button 
-                    onClick={handleMeGusta}
-                    disabled={!conectado || transmisionFinalizada}
-                    className="py-2 px-2 bg-gray-800 hover:bg-gray-700 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95"
-                  >
-                    <Heart className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Me gusta</span>
-                  </button>
-                  <button 
-                    onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
-                    disabled={!conectado || transmisionFinalizada}
-                    className="py-2 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500"
-                  >
-                    <Gift className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Regalo</span>
-                  </button>
-                  <button 
-                    onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
-                    disabled={!conectado || transmisionFinalizada}
-                    className="py-2 px-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span className="text-[11px]">Super</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 mb-2 px-1">✨ Interacciones</p>
+                  
+                  {/* Fila 1: Me gusta y Regalo */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={handleMeGusta}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-2.5 px-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-800 border border-gray-700 active:scale-95 shadow-md hover:shadow-lg text-xs"
+                    >
+                      <Heart className="w-4 h-4" />
+                      <span>Me gusta</span>
+                    </button>
+                    <button 
+                      onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-2.5 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-purple-600 border border-purple-500 shadow-md hover:shadow-lg text-xs"
+                    >
+                      <Gift className="w-4 h-4" />
+                      <span>Regalo</span>
+                    </button>
+                  </div>
 
+                  {/* Fila 2: Super Chat y Ruleta */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-2.5 px-3 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed border border-yellow-400 shadow-md hover:shadow-lg text-xs"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Super Chat</span>
+                    </button>
+                    <button 
+                      onClick={() => ruletaActiva && setShowRuletaModal(true)}
+                      disabled={!conectado || transmisionFinalizada || !ruletaActiva}
+                      className={`py-2.5 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 border shadow-md text-xs ${
+                        ruletaActiva 
+                          ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 border-pink-400 animate-pulse cursor-pointer hover:shadow-lg' 
+                          : 'bg-gray-700 border-gray-600 opacity-50 cursor-not-allowed'
+                      } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                      title={ruletaActiva ? 'Gira la ruleta' : 'Ruleta no disponible'}
+                    >
+                      <span className="text-base">🎰</span>
+                      <span>Ruleta</span>
+                    </button>
+                  </div>
+                </div> 
+              </div>
+      </div>
+      
       {/* Overlay de notificaciones en pantalla */}
       {screenNotifications.map((notif) => (
         <div key={notif.id} className="fixed inset-0 pointer-events-none z-40 flex items-start justify-center pt-20">
@@ -1483,7 +1702,7 @@ export const VerEnVivoPage = () => {
             </div>
           )}
 
-          {notif.tier === 'medium' && (
+          {notif.type === 'gift' && notif.tier === 'medium' && (
             // Animación mediana para regalos medianos (50-100 coins)
             <div className="animate-slide-down pointer-events-none">
               <div className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 rounded-2xl p-6 shadow-xl border-2 border-white/30 backdrop-blur-lg">
@@ -1502,7 +1721,7 @@ export const VerEnVivoPage = () => {
             </div>
           )}
 
-          {notif.tier === 'small' && (
+          {notif.type === 'gift' && notif.tier === 'small' && (
             // Animación pequeña para regalos pequeños (10-25 coins)
             <div className="animate-slide-down pointer-events-none">
               <div className="bg-gradient-to-r from-pink-400 to-purple-400 rounded-xl p-4 shadow-lg border border-white/20 backdrop-blur-md">
@@ -1731,6 +1950,19 @@ export const VerEnVivoPage = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de Ruleta */}
+      <RuletaModal
+        isOpen={showRuletaModal}
+        onClose={() => setShowRuletaModal(false)}
+        isCreadora={false}
+        channelName={channelName || ''}
+        onGirar={handleGirarRuleta}
+        costoGiro={costoGiroRuleta}
+        premioGanado={premioGanado}
+        girando={girandoRuleta}
+        premiosDisponibles={premiosRuleta}
+      />
     </div>
   );
 };

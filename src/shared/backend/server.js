@@ -28,6 +28,10 @@ const canalesActivos = new Map();
 const chatConfigPorCanal = new Map();
 // Almacenar estado de las metas por canal
 const metasPorCanal = new Map();
+// Almacenar estado de ruletas por canal
+const ruletasPorCanal = new Map();
+// Almacenar giros en progreso por canal (para bloqueo centralizado)
+const girosEnProgresoPorCanal = new Map();
 
 app.get('/api/agora/token', (req, res) => {
   const { channelName, userId } = req.query;
@@ -158,7 +162,13 @@ app.post('/api/canal/finalizar', express.json(), (req, res) => {
   // Limpiar meta del canal
   metasPorCanal.delete(channelName);
   
-  console.log(`🔴 Canal ${channelName} finalizado y limpiado`);
+  // Limpiar ruleta del canal
+  ruletasPorCanal.delete(channelName);
+  
+  // Notificar a todos los espectadores que la ruleta fue desactivada
+  io.to(channelName).emit('ruleta-desactivada');
+  
+  console.log(`🔴 Canal ${channelName} finalizado y limpiado (incluyendo ruleta)`);
   
   res.json({ success: true, activo: false });
 });
@@ -348,6 +358,110 @@ io.on('connection', (socket) => {
     });
     
     console.log(`📢 Meta actualizada broadcast a canal: ${channelName}`);
+  });
+
+  // Eventos de Ruleta
+  socket.on('ruleta-activada', (data) => {
+    const { channelName, costoGiro, premios } = data;
+    console.log('🎰 Ruleta activada:', { channelName, costoGiro });
+    
+    // Guardar estado
+    ruletasPorCanal.set(channelName, {
+      activa: true,
+      costoGiro,
+      premios
+    });
+    
+    // Broadcast a todos los espectadores
+    io.to(channelName).emit('ruleta-activada', {
+      channelName,
+      costoGiro,
+      premios
+    });
+  });
+
+  socket.on('ruleta-desactivada', (data) => {
+    const { channelName } = data;
+    console.log('🎰 Ruleta desactivada:', channelName);
+    
+    // Guardar estado
+    ruletasPorCanal.set(channelName, {
+      activa: false,
+      costoGiro: 0,
+      premios: []
+    });
+    
+    io.to(channelName).emit('ruleta-desactivada');
+  });
+
+  // Solicitar estado de ruleta
+  socket.on('solicitar-estado-ruleta', (data) => {
+    const { channelName } = data;
+    const estadoRuleta = ruletasPorCanal.get(channelName) || { activa: false, costoGiro: 10, premios: [] };
+    console.log('🎰 Solicitud de estado ruleta:', channelName, estadoRuleta);
+    
+    socket.emit('estado-ruleta', {
+      activa: estadoRuleta.activa,
+      costoGiro: estadoRuleta.costoGiro || 10,
+      premios: estadoRuleta.premios || []
+    });
+  });
+
+  // Cuando un espectador SOLICITA girar (validación centralizada)
+  socket.on('solicitar-giro-ruleta', (data) => {
+    const { channelName, usuario } = data;
+    console.log('='.repeat(80));
+    console.log('🟢 [SERVER] SOLICITUD DE GIRO recibida');
+    console.log('📍 Canal:', channelName);
+    console.log('👤 Usuario:', usuario);
+    
+    // Verificar si alguien ya está girando en este canal
+    const giroEnProgreso = girosEnProgresoPorCanal.get(channelName);
+    
+    if (giroEnProgreso) {
+      // RECHAZAR: Alguien ya está girando
+      console.log('❌ [SERVER] Giro RECHAZADO - ruleta ocupada por:', giroEnProgreso.usuario);
+      console.log('='.repeat(80));
+      socket.emit('ruleta-ocupada');
+      return;
+    }
+    
+    // ACEPTAR: Nadie está girando, otorgar permiso
+    console.log('✅ [SERVER] Giro ACEPTADO - otorgando permiso');
+    
+    // Marcar como ocupado
+    girosEnProgresoPorCanal.set(channelName, {
+      usuario,
+      timestamp: Date.now()
+    });
+    
+    // Notificar al solicitante que tiene permiso
+    socket.emit('permiso-giro-concedido', { usuario });
+    console.log('📤 [SERVER] Permiso enviado a:', usuario);
+    
+    // Broadcast a TODOS que alguien está girando (bloquear UI para todos)
+    io.to(channelName).emit('ruleta-iniciando-giro', { usuario });
+    console.log('📡 [SERVER] Bloqueando ruleta para todos en:', channelName);
+    console.log('='.repeat(80));
+  });
+
+  socket.on('girar-ruleta', (data) => {
+    const { channelName, usuario, premio } = data;
+    console.log('🎰 [SERVER] Giro completado:', { channelName, usuario, premio: premio.nombre });
+    
+    // LIBERAR el bloqueo del canal
+    const estabaOcupado = girosEnProgresoPorCanal.has(channelName);
+    girosEnProgresoPorCanal.delete(channelName);
+    
+    if (estabaOcupado) {
+      console.log('🔓 [SERVER] Ruleta liberada - disponible para nuevo giro en:', channelName);
+    }
+    
+    // Broadcast resultado a todos (incluye animación para todos los espectadores)
+    io.to(channelName).emit('ruleta-resultado', {
+      usuario,
+      premio
+    });
   });
 
   socket.on('disconnect', () => {
