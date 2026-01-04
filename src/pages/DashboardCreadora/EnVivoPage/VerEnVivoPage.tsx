@@ -125,6 +125,9 @@ export const VerEnVivoPage = () => {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
+  // Estado para rastrear quién está girando la ruleta
+  const [usuarioGirandoRuleta, setUsuarioGirandoRuleta] = useState<string | null>(null);
+  
   // Estados para notificaciones en pantalla
   const [screenNotifications, setScreenNotifications] = useState<ScreenNotification[]>([]);
   const notificationQueueRef = useRef<ScreenNotification[]>([]);
@@ -363,8 +366,8 @@ export const VerEnVivoPage = () => {
         }, 3000);
       });
 
-      // Escuchar cuando alguien INICIA un giro (bloquear botón para TODOS)
-      socketRef.current.on('ruleta-iniciando-giro', (data: { usuario: string }) => {
+      // Escuchar cuando alguien INICIA un giro (bloquear botón para TODOS y mostrar animación)
+      socketRef.current.on('ruleta-iniciando-giro', (data: { usuario: string, channelName: string }) => {
         console.log('='.repeat(80));
         console.log('🔴 [EVENTO RECIBIDO] ruleta-iniciando-giro');
         console.log('🎰 Usuario que está girando:', data.usuario);
@@ -372,19 +375,36 @@ export const VerEnVivoPage = () => {
         console.log('🔒 BLOQUEANDO BOTÓN PARA TODOS');
         console.log('='.repeat(80));
         setGirandoRuleta(true); // Bloquear para TODOS sin excepción
+        setUsuarioGirandoRuleta(data.usuario); // Guardar quién está girando
+        
+        // Si NO soy el que está girando, también activo la animación visual en mi modal
+        if (data.usuario !== userName) {
+          console.log('🎨 Activando animación de giro para espectador que NO es el que giró');
+          // La animación se sincroniza automáticamente porque girandoRuleta se pone en true
+        }
       });
 
       // Escuchar resultados de giros (cuando termina un giro)
       socketRef.current.on('ruleta-resultado', (data: { usuario: string, premio: PremioRuleta }) => {
         console.log('🎰 [ESPECTADOR] Resultado recibido:', data);
         console.log('🎰 [ESPECTADOR] Desbloqueando botón para TODOS');
-        setToastMessage(`${data.usuario} ganó: ${data.premio.nombre} ${data.premio.icono}`);
-        setToastVisible(true);
-        setTimeout(() => setToastVisible(false), 3000);
+        console.log('👤 Mi nombre:', userName);
+        console.log('🎯 Ganador:', data.usuario);
+        
+        // SOLO mostrar mensaje flotante si NO soy el ganador
+        if (data.usuario !== userName) {
+          console.log('✅ No soy el ganador, mostrando mensaje flotante ADELANTE del modal');
+          setToastMessage(`${data.usuario} ganó: ${data.premio.nombre} ${data.premio.icono}`);
+          setToastVisible(true);
+          setTimeout(() => setToastVisible(false), 3000);
+        } else {
+          console.log('🚫 Soy el ganador, NO muestro mensaje flotante (solo modal)');
+        }
         
         // Desbloquear botón para TODOS después del resultado
         setTimeout(() => {
           setGirandoRuleta(false);
+          setUsuarioGirandoRuleta(null); // Limpiar el usuario que estaba girando
           console.log('🎰 [ESPECTADOR] Botón desbloqueado');
         }, 500);
       });
@@ -778,7 +798,7 @@ export const VerEnVivoPage = () => {
     if (socketRef.current) {
       socketRef.current.emit('send-like', {
         channelName,
-        user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+        user: currentUserName,
         timestamp: Date.now()
       });
     }
@@ -876,7 +896,7 @@ export const VerEnVivoPage = () => {
     socketRef.current.emit('chat-message', {
       channelName,
       mensaje: mensajeActual,
-      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+      user: currentUserName,
       isVIP: false,
       avatar: '👤'
     });
@@ -900,7 +920,7 @@ export const VerEnVivoPage = () => {
     socketRef.current.emit('send-gift', {
       channelName,
       giftId,
-      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+      user: currentUserName,
       isVIP: false,
       avatar: '🎁',
       gift
@@ -917,13 +937,12 @@ export const VerEnVivoPage = () => {
   const handleEnviarPropina = (monto: number) => {
     if (!socketRef.current) return;
 
-    const userName = 'Espectador' + Math.floor(Math.random() * 1000); // TODO: usar nombre real
     const tipId = Date.now().toString();
 
     // Agregar al chat local del espectador
     const newTip: TipMessage = {
       id: tipId,
-      user: userName,
+      user: currentUserName,
       monto,
       isVIP: false,
       avatar: '💵',
@@ -935,7 +954,7 @@ export const VerEnVivoPage = () => {
     socketRef.current.emit('send-tip', {
       channelName,
       tipId,
-      user: userName,
+      user: currentUserName,
       monto,
       isVIP: false,
       avatar: '💵'
@@ -962,7 +981,7 @@ export const VerEnVivoPage = () => {
     socketRef.current.emit('send-superchat', {
       channelName,
       superChatId: Date.now().toString(),
-      user: 'Espectador' + Math.floor(Math.random() * 1000), // TODO: usar nombre real
+      user: currentUserName,
       mensaje: mensaje,
       monto: tiersPrecios[tier],
       tier: tier,
@@ -1059,7 +1078,7 @@ export const VerEnVivoPage = () => {
       )}
       
       {/* Video principal - Pantalla Completa */}
-      <div className="absolute inset-0 z-10">
+      <div className="absolute inset-0 right-[420px] z-10">
             <div className="w-full h-full">
               <div className="relative w-full h-full">
                 {!channelName ? (
@@ -1584,38 +1603,54 @@ export const VerEnVivoPage = () => {
                 {/* Propinas Rápidas */}
                 <div className="mb-3">
                   <p className="text-xs font-semibold text-gray-400 mb-2 px-1">💸 Propinas Rápidas</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-6 gap-1.5">
                     <button 
                       onClick={() => handleEnviarPropina(1)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                      className="py-2.5 px-1 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-4 h-4" />
-                      <span>S/.1</span>
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>1</span>
+                    </button>
+                    <button 
+                      onClick={() => handleEnviarPropina(3)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-2.5 px-1 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>3</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(5)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-green-700 hover:bg-green-800 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                      className="py-2.5 px-1 bg-green-700 hover:bg-green-800 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-4 h-4" />
-                      <span>S/.5</span>
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>5</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(10)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-green-800 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                      className="py-2.5 px-1 bg-green-800 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-4 h-4" />
-                      <span>S/.10</span>
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>10</span>
+                    </button>
+                    <button 
+                      onClick={() => handleEnviarPropina(15)}
+                      disabled={!conectado || transmisionFinalizada}
+                      className="py-2.5 px-1 bg-green-900 hover:bg-green-950 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                    >
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>15</span>
                     </button>
                     <button 
                       onClick={() => handleEnviarPropina(20)}
                       disabled={!conectado || transmisionFinalizada}
-                      className="py-2.5 px-3 bg-green-900 hover:bg-green-950 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
+                      className="py-2.5 px-1 bg-green-950 hover:bg-green-900 text-white rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-lg hover:shadow-xl disabled:hover:shadow-lg flex flex-col items-center justify-center gap-0.5"
                     >
-                      <DollarSign className="w-4 h-4" />
-                      <span>S/.20</span>
+                      <DollarSign className="w-3.5 h-3.5" />
+                      <span>20</span>
                     </button>
                   </div>
                 </div>
@@ -1939,9 +1974,9 @@ export const VerEnVivoPage = () => {
         </div>
       )}
 
-      {/* Toast de notificación */}
+      {/* Toast de notificación - Z-INDEX MÁXIMO para aparecer ADELANTE del modal */}
       {toastVisible && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-fade-in-down">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[9999] animate-fade-in-down">
           <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 border border-green-400">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -1962,6 +1997,8 @@ export const VerEnVivoPage = () => {
         premioGanado={premioGanado}
         girando={girandoRuleta}
         premiosDisponibles={premiosRuleta}
+        usuarioGirando={usuarioGirandoRuleta}
+        currentUserName={currentUserName}
       />
     </div>
   );

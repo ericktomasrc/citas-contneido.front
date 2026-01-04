@@ -19,6 +19,8 @@ interface RuletaModalProps {
   premioGanado?: PremioRuleta | null;
   girando?: boolean;
   premiosDisponibles?: PremioRuleta[]; // Premios recibidos del servidor
+  usuarioGirando?: string | null; // Nombre del usuario que está girando
+  currentUserName?: string; // Nombre del usuario actual
 }
 
 // Galería de iconos disponibles
@@ -49,7 +51,9 @@ export default function RuletaModal({
   costoGiro = 10,
   premioGanado,
   girando = false,
-  premiosDisponibles
+  premiosDisponibles,
+  usuarioGirando = null,
+  currentUserName = ''
 }: RuletaModalProps) {
   const [costoGiroInput, setCostoGiroInput] = useState(10);
   const [premios, setPremios] = useState<PremioRuleta[]>([
@@ -67,6 +71,7 @@ export default function RuletaModal({
   const [anguloRuleta, setAnguloRuleta] = useState(0);
   const [mostrarSelectorIconos, setMostrarSelectorIconos] = useState(false);
   const [premioSeleccionadoParaIcono, setPremioSeleccionadoParaIcono] = useState<string | null>(null);
+  const [girandoLocal, setGirandoLocal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -138,13 +143,8 @@ export default function RuletaModal({
     ctx.stroke();
   };
 
-  const handleGirarRuleta = () => {
-    if (girando || !onGirar) return;
-    
-    // Llamar onGirar ANTES de la animación para activar estado "girando"
-    onGirar();
-    
-    // Animación de giro
+  const iniciarAnimacionGiro = () => {
+    console.log('🎨 [RULETA MODAL] Iniciando animación de giro visual');
     const duracion = 3000;
     const vueltasCompletas = 5;
     const anguloAleatorio = Math.random() * 360;
@@ -169,6 +169,31 @@ export default function RuletaModal({
     };
 
     requestAnimationFrame(animar);
+  };
+
+  // Efecto para detectar cuando otro espectador gira la ruleta
+  useEffect(() => {
+    // Si girando cambia a true y no estoy yo girando, entonces otro espectador giró
+    if (girando && !girandoLocal) {
+      console.log('🎰 [RULETA MODAL] Otro espectador está girando, iniciando animación');
+      iniciarAnimacionGiro();
+    } else if (!girando && girandoLocal) {
+      // Cuando girando vuelve a false, resetear estado local
+      setGirandoLocal(false);
+    }
+  }, [girando, girandoLocal]);
+
+  const handleGirarRuleta = () => {
+    if (girando || !onGirar) return;
+    
+    console.log('🎰 [RULETA MODAL] Usuario presionó botón girar');
+    setGirandoLocal(true);
+    
+    // Llamar onGirar ANTES de la animación para activar estado "girando"
+    onGirar();
+    
+    // Iniciar animación
+    iniciarAnimacionGiro();
   };
 
   const agregarPremio = () => {
@@ -590,6 +615,16 @@ export default function RuletaModal({
 
               {/* COLUMNA DERECHA - Ruleta */}
               <div className="flex flex-col items-center justify-center gap-5 py-6 order-1 md:order-2">
+                {/* Mensaje: "X está girando..." - Solo visible para otros espectadores */}
+                {girando && usuarioGirando && usuarioGirando !== currentUserName && (
+                  <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full shadow-xl border-2 border-white/30 animate-pulse">
+                    <p className="font-bold text-base flex items-center gap-2">
+                      <span className="text-2xl">🎰</span>
+                      <span>{usuarioGirando} está girando...</span>
+                    </p>
+                  </div>
+                )}
+
                 <canvas
                   ref={canvasRef}
                   width={320}
