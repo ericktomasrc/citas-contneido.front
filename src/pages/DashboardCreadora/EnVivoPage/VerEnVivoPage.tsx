@@ -1473,18 +1473,19 @@ export const VerEnVivoPage = () => {
             </div>
       </div>
 
-      {/* Chat lateral flotante - Premium */}
-{/* Chat lateral flotante - Premium */}
-<div className="absolute top-0 right-0 bottom-0 w-[420px] bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-l border-slate-700/50 flex flex-col z-30 shadow-2xl">
+      {/* Chat lateral flotante - Premium */} 
+
+{/* Chat lateral flotante - Premium Sutil */}
+<div className="absolute top-0 right-0 bottom-0 w-[420px] bg-white border-l border-slate-200 flex flex-col z-30 shadow-lg">
   {/* Header del chat */}
-  <div className="flex items-center justify-between p-5 border-b border-slate-700/50 bg-slate-900/50 backdrop-blur-sm">
-    <h3 className="font-bold text-lg text-white flex items-center gap-2">
-      <MessageCircle className="w-5 h-5 text-purple-400" />
+  <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-purple-50">
+    <h3 className="font-semibold text-base text-slate-800 flex items-center gap-2">
+      <MessageCircle className="w-4 h-4 text-violet-600" />
       Chat en Vivo
     </h3>
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg">
-      <Users className="w-4 h-4 text-slate-400" />
-      <span className="text-sm text-white font-semibold">{espectadores}</span>
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-violet-200 rounded-lg shadow-sm">
+      <Users className="w-3.5 h-3.5 text-violet-600" />
+      <span className="text-sm text-slate-800 font-semibold">{espectadores}</span>
     </div>
   </div>
   
@@ -1495,50 +1496,50 @@ export const VerEnVivoPage = () => {
     let amountClass = '';
     let badgeText = '';
     if (pinnedSuperChat.tier === 'elite') {
-      bgClass = 'from-amber-900/40 to-yellow-900/40';
-      borderClass = 'border-amber-500/50';
-      amountClass = 'bg-gradient-to-r from-amber-500 to-yellow-600';
+      bgClass = 'from-amber-50 to-yellow-50';
+      borderClass = 'border-l-amber-400';
+      amountClass = 'bg-gradient-to-r from-amber-500 to-yellow-500';
       badgeText = '👑 Legendario';
     } else if (pinnedSuperChat.tier === 'premium') {
-      bgClass = 'from-purple-900/40 to-violet-900/40';
-      borderClass = 'border-purple-500/50';
-      amountClass = 'bg-purple-600';
+      bgClass = 'from-violet-50 to-purple-50';
+      borderClass = 'border-l-violet-400';
+      amountClass = 'bg-violet-500';
       badgeText = '⭐ Plus';
     } else {
-      bgClass = 'from-blue-900/40 to-cyan-900/40';
-      borderClass = 'border-blue-500/50';
-      amountClass = 'bg-blue-600';
+      bgClass = 'from-blue-50 to-cyan-50';
+      borderClass = 'border-l-blue-400';
+      amountClass = 'bg-blue-500';
       badgeText = '💎 Brillante';
     }
     return (
-      <div className="mb-3 bg-slate-900/50 flex-shrink-0 shadow-lg rounded-xl overflow-hidden border border-slate-700/50 mx-3 mt-3">
+      <div className="mb-3 bg-white flex-shrink-0 shadow-sm rounded-xl overflow-hidden border border-slate-100 mx-3 mt-3">
         <div className={`p-3 bg-gradient-to-r ${bgClass} border-l-4 ${borderClass}`}>
           <div className="flex items-center gap-1 mb-1.5">
-            <span className="text-xs font-bold text-slate-300">{badgeText}</span>
+            <span className="text-xs font-medium text-slate-600">{badgeText}</span>
             <span className="ml-auto text-[10px] text-slate-400">
               {pinnedSuperChat.tier === 'basic' ? '30s' : pinnedSuperChat.tier === 'premium' ? '60s' : '120s'}
             </span>
             <button
               onClick={() => setPinnedSuperChat(null)}
-              className="text-slate-400 hover:text-white transition"
+              className="text-slate-400 hover:text-slate-600 transition"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="flex items-start gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm">
               <span className="text-sm text-white font-bold">{pinnedSuperChat.avatar || '⭐'}</span>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
-                <p className="text-sm font-bold text-white">{pinnedSuperChat.user}</p>
-                {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-amber-400" />}
-                <div className={`ml-auto flex items-center gap-0.5 ${amountClass} rounded-lg px-2 py-0.5`}>
+                <p className="text-sm font-semibold text-slate-800">{pinnedSuperChat.user}</p>
+                {pinnedSuperChat.isVIP && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                <div className={`ml-auto flex items-center gap-0.5 ${amountClass} rounded-lg px-2 py-0.5 shadow-sm`}>
                   <DollarSign className="w-3 h-3 text-white" />
                   <span className="text-xs text-white font-bold">{pinnedSuperChat.monto}</span>
                 </div>
               </div>
-              <p className="text-sm text-white break-words leading-snug">{pinnedSuperChat.mensaje}</p>
+              <p className="text-sm text-slate-700 break-words leading-snug">{pinnedSuperChat.mensaje}</p>
             </div>
           </div>
         </div>
@@ -1547,12 +1548,12 @@ export const VerEnVivoPage = () => {
   })()}
   
   {/* Timeline de mensajes */}
-  <div className="flex-1 overflow-y-auto space-y-3 px-3 py-2">
+  <div className="flex-1 overflow-y-auto space-y-2.5 px-3 py-3 bg-slate-50">
     {timeline.length === 0 ? (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
-          <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-2" />
-          <p className="text-slate-500 text-sm">Sé el primero en saludar</p>
+          <MessageCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-400 text-sm">Sé el primero en saludar</p>
         </div>
       </div>
     ) : (
@@ -1562,24 +1563,24 @@ export const VerEnVivoPage = () => {
           const superChat = item as SuperChatMessage;
           const tierConfig = {
             basic: { 
-              gradient: 'from-blue-900/30 to-cyan-900/30', 
-              border: 'border-blue-500/40', 
-              text: 'text-blue-400', 
-              badge: 'bg-blue-600',
+              gradient: 'from-blue-50 to-cyan-50', 
+              border: 'border-blue-200', 
+              text: 'text-blue-700', 
+              badge: 'bg-blue-500',
               icon: '💎'
             },
             premium: { 
-              gradient: 'from-purple-900/30 to-violet-900/30', 
-              border: 'border-purple-500/40', 
-              text: 'text-purple-400', 
-              badge: 'bg-purple-600',
+              gradient: 'from-violet-50 to-purple-50', 
+              border: 'border-violet-200', 
+              text: 'text-violet-700', 
+              badge: 'bg-violet-500',
               icon: '⭐'
             },
             elite: { 
-              gradient: 'from-amber-900/30 to-yellow-900/30', 
-              border: 'border-amber-500/40', 
-              text: 'text-amber-400', 
-              badge: 'bg-gradient-to-r from-amber-500 to-yellow-600',
+              gradient: 'from-amber-50 to-yellow-50', 
+              border: 'border-amber-200', 
+              text: 'text-amber-700', 
+              badge: 'bg-gradient-to-r from-amber-500 to-yellow-500',
               icon: '👑'
             }
           };
@@ -1587,21 +1588,21 @@ export const VerEnVivoPage = () => {
           
           return (
             <div key={superChat.id} className="animate-fade-in">
-              <div className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-lg p-3 shadow-lg`}>
+              <div className={`bg-gradient-to-r ${config.gradient} border ${config.border} rounded-xl p-3 shadow-sm`}>
                 <div className="flex items-start gap-2">
-                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center flex-shrink-0 shadow-sm">
                     <span className="text-sm text-white">{config.icon}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1 mb-1">
-                      <p className={`text-sm font-bold ${config.text}`}>{superChat.user}</p>
-                      {superChat.isVIP && <Crown className="w-4 h-4 text-amber-400" />}
-                      <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1`}>
+                      <p className={`text-sm font-semibold ${config.text}`}>{superChat.user}</p>
+                      {superChat.isVIP && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                      <div className={`ml-auto flex items-center gap-1 ${config.badge} rounded-lg px-2 py-1 shadow-sm`}>
                         <DollarSign className="w-3 h-3 text-white" />
                         <p className="text-xs text-white font-bold">{superChat.monto}</p>
                       </div>
                     </div>
-                    <p className="text-sm text-white font-medium break-words">{superChat.mensaje}</p>
+                    <p className="text-sm text-slate-700 break-words">{superChat.mensaje}</p>
                     <p className="text-[10px] text-slate-400 mt-1">
                       {superChat.tier === 'basic' ? '30s' : superChat.tier === 'premium' ? '60s' : '120s'} destacado
                     </p>
@@ -1616,19 +1617,19 @@ export const VerEnVivoPage = () => {
         if ('monto' in item && !('gift' in item)) {
           return (
             <div key={item.id} className="animate-fade-in">
-              <div className="bg-gradient-to-r from-emerald-900/30 to-teal-900/30 border border-emerald-500/40 rounded-lg p-2.5 shadow-md">
+              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-2.5 shadow-sm">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0 shadow-sm">
                     <span className="text-sm">💵</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1">
-                      <p className="text-xs font-bold text-emerald-400 truncate">{item.user}</p>
-                      {item.isVIP && <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                      <p className="text-xs font-semibold text-emerald-700 truncate">{item.user}</p>
+                      {item.isVIP && <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />}
                     </div>
-                    <p className="text-[10px] text-slate-400">envió una propina</p>
+                    <p className="text-[10px] text-slate-500">envió una propina</p>
                   </div>
-                  <div className="flex items-center gap-0.5 bg-emerald-600 rounded-md px-2 py-1 flex-shrink-0">
+                  <div className="flex items-center gap-0.5 bg-emerald-500 rounded-lg px-2 py-1 flex-shrink-0 shadow-sm">
                     <DollarSign className="w-3 h-3 text-white" />
                     <span className="text-xs text-white font-bold">{item.monto}</span>
                   </div>
@@ -1642,24 +1643,24 @@ export const VerEnVivoPage = () => {
         if ('mensaje' in item) {
           return (
             <div key={item.id} className="flex items-start gap-2 animate-fade-in">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm ${
                 item.isVIP 
-                  ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
-                  : 'bg-gradient-to-br from-purple-500 to-pink-600'
+                  ? 'bg-gradient-to-br from-amber-400 to-orange-500' 
+                  : 'bg-gradient-to-br from-violet-500 to-purple-500'
               }`}>
-                <span className="text-sm">{item.avatar || item.user[0]}</span>
+                <span className="text-xs text-white font-bold">{item.avatar || item.user[0]}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 mb-1">
-                  <p className={`text-sm font-semibold truncate ${
-                    item.isVIP ? 'text-amber-400' : 'text-purple-400'
+                <div className="flex items-center gap-1 mb-0.5">
+                  <p className={`text-xs font-semibold truncate ${
+                    item.isVIP ? 'text-amber-600' : 'text-violet-600'
                   }`}>
                     {item.user}
                   </p>
-                  {item.isVIP && <Crown className="w-3 h-3 text-amber-400 flex-shrink-0" />}
+                  {item.isVIP && <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />}
                 </div>
-                <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2">
-                  <p className="text-sm text-white break-words">{item.mensaje}</p>
+                <div className="bg-white border border-slate-100 rounded-lg px-2.5 py-1.5 shadow-sm">
+                  <p className="text-sm text-slate-700 break-words">{item.mensaje}</p>
                 </div>
               </div>
             </div>
@@ -1669,37 +1670,33 @@ export const VerEnVivoPage = () => {
           const giftItem = item as GiftMessage;
           return (
             <div key={giftItem.id} className="animate-fade-in">
-              <div className="relative bg-gradient-to-br from-amber-900/20 to-yellow-900/20 border border-amber-500/40 rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
-                
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                      giftItem.isVIP 
-                        ? 'bg-gradient-to-br from-amber-500 to-orange-600' 
-                        : 'bg-gradient-to-br from-purple-500 to-pink-600'
-                    }`}>
-                      <span className="text-sm">{giftItem.avatar || giftItem.user[0]}</span>
-                    </div>
-                    <p className="text-sm font-bold text-white flex items-center gap-1">
-                      {giftItem.user}
-                      {giftItem.isVIP && <Crown className="w-3.5 h-3.5 text-amber-400" />}
-                    </p>
-                    <span className="ml-auto text-xs text-slate-400 font-medium">envió un regalo</span>
+              <div className="relative bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-3 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shadow-sm ${
+                    giftItem.isVIP 
+                      ? 'bg-gradient-to-br from-amber-400 to-orange-500' 
+                      : 'bg-gradient-to-br from-violet-500 to-purple-500'
+                  }`}>
+                    <span className="text-xs text-white font-bold">{giftItem.avatar || giftItem.user[0]}</span>
                   </div>
-                  <div className="flex items-center gap-3 bg-slate-900/40 backdrop-blur-sm rounded-lg p-2.5 border border-amber-500/20">
-                    <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg border border-amber-500/30">
-                      <span className="text-2xl">{giftItem.gift.emoji}</span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-white font-bold text-base leading-tight">{giftItem.gift.nombre}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <DollarSign className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm font-bold text-amber-400">{giftItem.gift.valor} coins</span>
-                      </div>
-                    </div>
-                    <Sparkles className="w-5 h-5 text-amber-400" />
+                  <p className="text-sm font-semibold text-slate-800 flex items-center gap-1">
+                    {giftItem.user}
+                    {giftItem.isVIP && <Crown className="w-3.5 h-3.5 text-amber-500" />}
+                  </p>
+                  <span className="ml-auto text-xs text-slate-500 font-medium">envió un regalo</span>
+                </div>
+                <div className="flex items-center gap-3 bg-white rounded-lg p-2.5 border border-amber-100 shadow-sm">
+                  <div className="w-10 h-10 flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+                    <span className="text-2xl">{giftItem.gift.emoji}</span>
                   </div>
+                  <div className="flex-1">
+                    <p className="text-slate-800 font-semibold text-base leading-tight">{giftItem.gift.nombre}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-sm font-semibold text-amber-600">{giftItem.gift.valor} coins</span>
+                    </div>
+                  </div>
+                  <Sparkles className="w-5 h-5 text-amber-500" />
                 </div>
               </div>
             </div>
@@ -1711,7 +1708,7 @@ export const VerEnVivoPage = () => {
   </div>
 
   {/* Input de mensaje premium */}
-  <div className="p-3 space-y-3 border-t border-slate-700/50 bg-slate-900/50">
+  <div className="p-3 space-y-3 border-t border-slate-100 bg-white">
     <div className="relative">
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -1722,13 +1719,13 @@ export const VerEnVivoPage = () => {
             onKeyPress={(e) => e.key === 'Enter' && !transmisionFinalizada && handleEnviarMensaje()}
             placeholder={transmisionFinalizada ? "Transmisión finalizada" : "Escribe un mensaje..."}
             disabled={!conectado || transmisionFinalizada}
-            className="w-full pl-4 pr-10 py-2.5 bg-slate-800 border border-slate-700 text-white placeholder-slate-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all disabled:opacity-50"
+            className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 text-slate-800 placeholder-slate-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all disabled:opacity-50"
           />
           <button
             type="button"
             onClick={() => setMostrarEmojis(!mostrarEmojis)}
             disabled={!conectado || transmisionFinalizada}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center hover:bg-slate-700 rounded-lg transition disabled:opacity-50"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center hover:bg-slate-100 rounded-lg transition disabled:opacity-50"
           >
             <span className="text-lg">😊</span>
           </button>
@@ -1736,15 +1733,15 @@ export const VerEnVivoPage = () => {
         <button
           onClick={handleEnviarMensaje}
           disabled={!conectado || !mensajeActual.trim() || transmisionFinalizada}
-          className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl flex items-center justify-center hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+          className="w-10 h-10 bg-gradient-to-r from-violet-600 to-purple-600 rounded-xl flex items-center justify-center hover:shadow-md hover:shadow-violet-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
         >
-          <Send className="w-5 h-5 text-white" />
+          <Send className="w-4 h-4 text-white" />
         </button>
       </div>
       
       {/* Panel de emoticones */}
       {mostrarEmojis && (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-800 border border-slate-700 rounded-xl shadow-xl p-3 z-10">
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-slate-200 rounded-xl shadow-lg p-3 z-10">
           <div className="grid grid-cols-8 gap-2">
             {emojisPopulares.map((emoji, index) => (
               <button
@@ -1753,7 +1750,7 @@ export const VerEnVivoPage = () => {
                   setMensajeActual(prev => prev + emoji);
                   setMostrarEmojis(false);
                 }}
-                className="text-2xl hover:bg-slate-700 rounded-lg p-1 transition"
+                className="text-2xl hover:bg-slate-50 rounded-lg p-1 transition"
               >
                 {emoji}
               </button>
@@ -1763,82 +1760,80 @@ export const VerEnVivoPage = () => {
       )}
     </div>
 
-    {/* Propinas Rápidas */}
-    <div>
-      <p className="text-xs font-semibold text-slate-400 mb-2 px-1">Propinas Rápidas</p>
-      <div className="grid grid-cols-6 gap-1.5">
-        {[1, 3, 5, 10, 15, 20].map((monto, idx) => (
+    {/* Propinas Rápidas + Interacciones - HORIZONTAL */}
+    <div className="space-y-2">
+      {/* Propinas Rápidas */}
+      <div>
+        <p className="text-xs font-medium text-slate-500 mb-1.5 px-1">Propinas Rápidas</p>
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {[1, 3, 5, 10, 15, 20].map((monto) => (
+            <button 
+              key={monto}
+              onClick={() => handleEnviarPropina(monto)}
+              disabled={!conectado || transmisionFinalizada}
+              className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 text-emerald-700 rounded-lg font-medium transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm hover:shadow-md flex items-center gap-1"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>{monto}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Interacciones */}
+      <div>
+        <p className="text-xs font-medium text-slate-500 mb-1.5 px-1">Interacciones</p>
+        <div className="grid grid-cols-4 gap-1.5">
+          {/* Me gusta */}
           <button 
-            key={monto}
-            onClick={() => handleEnviarPropina(monto)}
+            onClick={handleMeGusta}
             disabled={!conectado || transmisionFinalizada}
-            className={`py-2.5 px-1 bg-gradient-to-br rounded-lg font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-0.5 ${
-              idx === 0 ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
-              idx === 1 ? 'from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600' :
-              idx === 2 ? 'from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700' :
-              idx === 3 ? 'from-emerald-900 to-teal-900 hover:from-emerald-800 hover:to-teal-800' :
-              idx === 4 ? 'from-green-900 to-emerald-900 hover:from-green-800 hover:to-emerald-800' :
-              'from-green-950 to-emerald-950 hover:from-green-900 hover:to-emerald-900'
-            } text-white`}
+            className="py-2 bg-gradient-to-br from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 text-pink-700 rounded-lg font-medium transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm hover:shadow-md"
           >
-            <DollarSign className="w-3.5 h-3.5" />
-            <span>{monto}</span>
+            <Heart className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Me gusta</span>
           </button>
-        ))}
+
+          {/* Regalos */}
+          <button 
+            onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
+            disabled={!conectado || transmisionFinalizada}
+            className="py-2 bg-gradient-to-br from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 text-violet-700 rounded-lg font-medium transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm hover:shadow-md"
+          >
+            <Gift className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Regalos</span>
+          </button>
+
+          {/* Destacado */}
+          <button 
+            onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
+            disabled={!conectado || transmisionFinalizada}
+            className="py-2 bg-gradient-to-br from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 border border-amber-200 text-amber-700 rounded-lg font-medium transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 shadow-sm hover:shadow-md"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-[10px]">Destacado</span>
+          </button>
+
+          {/* Ruleta */}
+          <button 
+            onClick={() => ruletaActiva && setShowRuletaModal(true)}
+            disabled={!conectado || transmisionFinalizada || !ruletaActiva}
+            className={`py-2 rounded-lg font-medium transition-all flex flex-col items-center justify-center gap-0.5 shadow-sm ${
+              ruletaActiva 
+                ? 'bg-gradient-to-br from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 border border-indigo-200 text-indigo-700 cursor-pointer hover:shadow-md active:scale-95' 
+                : 'bg-slate-50 border border-slate-200 text-slate-400 opacity-50 cursor-not-allowed'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title={ruletaActiva ? 'Gira la ruleta' : 'Ruleta no disponible'}
+          >
+            <span className="text-base">🎰</span>
+            <span className="text-[10px]">Ruleta</span>
+          </button>
+        </div>
       </div>
     </div>
-
-    {/* Botones de interacción */}
-    <div className="space-y-2">
-      <p className="text-xs font-semibold text-slate-400 mb-2 px-1">Interacciones</p>
-      
-      {/* Fila 1: Me gusta y Regalo */}
-      <div className="grid grid-cols-2 gap-2">
-        <button 
-          onClick={handleMeGusta}
-          disabled={!conectado || transmisionFinalizada}
-          className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700 active:scale-95 shadow-md hover:shadow-lg text-xs"
-        >
-          <Heart className="w-4 h-4" />
-          <span>Me gusta</span>
-        </button>
-        <button 
-          onClick={() => !transmisionFinalizada && setMostrarCatalogoRegalos(true)}
-          disabled={!conectado || transmisionFinalizada}
-          className="py-2.5 px-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-xs"
-        >
-          <Gift className="w-4 h-4" />
-          <span>Regalos</span>
-        </button>
-      </div>
-
-      {/* Fila 2: Super Chat y Ruleta */}
-      <div className="grid grid-cols-2 gap-2">
-        <button 
-          onClick={() => !transmisionFinalizada && setMostrarModalSuperChat(true)}
-          disabled={!conectado || transmisionFinalizada}
-          className="py-2.5 px-3 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg text-xs"
-        >
-          <Sparkles className="w-4 h-4" />
-          <span>Destacado</span>
-        </button>
-        <button 
-          onClick={() => ruletaActiva && setShowRuletaModal(true)}
-          disabled={!conectado || transmisionFinalizada || !ruletaActiva}
-          className={`py-2.5 px-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-1.5 shadow-md text-xs ${
-            ruletaActiva 
-              ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 animate-pulse cursor-pointer hover:shadow-lg' 
-              : 'bg-slate-700 border-slate-600 opacity-50 cursor-not-allowed'
-          } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
-          title={ruletaActiva ? 'Gira la ruleta' : 'Ruleta no disponible'}
-        >
-          <span className="text-base">🎰</span>
-          <span>Ruleta</span>
-        </button>
-      </div>
-    </div> 
   </div>
 </div>
+
       
       {/* Overlay de notificaciones en pantalla */}
       {screenNotifications.map((notif) => (

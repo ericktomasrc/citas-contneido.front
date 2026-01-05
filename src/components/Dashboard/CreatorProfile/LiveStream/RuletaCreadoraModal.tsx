@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Settings, Play, Trophy, Sparkles, Plus, Trash2 } from 'lucide-react';
-import { PremioRuleta } from '../../../../shared/types/ruleta.types';
+import { PremioRuleta } from '@/shared/types/ruleta.types';
 
 interface RuletaCreadoraModalProps {
   isOpen: boolean;
@@ -9,6 +9,7 @@ interface RuletaCreadoraModalProps {
   onActivarRuleta?: (costoGiro: number, premios: PremioRuleta[]) => void;
   onDesactivarRuleta?: () => void;
   ruletaActiva?: boolean;
+  premiosExistentes?: PremioRuleta[]; // ← NUEVA PROP para persistencia
 }
 
 // Galería de iconos disponibles
@@ -33,7 +34,8 @@ export default function RuletaCreadoraModal({
   channelName,
   onActivarRuleta,
   onDesactivarRuleta,
-  ruletaActiva
+  ruletaActiva,
+  premiosExistentes // ← RECIBIR premios guardados
 }: RuletaCreadoraModalProps) {
   const [costoGiroInput, setCostoGiroInput] = useState(10);
   const [premios, setPremios] = useState<PremioRuleta[]>([
@@ -43,13 +45,31 @@ export default function RuletaCreadoraModal({
       descripcion: 'Un regalo especial',
       icono: '🎁',
       valor: 10,
-      probabilidad: 30,
+      probabilidad: 50,
       color: COLORES_PREMIUM[0],
+      tipo: 'regalo'
+    },
+    {
+      id: '2',
+      nombre: 'Premio Extra',
+      descripcion: 'Algo increíble',
+      icono: '💎',
+      valor: 20,
+      probabilidad: 50,
+      color: COLORES_PREMIUM[1],
       tipo: 'regalo'
     }
   ]);
   const [mostrarSelectorIconos, setMostrarSelectorIconos] = useState(false);
   const [premioSeleccionadoParaIcono, setPremioSeleccionadoParaIcono] = useState<string | null>(null);
+
+  // ✅ CARGAR PREMIOS EXISTENTES cuando abre el modal
+  useEffect(() => {
+    if (isOpen && premiosExistentes && premiosExistentes.length > 0) {
+      console.log('📥 Cargando premios existentes:', premiosExistentes);
+      setPremios(premiosExistentes);
+    }
+  }, [isOpen, premiosExistentes]);
 
   const agregarPremio = () => {
     const nuevoId = Date.now().toString();
@@ -70,8 +90,8 @@ export default function RuletaCreadoraModal({
   };
 
   const eliminarPremio = (id: string) => {
-    if (premios.length === 1) {
-      mostrarNotificacion('⚠️ Debe haber al menos un premio configurado', 'warning');
+    if (premios.length <= 2) {
+      mostrarNotificacion('⚠️ Debe haber al menos 2 premios configurados', 'warning');
       return;
     }
     setPremios(premios.filter(p => p.id !== id));
@@ -94,9 +114,9 @@ export default function RuletaCreadoraModal({
   // Sistema de notificaciones toast profesional
   const mostrarNotificacion = (mensaje: string, tipo: 'success' | 'error' | 'warning' = 'error') => {
     const colores = {
-      success: 'from-emerald-600 to-teal-600 border-emerald-400',
-      error: 'from-rose-600 to-red-600 border-rose-400',
-      warning: 'from-amber-600 to-orange-600 border-amber-400'
+      success: 'from-emerald-500 to-teal-500 border-emerald-300',
+      error: 'from-rose-500 to-red-500 border-rose-300',
+      warning: 'from-amber-500 to-orange-500 border-amber-300'
     };
 
     const iconos = {
@@ -106,7 +126,7 @@ export default function RuletaCreadoraModal({
     };
 
     const notificacion = document.createElement('div');
-    notificacion.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-down';
+    notificacion.className = 'fixed top-20 left-1/2 -translate-x-1/2 z-[99999] animate-fade-in-down';
     notificacion.innerHTML = `
       <div class="bg-gradient-to-r ${colores[tipo]} text-white px-6 py-3.5 rounded-xl shadow-2xl flex items-center gap-3 border-2 ${colores[tipo].split(' ').pop()} backdrop-blur-sm max-w-md">
         <svg class="w-6 h-6 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -126,6 +146,12 @@ export default function RuletaCreadoraModal({
   };
 
   const validarPremios = (): boolean => {
+    // Validar mínimo 2 premios
+    if (premios.length < 2) {
+      mostrarNotificacion('❌ Debe haber al menos 2 premios configurados', 'error');
+      return false;
+    }
+
     // Validar campos obligatorios
     for (const premio of premios) {
       if (!premio.nombre.trim()) {
@@ -136,12 +162,14 @@ export default function RuletaCreadoraModal({
         mostrarNotificacion('❌ Todos los premios deben tener una descripción', 'error');
         return false;
       }
+      // Validar precio > 0
       if (!premio.valor || premio.valor <= 0) {
-        mostrarNotificacion('❌ El precio no puede estar vacío y debe ser mayor a 0', 'error');
+        mostrarNotificacion('❌ El precio debe ser mayor a 0', 'error');
         return false;
       }
+      // Validar porcentaje > 0 y <= 100
       if (!premio.probabilidad || premio.probabilidad <= 0 || premio.probabilidad > 100) {
-        mostrarNotificacion('❌ El porcentaje no puede estar vacío y debe estar entre 1 y 100', 'error');
+        mostrarNotificacion('❌ El porcentaje debe estar entre 1 y 100', 'error');
         return false;
       }
     }
@@ -154,18 +182,10 @@ export default function RuletaCreadoraModal({
       return false;
     }
 
-    // Validar que no se repitan porcentajes
-    const probabilidades = premios.map(p => p.probabilidad);
-    const probabilidadesUnicas = new Set(probabilidades);
-    if (probabilidades.length !== probabilidadesUnicas.size) {
-      mostrarNotificacion('❌ Los porcentajes no pueden repetirse', 'warning');
-      return false;
-    }
-
     // Validar que la suma de porcentajes sea exactamente 100%
     const sumaProbabilidades = premios.reduce((sum, p) => sum + p.probabilidad, 0);
     if (sumaProbabilidades !== 100) {
-      mostrarNotificacion(`❌ La suma debe ser 100%. Actualmente: ${sumaProbabilidades}%`, 'warning');
+      mostrarNotificacion(`❌ La suma debe ser exactamente 100%. Actualmente: ${sumaProbabilidades}%`, 'warning');
       return false;
     }
 
@@ -175,53 +195,58 @@ export default function RuletaCreadoraModal({
   const handleActivarRuleta = () => {
     // Validar costo por giro
     if (!costoGiroInput || costoGiroInput <= 0) {
-      mostrarNotificacion('❌ El costo por giro no puede estar vacío y debe ser mayor a 0', 'error');
+      mostrarNotificacion('❌ El costo por giro debe ser mayor a 0', 'error');
       return;
     }
     
     if (!validarPremios()) return;
     onActivarRuleta?.(costoGiroInput, premios);
-    mostrarNotificacion('✅ ¡Ruleta activada exitosamente! 🎉', 'success');
+    // Mensaje eliminado aquí - FloatingTransmisionWindow lo muestra
+  };
+
+  const handleDesactivarRuleta = () => {
+    onDesactivarRuleta?.();
+    mostrarNotificacion('⚠️ ¡Ruleta desactivada! Ahora puedes editar los premios 📝', 'warning');
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-purple-200/50 shadow-2xl">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 flex items-center justify-between border-b border-purple-200/50 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-purple-100 shadow-xl">
+        {/* Header - PREMIUM SUTIL */}
+        <div className="sticky top-0 bg-gradient-to-r from-violet-50 via-purple-50 to-pink-50 px-5 py-4 flex items-center justify-between border-b border-purple-100/50 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-sm">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h2 className="text-lg font-bold text-slate-800">
                 Ruleta de Premios
               </h2>
-              <p className="text-slate-600 text-sm">Configuración</p>
+              <p className="text-slate-500 text-xs">Configuración</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 transition-colors hover:bg-slate-200 rounded-lg p-2"
+            className="text-slate-400 hover:text-slate-600 transition-colors hover:bg-slate-100 rounded-lg p-1.5"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6">
-          <div className="space-y-5">
-            {/* Configuración */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-slate-200/50 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <Settings className="w-5 h-5 text-purple-500" />
-                <h3 className="text-base font-semibold text-slate-800">Configuración</h3>
+        <div className="p-5 overflow-y-auto max-h-[calc(90vh-80px)]">
+          <div className="space-y-4">
+            {/* Configuración - SUTIL */}
+            <div className="bg-gradient-to-br from-violet-50/50 to-purple-50/50 rounded-xl p-4 border border-purple-100/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Settings className="w-4 h-4 text-purple-500" />
+                <h3 className="text-sm font-semibold text-slate-700">Configuración</h3>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-xs font-medium text-slate-600 mb-1.5">
                     Costo por Giro (S/.)
                   </label>
                   <input
@@ -239,24 +264,24 @@ export default function RuletaCreadoraModal({
                       const numero = valor === '' ? 0 : Math.min(100, parseInt(valor));
                       setCostoGiroInput(numero);
                     }}
-                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
+                    className="w-32 px-2 py-1 bg-white border border-purple-200 rounded-lg text-slate-700 text-sm text-center font-semibold focus:ring-2 focus:ring-purple-300 focus:border-transparent shadow-sm transition-all"
                     disabled={ruletaActiva}
-                    placeholder="Mínimo 1"
+                    placeholder="10"
                   />
                 </div>
 
                 {!ruletaActiva ? (
                   <button
                     onClick={handleActivarRuleta}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                    className="w-full px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-sm"
                   >
                     <Play className="w-4 h-4" />
                     Activar Ruleta
                   </button>
                 ) : (
                   <button
-                    onClick={onDesactivarRuleta}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-600 hover:to-red-600 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg"
+                    onClick={handleDesactivarRuleta}
+                    className="w-full px-4 py-2.5 bg-gradient-to-r from-rose-400 to-red-400 hover:from-rose-500 hover:to-red-500 text-white rounded-xl text-sm font-semibold transition-all shadow-sm"
                   >
                     Desactivar Ruleta
                   </button>
@@ -264,41 +289,41 @@ export default function RuletaCreadoraModal({
               </div>
             </div>
 
-            {/* Premios */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-slate-200/50 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
+            {/* Premios - SUTIL */}
+            <div className="bg-gradient-to-br from-violet-50/50 to-purple-50/50 rounded-xl p-4 border border-purple-100/50">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-amber-500" />
-                  <h3 className="text-base font-semibold text-slate-800">Premios</h3>
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-semibold text-slate-700">Premios</h3>
                 </div>
                 <button
                   onClick={agregarPremio}
                   disabled={ruletaActiva}
-                  className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm transition-all"
+                  className="px-3 py-1.5 bg-gradient-to-r from-purple-400 to-pink-400 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 shadow-sm transition-all"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                   Agregar Premio
                 </button>
               </div>
 
               {/* Vista según estado de la ruleta */}
               {ruletaActiva ? (
-                /* Vista ACTIVA: Tabla simple de solo lectura */
-                <div className="space-y-2">
+                /* Vista ACTIVA: Tabla simple de solo lectura - MEJORADA */
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
                   {premios.map((premio) => (
                     <div
                       key={premio.id}
-                      className="bg-white/50 rounded-lg p-3 border border-slate-200/50 hover:bg-white/80 transition-colors"
+                      className="bg-white/60 rounded-lg p-3 border border-purple-100/50 hover:bg-white/80 transition-colors"
                     >
                       <div className="flex items-start gap-3">
                         <div className="text-2xl">{premio.icono}</div>
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-slate-800 text-sm">{premio.nombre}</h4>
-                          <p className="text-xs text-slate-600 mt-0.5 line-clamp-1">{premio.descripcion}</p>
-                          <div className="mt-2 flex items-center gap-4 text-xs">
-                            <span className="text-slate-700 font-medium">S/.{premio.valor}</span>
-                            <span className="text-slate-400">•</span>
-                            <span className="text-slate-700 font-medium">{premio.probabilidad}%</span>
+                          <h4 className="font-semibold text-slate-700 text-sm">{premio.nombre}</h4>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{premio.descripcion}</p>
+                          <div className="mt-1.5 flex items-center gap-3 text-xs">
+                            <span className="text-slate-600 font-medium">S/.{premio.valor}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-slate-600 font-medium">{premio.probabilidad}%</span>
                           </div>
                         </div>
                       </div>
@@ -306,31 +331,31 @@ export default function RuletaCreadoraModal({
                   ))}
                 </div>
               ) : (
-                /* Vista DESACTIVADA: Formularios editables completos */
-                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
+                /* Vista DESACTIVADA: Formularios editables completos - MEJORADA SIN DISTORSIÓN */
+                <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
                   {premios.map((premio, index) => (
                     <div
                       key={premio.id}
-                      className="bg-gradient-to-br from-slate-50 to-white rounded-xl p-4 border border-slate-200 shadow-sm hover:shadow-md transition-all"
+                      className="bg-white/80 rounded-xl p-3.5 border border-purple-100/50 shadow-sm hover:shadow-md transition-all"
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         {/* Icono y Título */}
-                        <div className="flex gap-3">
+                        <div className="flex gap-2.5">
                           <button
                             onClick={() => {
                               setPremioSeleccionadoParaIcono(premio.id);
                               setMostrarSelectorIconos(true);
                             }}
-                            className="w-16 h-16 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 border-2 border-slate-300 hover:border-purple-400 flex items-center justify-center text-3xl transition-all shadow-sm hover:shadow-md"
+                            className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 border border-purple-200/50 hover:border-purple-300 flex items-center justify-center text-2xl transition-all shadow-sm hover:shadow-md flex-shrink-0"
                           >
                             {premio.icono}
                           </button>
-                          <div className="flex-1 space-y-2">
+                          <div className="flex-1 space-y-2 min-w-0">
                             <input
                               type="text"
                               value={premio.nombre}
                               onChange={(e) => actualizarPremio(premio.id, 'nombre', e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm font-medium focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
+                              className="w-full px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-slate-700 text-sm font-medium focus:ring-2 focus:ring-purple-300 focus:border-transparent shadow-sm"
                               placeholder="Título del premio *"
                               maxLength={50}
                             />
@@ -338,7 +363,7 @@ export default function RuletaCreadoraModal({
                               type="text"
                               value={premio.descripcion}
                               onChange={(e) => actualizarPremio(premio.id, 'descripcion', e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
+                              className="w-full px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-slate-700 text-xs focus:ring-2 focus:ring-purple-300 focus:border-transparent shadow-sm"
                               placeholder="Descripción *"
                               maxLength={100}
                             />
@@ -346,17 +371,17 @@ export default function RuletaCreadoraModal({
                           {premios.length > 1 && (
                             <button
                               onClick={() => eliminarPremio(premio.id)}
-                              className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-lg transition-all"
+                              className="text-rose-400 hover:text-rose-600 hover:bg-rose-50 p-1.5 rounded-lg transition-all self-start flex-shrink-0"
                             >
-                              <Trash2 className="w-5 h-5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           )}
                         </div>
 
-                        {/* Precio y Porcentaje */}
-                        <div className="grid grid-cols-2 gap-3">
+                        {/* Precio y Porcentaje - INPUTS COMPACTOS */}
+                        <div className="grid grid-cols-2 gap-2.5">
                           <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
                               Precio (S/.) *
                             </label>
                             <input
@@ -374,12 +399,12 @@ export default function RuletaCreadoraModal({
                                 const numero = valor === '' ? 0 : parseInt(valor);
                                 actualizarPremio(premio.id, 'valor', numero);
                               }}
-                              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
-                              placeholder="Mínimo 1"
+                              className="w-full px-2 py-1 bg-white border border-purple-200 rounded-lg text-slate-700 text-sm text-center font-semibold focus:ring-2 focus:ring-purple-300 focus:border-transparent shadow-sm"
+                              placeholder="10"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                            <label className="block text-xs font-medium text-slate-600 mb-1">
                               Probabilidad (%) *
                             </label>
                             <input
@@ -397,8 +422,8 @@ export default function RuletaCreadoraModal({
                                 const numero = valor === '' ? 0 : Math.min(100, parseInt(valor));
                                 actualizarPremio(premio.id, 'probabilidad', numero);
                               }}
-                              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent shadow-sm"
-                              placeholder="1-100"
+                              className="w-full px-2 py-1 bg-white border border-purple-200 rounded-lg text-slate-700 text-sm text-center font-semibold focus:ring-2 focus:ring-purple-300 focus:border-transparent shadow-sm"
+                              placeholder="30"
                             />
                           </div>
                         </div>
@@ -412,12 +437,12 @@ export default function RuletaCreadoraModal({
         </div>
       </div>
 
-      {/* Modal Selector de Iconos */}
+      {/* Modal Selector de Iconos - SUTIL */}
       {mostrarSelectorIconos && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl border border-purple-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-800">Selecciona un icono</h3>
+              <h3 className="text-base font-bold text-slate-800">Selecciona un icono</h3>
               <button
                 onClick={() => {
                   setMostrarSelectorIconos(false);
@@ -433,7 +458,7 @@ export default function RuletaCreadoraModal({
                 <button
                   key={index}
                   onClick={() => seleccionarIcono(icono)}
-                  className="w-12 h-12 rounded-lg bg-slate-100 hover:bg-purple-100 hover:scale-110 transition-all flex items-center justify-center text-2xl border-2 border-transparent hover:border-purple-400"
+                  className="w-11 h-11 rounded-lg bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 hover:scale-110 transition-all flex items-center justify-center text-2xl border border-purple-100 hover:border-purple-300 shadow-sm"
                 >
                   {icono}
                 </button>

@@ -1,18 +1,21 @@
 import { useState } from 'react'; 
+import { useNavigate } from 'react-router-dom';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { TabsNavigationCreadora } from '../../components/DashboardCreadora/Tabs/TabsNavigationCreadora';
 import { StatsCards } from '../../components/DashboardCreadora/StatsCards/StatsCards';
 import { InvitacionesCarousel } from '../../components/DashboardCreadora/Invitaciones/InvitacionesCarousel';
 import { InvitacionesFilters } from '../../components/DashboardCreadora/Invitaciones/InvitacionesFilters'; 
+import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/MiActividadTab';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { EnVivoPage } from './EnVivoPage/EnVivoPage';
 
 type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
-type SubTabType = 'invitaciones' | 'resumen';
+type SubTabType = 'invitaciones' | 'resumen' | 'miactividad';
 
 export const DashboardCreadoraPage = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('resumen');
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>('invitaciones');
@@ -182,6 +185,24 @@ export const DashboardCreadoraPage = () => {
     }
   };
 
+  // Wrapper to map TabTypeCreadora to SubTabType
+  const handleSubTabChange = (tab: string) => {
+    // Allow valid SubTabType values including 'miactividad'
+    if (tab === 'invitaciones' || tab === 'resumen' || tab === 'miactividad') {
+      setActiveSubTab(tab as SubTabType);
+    }
+  };
+
+  // Manejar inicio de transmisión
+  const handleIniciarTransmision = () => {
+    navigate('/dashboard/envivo');
+  };
+
+  const handleProgramarEvento = () => {
+  console.log('Programar evento');
+  // Aquí puedes abrir un modal o navegar
+};
+
   return (
     <div className="min-h-screen bg-gray-50">
       <NavbarCreadora onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
@@ -197,8 +218,8 @@ export const DashboardCreadoraPage = () => {
         <div className="p-6 lg:p-8">
           {(activeTab === 'resumen' || activeTab === 'invitaciones') && (
             <TabsNavigationCreadora
-              activeTab={activeSubTab}
-              onTabChange={setActiveSubTab}
+              activeTab={activeSubTab as any}
+              onTabChange={handleSubTabChange}
             />
           )}
 
@@ -206,18 +227,7 @@ export const DashboardCreadoraPage = () => {
             <>
               {/* TAB INVITACIONES */}
               {activeSubTab === 'invitaciones' && (
-                <div>
-                  {/* Header con icono y contador */}
-                  {/* <div className="mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-1 flex items-center gap-3">
-                      <Mail className="w-7 h-7 text-pink-500" />
-                      Usuarios Interesados ({invitaciones.length})
-                    </h3>
-                    <p className="text-gray-600">
-                      {invitaciones.length} usuarios han enviado invitaciones
-                    </p>
-                  </div> */}
-
+                <div> 
                   {/* Filtros */}
                   <InvitacionesFilters />
 
@@ -319,6 +329,11 @@ export const DashboardCreadoraPage = () => {
                   </div>
                 </>
               )}
+
+              {/* TAB MI ACTIVIDAD */}
+          {activeSubTab === 'miactividad' && (
+  <MiActividadTab onProgramarEvento={handleProgramarEvento} />
+)}
             </>
           ) : (
             <div>
@@ -329,7 +344,7 @@ export const DashboardCreadoraPage = () => {
                  {activeTab === 'packs' && (
                   <PacksPage />
                 )} 
-                {activeTab === 'envivo'   && (
+                {activeTab === 'envivo' && (
                   <EnVivoPage />
                 )}
                 {activeTab === 'mensajes' && 'Mensajes'}

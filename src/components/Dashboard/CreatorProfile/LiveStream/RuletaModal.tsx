@@ -12,6 +12,7 @@ interface RuletaModalProps {
   onActivarRuleta?: (costoGiro: number, premios: PremioRuleta[]) => void;
   onDesactivarRuleta?: () => void;
   ruletaActiva?: boolean;
+  premiosExistentes?: PremioRuleta[]; // ← AGREGADO PARA PERSISTENCIA
   
   // Props para espectador
   onGirar?: () => void;
@@ -33,6 +34,7 @@ export default function RuletaModal({
   onActivarRuleta,
   onDesactivarRuleta,
   ruletaActiva,
+  premiosExistentes, // ← DESTRUCTURADO
   onGirar,
   costoGiro,
   premioGanado,
@@ -54,6 +56,7 @@ export default function RuletaModal({
         onActivarRuleta={onActivarRuleta}
         onDesactivarRuleta={onDesactivarRuleta}
         ruletaActiva={ruletaActiva}
+        premiosExistentes={premiosExistentes} // ← PASADO A RuletaCreadoraModal
       />
     );
   }

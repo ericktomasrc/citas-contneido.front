@@ -1,6 +1,6 @@
 import { Mail, BarChart3 } from 'lucide-react';
 
-type TabTypeCreadora = 'invitaciones' | 'resumen'; // ✅ CAMBIO DE ORDEN
+type TabTypeCreadora = 'invitaciones' | 'resumen' | 'miactividad';
 
 interface TabsNavigationCreadoraProps {
   activeTab: TabTypeCreadora;
@@ -12,8 +12,9 @@ export const TabsNavigationCreadora = ({
   onTabChange 
 }: TabsNavigationCreadoraProps) => {
   const tabs = [
-    { id: 'invitaciones' as TabTypeCreadora, label: 'Invitaciones', icon: Mail }, // ✅ PRIMERO
-    { id: 'resumen' as TabTypeCreadora, label: 'Resumen', icon: BarChart3 }, // ✅ SEGUNDO
+    { id: 'invitaciones' as TabTypeCreadora, label: 'Invitaciones', icon: Mail },
+    { id: 'resumen' as TabTypeCreadora, label: 'Resumen', icon: BarChart3 },
+    { id: 'miactividad' as TabTypeCreadora, label: 'Mi Actividad', icon: BarChart3 },
   ];
 
   return (

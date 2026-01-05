@@ -2,17 +2,50 @@ import { useState } from 'react';
 import { 
   ArrowLeft, Heart, MessageCircle, Share2, MapPin, 
   Users, CheckCircle, Star, Calendar, Shield, 
-  Camera, Gift, Globe, ThumbsDown
+  Camera, Gift, Globe, ThumbsDown, Image, Video,
+  Crown, ShoppingBag, Play, Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+// Types
+interface MediaItem {
+  id: number;
+  tipo: 'foto' | 'video';
+  url: string;
+  thumbnail: string;
+  isPremium: boolean;
+  likes: number;
+  createdAt: string;
+  duracion?: number;
+  titulo?: string;
+  descripcion?: string;
+}
+
+interface ContenidoComprable {
+  id: number;
+  titulo: string;
+  descripcion: string;
+  tipo: 'pack' | 'video' | 'foto';
+  thumbnail: string;
+  precio: number;
+  cantidadItems: number;
+  cantidadFotos?: number;
+  cantidadVideos?: number;
+  isPurchased: boolean;
+  createdAt: string;
+}
+
+type ContentTabType = 'fotos' | 'videos' | 'premium-fotos' | 'premium-videos' | 'contenido-comprable';
 
 export const PerfilPublicoCreadoraPage = () => {
   const navigate = useNavigate();
   const [isFollowing, setIsFollowing] = useState(false);
-  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
   const [recommend, setRecommend] = useState(false);
   const [notRecommend, setNotRecommend] = useState(false);
+  const [activeTab, setActiveTab] = useState<ContentTabType>('fotos');
+  const [isSubscribedToPhotos, setIsSubscribedToPhotos] = useState(false);
+  const [isSubscribedToVideos, setIsSubscribedToVideos] = useState(false);
 
   // Mock data
   const creadora = {
@@ -21,13 +54,6 @@ export const PerfilPublicoCreadoraPage = () => {
     username: '@maria_lima3',
     edad: 24,
     avatar: 'https://i.pravatar.cc/400?img=1',
-    fotos: [
-      'https://i.pravatar.cc/600?img=1',
-      'https://i.pravatar.cc/600?img=2',
-      'https://i.pravatar.cc/600?img=3',
-      'https://i.pravatar.cc/600?img=4',
-      'https://i.pravatar.cc/600?img=5',
-    ],
     ubicacion: 'Miraflores, Lima',
     bio: 'Modelo y creadora de contenido. Amante del fitness, viajes y la buena vida 💪✨',
     verificada: true,
@@ -56,15 +82,85 @@ export const PerfilPublicoCreadoraPage = () => {
     ultimaConexion: 'Conectada ahora',
     miembroDesde: 'Enero 2024',
     precioSuscripcion: 140,
+    precioSuscripcionFotos: 80,
+    precioSuscripcionVideos: 100,
   };
+
+  // Contenido
+  const fotosPublicas: MediaItem[] = [
+    { id: 1, tipo: 'foto', url: 'https://picsum.photos/400/400?random=1', thumbnail: 'https://picsum.photos/400/400?random=1', isPremium: false, likes: 234, createdAt: '2024-01-15' },
+    { id: 2, tipo: 'foto', url: 'https://picsum.photos/400/400?random=2', thumbnail: 'https://picsum.photos/400/400?random=2', isPremium: false, likes: 189, createdAt: '2024-01-14' },
+    { id: 3, tipo: 'foto', url: 'https://picsum.photos/400/400?random=3', thumbnail: 'https://picsum.photos/400/400?random=3', isPremium: false, likes: 156, createdAt: '2024-01-13' },
+  ];
+
+  const videosPublicos: MediaItem[] = [
+    { id: 10, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/400/400?random=10', isPremium: false, likes: 567, createdAt: '2024-01-13', duracion: 125 },
+  ];
+
+  const contenidoPremiumFotos: MediaItem[] = [
+    { id: 30, tipo: 'foto', url: 'https://picsum.photos/400/400?random=30', thumbnail: 'https://picsum.photos/400/400?random=30', isPremium: true, likes: 456, createdAt: '2024-01-10', titulo: 'Atardecer en la Playa' },
+    { id: 31, tipo: 'foto', url: 'https://picsum.photos/400/400?random=31', thumbnail: 'https://picsum.photos/400/400?random=31', isPremium: true, likes: 389, createdAt: '2024-01-09', titulo: 'Fitness en el Gym' },
+  ];
+
+  const contenidoPremiumVideos: MediaItem[] = [
+    { id: 40, tipo: 'video', url: 'video.mp4', thumbnail: 'https://picsum.photos/400/400?random=40', isPremium: true, likes: 789, createdAt: '2024-01-08', duracion: 180, titulo: 'Yoga Matutina' },
+  ];
+
+  const contenidoComprable: ContenidoComprable[] = [
+    {
+      id: 1,
+      titulo: 'Pack Playa Verano 2024',
+      descripcion: 'Sesión fotográfica exclusiva en la playa. 15 fotos en alta resolución.',
+      tipo: 'pack',
+      thumbnail: 'https://picsum.photos/400/400?random=50',
+      precio: 45,
+      cantidadItems: 15,
+      cantidadFotos: 12,
+      cantidadVideos: 3,
+      isPurchased: false,
+      createdAt: '2024-01-12',
+    },
+    {
+      id: 2,
+      titulo: 'Video Fitness Completo',
+      descripcion: 'Rutina completa de gimnasio en 4K.',
+      tipo: 'video',
+      thumbnail: 'https://picsum.photos/400/400?random=51',
+      precio: 25,
+      cantidadItems: 1,
+      isPurchased: true,
+      createdAt: '2024-01-11',
+    },
+  ];
+
+  const tabs = [
+    { id: 'fotos' as ContentTabType, label: 'Fotos', icon: Image, count: fotosPublicas.length },
+    { id: 'videos' as ContentTabType, label: 'Videos', icon: Video, count: videosPublicos.length },
+    { id: 'premium-fotos' as ContentTabType, label: 'Premium Fotos', icon: Crown, count: contenidoPremiumFotos.length },
+    { id: 'premium-videos' as ContentTabType, label: 'Premium Videos', icon: Crown, count: contenidoPremiumVideos.length },
+    { id: 'contenido-comprable' as ContentTabType, label: 'Contenido ($)', icon: ShoppingBag, count: contenidoComprable.length },
+  ];
+
+  const getContent = () => {
+    switch (activeTab) {
+      case 'fotos': return fotosPublicas;
+      case 'videos': return videosPublicos;
+      case 'premium-fotos': return contenidoPremiumFotos;
+      case 'premium-videos': return contenidoPremiumVideos;
+      case 'contenido-comprable': return null;
+      default: return [];
+    }
+  };
+
+  const isPremiumTab = activeTab === 'premium-fotos' || activeTab === 'premium-videos';
+  const isSubscribed = activeTab === 'premium-fotos' ? isSubscribedToPhotos : activeTab === 'premium-videos' ? isSubscribedToVideos : false;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Bar Simple y Profesional */}
+      {/* Top Bar */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
-            {/* Volver */}
             <button
               onClick={() => navigate(-1)}
               className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
@@ -73,7 +169,6 @@ export const PerfilPublicoCreadoraPage = () => {
               <span className="font-medium text-sm">Volver</span>
             </button>
             
-            {/* Acciones */}
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
@@ -81,9 +176,7 @@ export const PerfilPublicoCreadoraPage = () => {
                   setNotRecommend(false);
                 }}
                 className={`p-2 rounded-lg transition ${
-                  recommend 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  recommend ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 <Heart className={`w-4 h-4 ${recommend ? 'fill-current' : ''}`} />
@@ -95,9 +188,7 @@ export const PerfilPublicoCreadoraPage = () => {
                   setRecommend(false);
                 }}
                 className={`p-2 rounded-lg transition ${
-                  notRecommend 
-                    ? 'bg-red-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  notRecommend ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 <ThumbsDown className={`w-4 h-4 ${notRecommend ? 'fill-current' : ''}`} />
@@ -106,9 +197,7 @@ export const PerfilPublicoCreadoraPage = () => {
               <button
                 onClick={() => setIsFavorite(!isFavorite)}
                 className={`p-2 rounded-lg transition ${
-                  isFavorite 
-                    ? 'bg-orange-500 text-white' 
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  isFavorite ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 <Star className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
@@ -122,10 +211,10 @@ export const PerfilPublicoCreadoraPage = () => {
         </div>
       </div>
 
-      {/* Contenido Principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sidebar Izquierdo */}
+      {/* Main Layout */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-24">
               {/* Avatar */}
@@ -140,12 +229,12 @@ export const PerfilPublicoCreadoraPage = () => {
                     <CheckCircle className="w-4 h-4 text-white" fill="currentColor" />
                   </div>
                 )}
-                {creadora.isOnline && !creadora.enVivo && (
+                {creadora.isOnline && (
                   <div className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
                 )}
               </div>
 
-              {/* Nombre */}
+              {/* Info */}
               <div className="text-center mb-4">
                 <h1 className="text-xl font-bold text-gray-900 mb-1">
                   {creadora.nombre}, {creadora.edad}
@@ -207,11 +296,11 @@ export const PerfilPublicoCreadoraPage = () => {
                 </div>
               </div>
 
-              {/* Suscripción - Minimalista */}
+              {/* Premium */}
               <div className="bg-gray-900 rounded-lg p-4 text-center mb-6">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Star className="w-4 h-4 text-white" />
-                  <span className="text-sm font-semibold text-white">Suscripción Premium</span>
+                  <span className="text-sm font-semibold text-white">Premium</span>
                 </div>
                 <p className="text-2xl font-bold text-white mb-3">S/. {creadora.precioSuscripcion}/mes</p>
                 <button className="w-full py-2.5 bg-white text-gray-900 rounded-lg font-semibold text-sm hover:bg-gray-100 transition">
@@ -219,183 +308,173 @@ export const PerfilPublicoCreadoraPage = () => {
                 </button>
               </div>
 
-              {/* Información Adicional */}
-              <div className="space-y-3 text-xs text-gray-500">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3 h-3" />
-                  <span>Miembro desde {creadora.miembroDesde}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3 h-3" />
-                  <span>Perfil verificado</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span>{creadora.ultimaConexion}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Contenido Derecho */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Galería de Fotos */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Camera className="w-4 h-4 text-gray-700" />
-                Galería
-              </h2>
-              
-              {/* Foto Principal */}
-              <div className="relative aspect-[4/3] rounded-lg overflow-hidden mb-4 bg-gray-100">
-                <img
-                  src={creadora.fotos[activePhotoIndex]}
-                  alt="Foto"
-                  className="w-full h-full object-cover"
-                />
-                
-                {/* Navegación */}
-                {activePhotoIndex > 0 && (
-                  <button
-                    onClick={() => setActivePhotoIndex(activePhotoIndex - 1)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow transition"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-gray-900" />
-                  </button>
-                )}
-                {activePhotoIndex < creadora.fotos.length - 1 && (
-                  <button
-                    onClick={() => setActivePhotoIndex(activePhotoIndex + 1)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow transition rotate-180"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-gray-900" />
-                  </button>
-                )}
-
-                {/* Contador */}
-                <div className="absolute bottom-3 right-3 bg-black/60 px-2 py-1 rounded text-white text-xs font-medium">
-                  {activePhotoIndex + 1} / {creadora.fotos.length}
-                </div>
-              </div>
-
-              {/* Thumbnails */}
-              <div className="grid grid-cols-5 gap-2">
-                {creadora.fotos.map((foto, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setActivePhotoIndex(index)}
-                    className={`aspect-square rounded overflow-hidden transition ${
-                      activePhotoIndex === index
-                        ? 'ring-2 ring-gray-900'
-                        : 'opacity-60 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={foto} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Sobre mí */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Sobre mí</h2>
-              <p className="text-sm text-gray-700 leading-relaxed">{creadora.bio}</p>
-            </div>
-
-            {/* Características Físicas */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Características Físicas</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Info Adicional */}
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                {/* Características */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Altura</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.altura} cm</p>
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Características</p>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Altura</span>
+                      <span className="text-gray-900 font-medium">{creadora.altura} cm</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Tipo</span>
+                      <span className="text-gray-900 font-medium">{creadora.tipoCuerpo}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Tipo de cuerpo</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.tipoCuerpo}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Apariencia</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.apariencia}</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Idiomas */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-gray-700" />
-                Idiomas
-              </h2>
-              <div className="space-y-3">
+                {/* Idiomas */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Idiomas que hablo</p>
-                  <div className="flex flex-wrap gap-2">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Idiomas</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {creadora.idiomas.map((idioma) => (
-                      <span
-                        key={idioma}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium"
-                      >
+                      <span key={idioma} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
                         {idioma}
                       </span>
                     ))}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Nivel de inglés</p>
-                    <p className="text-sm font-semibold text-gray-900">{creadora.nivelIngles}</p>
+
+                {/* Meta */}
+                <div className="space-y-2 text-xs text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3" />
+                    <span>Miembro desde {creadora.miembroDesde}</span>
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Etnia</p>
-                    <p className="text-sm font-semibold text-gray-900">{creadora.etnia}</p>
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-3 h-3" />
+                    <span>Perfil verificado</span>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Estilo de Vida */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Estilo de Vida</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">¿Fumas?</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.fumas}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Hijos</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.hijos}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Buscando</p>
-                  <div className="flex flex-wrap gap-2">
-                    {creadora.buscando.map((tipo) => (
-                      <span
-                        key={tipo}
-                        className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium"
+          {/* Content Area */}
+          <div className="lg:col-span-3">
+            {/* Tabs */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-4">
+              <div className="overflow-x-auto">
+                <div className="flex border-b border-gray-200">
+                  {tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-4 py-3 font-medium text-sm transition relative whitespace-nowrap ${
+                          isActive 
+                            ? 'text-gray-900 border-b-2 border-gray-900 -mb-px' 
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
                       >
-                        {tipo}
-                      </span>
+                        <tab.icon className="w-4 h-4" />
+                        <span>{tab.label}</span>
+                        {tab.count > 0 && (
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            isActive ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div>
+              {activeTab === 'contenido-comprable' ? (
+                /* Contenido Comprable */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {contenidoComprable.map((item) => (
+                    <div key={item.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:border-gray-300 transition">
+                      <div className="aspect-video relative bg-gray-100">
+                        <img src={item.thumbnail} alt={item.titulo} className="w-full h-full object-cover" />
+                        <div className="absolute top-2 right-2 px-2 py-1 bg-gray-900 text-white text-xs font-bold rounded">
+                          S/. {item.precio}
+                        </div>
+                        {item.isPurchased && (
+                          <div className="absolute top-2 left-2 px-2 py-1 bg-green-500 text-white text-xs font-bold rounded">
+                            Comprado
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-gray-900 mb-1 text-sm">{item.titulo}</h3>
+                        <p className="text-xs text-gray-600 mb-3 line-clamp-2">{item.descripcion}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-gray-500">{item.cantidadItems} items</span>
+                          <button 
+                            disabled={item.isPurchased}
+                            className={`px-4 py-2 rounded-lg text-xs font-semibold transition ${
+                              item.isPurchased
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-900 text-white hover:bg-gray-800'
+                            }`}
+                          >
+                            {item.isPurchased ? 'Comprado' : 'Comprar'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  {/* Premium Lock */}
+                  {isPremiumTab && !isSubscribed && (
+                    <div className="bg-white rounded-lg border-2 border-gray-200 p-8 text-center mb-4">
+                      <Lock className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">Contenido Premium</h3>
+                      <p className="text-sm text-gray-600 mb-6">
+                        Suscríbete para acceder a {activeTab === 'premium-fotos' ? 'fotos' : 'videos'} exclusivos
+                      </p>
+                      <button 
+                        onClick={() => activeTab === 'premium-fotos' ? setIsSubscribedToPhotos(true) : setIsSubscribedToVideos(true)}
+                        className="bg-gray-900 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-800 transition text-sm"
+                      >
+                        Suscribirse por S/. {activeTab === 'premium-fotos' ? creadora.precioSuscripcionFotos : creadora.precioSuscripcionVideos}/mes
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Media Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {getContent()?.map((item: MediaItem) => (
+                      <div key={item.id} className="aspect-square relative group bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={item.thumbnail}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                        {item.tipo === 'video' && (
+                          <>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-10 h-10 bg-black/60 rounded-full flex items-center justify-center">
+                                <Play className="w-5 h-5 text-white fill-current ml-0.5" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/70 text-white text-xs font-semibold rounded">
+                              {Math.floor(item.duracion! / 60)}:{(item.duracion! % 60).toString().padStart(2, '0')}
+                            </div>
+                          </>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                          <div className="flex items-center gap-2 text-white">
+                            <Heart className="w-4 h-4" />
+                            <span className="font-semibold text-sm">{item.likes}</span>
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Ingresos (USD)</p>
-                  <p className="text-sm font-semibold text-gray-900">{creadora.ingresos}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* CTA Final - Minimalista */}
-            <div className="bg-gray-900 rounded-lg p-6 text-center">
-              <Star className="w-8 h-8 mx-auto mb-3 text-white" />
-              <h3 className="text-xl font-bold text-white mb-2">¿Te interesa este perfil?</h3>
-              <p className="text-sm text-gray-300 mb-4">
-                Suscríbete para acceder a contenido exclusivo
-              </p>
-              <button className="bg-white text-gray-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition">
-                Suscribirse por S/. {creadora.precioSuscripcion}/mes
-              </button>
+                </>
+              )}
             </div>
           </div>
         </div>
