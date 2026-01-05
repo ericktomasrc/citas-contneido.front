@@ -4,7 +4,8 @@ import {
   X, Minus, Square, Maximize2, Users, Radio, Settings, 
   MessageCircle, ChevronDown, ChevronUp, Mic, MicOff, 
   Video as VideoIcon, VideoOff, Send, Crown, Copy, Check, Sparkles,
-  DollarSign, Trash2, Plus
+  DollarSign, Trash2, Plus,
+  AlertCircle
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { useTransmision } from '../../contexts/TransmisionContext';
@@ -165,13 +166,69 @@ export const FloatingTransmisionWindow = () => {
   const chatMessagesRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  const [espectadoresEnVivo, setEspectadoresEnVivo] = useState(0);
+const [tiempoSinEspectadores, setTiempoSinEspectadores] = useState(0);
+const [mostrarAlertaSinAudiencia, setMostrarAlertaSinAudiencia] = useState(false);
+
   // Stats
   const stats = {
     seguidores: 12400,
     suscriptores: 1200,
-    publico: 0
+    publico: espectadoresEnVivo
   };
 
+
+useEffect(() => {
+  if (!enVivo || !channelName) return;
+
+  const intervalo = setInterval(async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/espectadores/${channelName}`);
+      const data = await response.json();
+      setEspectadoresEnVivo(data.espectadores);
+    } catch (error) {
+      console.error('Error al obtener espectadores:', error);
+    }
+  }, 3000); // Actualizar cada 3 segundos
+
+  return () => clearInterval(intervalo);
+}, [enVivo, channelName]);
+
+// Monitorear tiempo sin espectadores (alerta a los 3 min, auto-detener a los 10 min)
+useEffect(() => {
+  if (!enVivo) {
+    setTiempoSinEspectadores(0);
+    setMostrarAlertaSinAudiencia(false);
+    return;
+  }
+
+  const intervalo = setInterval(() => {
+    if (espectadoresEnVivo === 0) {
+      setTiempoSinEspectadores(prev => {
+        const nuevoTiempo = prev + 1;
+        
+        // Alerta a los 3 minutos (180 segundos)
+        if (nuevoTiempo === 180) {
+          setMostrarAlertaSinAudiencia(true);
+        }
+        
+        // Auto-detener a los 10 minutos (600 segundos)
+        if (nuevoTiempo >= 600) {
+          confirmarCierre(); // Llamar a la función de cierre
+        }
+        
+        return nuevoTiempo;
+      });
+    } else {
+      // Resetear si hay espectadores
+      setTiempoSinEspectadores(0);
+      setMostrarAlertaSinAudiencia(false);
+    }
+  }, 1000); // Verificar cada segundo
+
+  return () => clearInterval(intervalo);
+}, [enVivo, espectadoresEnVivo]);
+  
   const porcentajeMeta = metaActual > 0 ? Math.min((progresoMeta / metaActual) * 100, 100) : 0;
 
   // Sistema de tiers CONFIGURABLE para regalos
@@ -661,6 +718,11 @@ export const FloatingTransmisionWindow = () => {
     setShowMetaModal(false);
     setShowModeracionModal(false);
     setShowRuletaModal(false);
+
+     // Agregar reset de contador de espectadores
+  setEspectadoresEnVivo(0);
+  setTiempoSinEspectadores(0);
+  setMostrarAlertaSinAudiencia(false);
     
     console.log('✅ Reset completo finalizado');
     
@@ -1237,6 +1299,26 @@ export const FloatingTransmisionWindow = () => {
                   <div className="text-center">
                     <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-3" />
                     <p className="text-white font-medium">Conectando...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Alerta de sin audiencia */}
+              {mostrarAlertaSinAudiencia && enVivo && (
+                <div className="no-drag flex-shrink-0 bg-amber-50 border-2 border-amber-300 rounded-lg p-4 flex items-start gap-3 animate-pulse mx-4 mb-4">
+                  <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-amber-900">⚠️ No tienes espectadores</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Llevas {Math.floor(tiempoSinEspectadores / 60)} minutos sin audiencia. 
+                      La transmisión se detendrá automáticamente a los 10 minutos para ahorrar recursos.
+                    </p>
+                    <button
+                      onClick={confirmarCierre}
+                      className="mt-2 px-3 py-1 bg-amber-600 text-white text-xs rounded-lg hover:bg-amber-700 transition"
+                    >
+                      Finalizar ahora
+                    </button>
                   </div>
                 </div>
               )}
