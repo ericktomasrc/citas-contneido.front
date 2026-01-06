@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
-import { TabsNavigationCreadora } from '../../components/DashboardCreadora/Tabs/TabsNavigationCreadora';
+import { TabsNavigationCreadora } from '../../components/DashboardCreadora/Tabs/Inicio/TabsNavigationCreadora';
 import { StatsCards } from '../../components/DashboardCreadora/StatsCards/StatsCards';
 import { InvitacionesCarousel } from '../../components/DashboardCreadora/Invitaciones/InvitacionesCarousel';
 import { InvitacionesFilters } from '../../components/DashboardCreadora/Invitaciones/InvitacionesFilters'; 
-import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/MiActividadTab';
+import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/MiActividadTab';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { EnVivoPage } from './EnVivoPage/EnVivoPage';
@@ -331,9 +331,9 @@ export const DashboardCreadoraPage = () => {
               )}
 
               {/* TAB MI ACTIVIDAD */}
-          {activeSubTab === 'miactividad' && (
-  <MiActividadTab onProgramarEvento={handleProgramarEvento} />
-)}
+              {activeSubTab === 'miactividad' && (
+                <MiActividadTab onProgramarEvento={handleProgramarEvento} />
+              )}
             </>
           ) : (
             <div>
@@ -344,9 +344,9 @@ export const DashboardCreadoraPage = () => {
                  {activeTab === 'packs' && (
                   <PacksPage />
                 )} 
-                {activeTab === 'envivo' && (
+                {/* {activeTab === 'envivo' && (
                   <EnVivoPage />
-                )}
+                )} */}
                 {activeTab === 'mensajes' && 'Mensajes'}
                 {activeTab === 'donaciones' && 'Donaciones'}
                 {activeTab === 'configuracion' && 'Configuración'}

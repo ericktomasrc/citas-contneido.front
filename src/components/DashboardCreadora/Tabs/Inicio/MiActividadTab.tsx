@@ -1,8 +1,8 @@
 // src/components/DashboardCreadora/Tabs/MiActividadTab.tsx
 import { useState } from 'react';
 import { Calendar, Video, Radio, Crown, X, Trash2 } from 'lucide-react';
-import { CalendarioModal, EventoCalendario } from '../../Modals/CalendarioModal';
-import { useTransmision } from '../../../contexts/TransmisionContext';
+import { CalendarioModal, EventoCalendario } from '../../../Modals/CalendarioModal';
+import { useTransmision } from '../../../../contexts/TransmisionContext';
 
 interface MiActividadTabProps {
   onProgramarEvento?: () => void;

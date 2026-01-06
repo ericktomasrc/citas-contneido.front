@@ -20,7 +20,7 @@ const menuItems = [
   { id: 'resumen' as TabType, icon: Home, label: 'Inicio', badge: null },
   { id: 'contenido' as TabType, icon: Image, label: 'Contenido', badge: null },
   { id: 'packs' as TabType, icon: Package, label: 'Packs', badge: null },
-  { id: 'envivo' as TabType, icon: Radio, label: 'En Vivo', badge: null },
+ // { id: 'envivo' as TabType, icon: Radio, label: 'En Vivo', badge: null },
   { id: 'mensajes' as TabType, icon: MessageCircle, label: 'Mensajes', badge: 12 },
   { id: 'invitaciones' as TabType, icon: Mail, label: 'Invitaciones', badge: 5 },
   { id: 'donaciones' as TabType, icon: DollarSign, label: 'Donaciones', badge: 8 },
