@@ -1,8 +1,8 @@
 // src/components/DashboardCreadora/Tabs/Contenido/TarjetaPack.tsx
 import { useState } from 'react';
 import { Edit2, Trash2, Camera, Video as VideoIcon, Users, Check, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
-import { ModalVisualizador } from '../../../Common/ModalVisualizador';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
+import { ModalVisualizador } from '../../../Common/Modal/ModalVisualizador';
 import type { Pack } from './types';
 
 interface TarjetaPackProps {

@@ -13,7 +13,7 @@ import { useAgoraTransmision } from '../../hooks/useAgoraTransmision';
 import { useTransmisionChat } from '../../hooks/useTransmisionChat';
 // import { ChatConfigModal } from './ChatConfigModal'; // Ya no se usa - ahora es dropdown integrado
 import { ToastConfirmation } from '../Modals/ToastConfirmation';
-import { ConfirmacionModal } from '../Common/ConfirmacionModal';
+import { ConfirmacionModal } from '../Common/Modal/ConfirmacionModal';
 import RuletaModal from '../Dashboard/CreatorProfile/LiveStream/RuletaModal';
 import { PremioRuleta } from '@/shared/types/ruleta.types';
 

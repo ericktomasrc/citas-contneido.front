@@ -150,7 +150,7 @@ const DashboardEspectadorPageContent = () => {
   // Función para navegar al perfil
   const handleVerPerfil = (creator: Creator) => {
     if (creator.slug) {
-      navigate(`/creadora/${creator.slug}`);
+      navigate(`/perfil/${creator.slug}`);
     }
   };
 

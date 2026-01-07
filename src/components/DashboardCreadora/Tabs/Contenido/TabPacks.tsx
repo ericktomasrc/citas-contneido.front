@@ -4,7 +4,7 @@ import { Package, AlertCircle } from 'lucide-react';
 import { AgregarPackModal } from './AgregarPackModal';
 import { ListadoPacks } from './ListadoPacks';
 import { EstadoVentaPacks } from './EstadoVentaPacks';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
 import type { Pack, ArchivoContenido } from './types';
 
 const MINIMO_ARCHIVOS_PACK = 5;

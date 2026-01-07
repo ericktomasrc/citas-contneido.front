@@ -1,11 +1,11 @@
 // src/components/DashboardCreadora/Tabs/Contenido/TabContenido.tsx
 import { useState } from 'react';
 import { Image, Video, AlertCircle } from 'lucide-react';
-import { CONTENIDO_CONFIG } from '../../../Common/config';
+import { CONTENIDO_CONFIG } from '../../../Common/config/config';
 import { AgregarContenidoModal } from './AgregarContenidoModal';
 import { ListadoContenido } from './ListadoContenido';
 import { EstadoSuscripcion } from './EstadoSuscripcion';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
 import type { ArchivoContenido, GrupoContenido } from './types';
 
 interface TabContenidoProps {

@@ -1,8 +1,8 @@
 // src/components/DashboardCreadora/Tabs/Contenido/TarjetaArchivo.tsx
 import { useState } from 'react';
 import { Trash2, Video, Eye } from 'lucide-react';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
-import { ModalVisualizador } from '../../../Common/ModalVisualizador';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
+import { ModalVisualizador } from '../../../Common/Modal/ModalVisualizador';
 import type { ArchivoContenido } from './types';
 
 interface TarjetaArchivoProps {

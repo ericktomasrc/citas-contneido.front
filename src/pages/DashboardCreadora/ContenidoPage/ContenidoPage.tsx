@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, Video, Package } from 'lucide-react';
-import { CONTENIDO_CONFIG } from '../../../components/Common/config';
+import { CONTENIDO_CONFIG } from '../../../components/Common/config/config';
 import { TabContenido } from '../../../components/DashboardCreadora/Tabs/Contenido/TabContenido';
 import { TabPacks } from '../../../components/DashboardCreadora/Tabs/Contenido/TabPacks'; 
  

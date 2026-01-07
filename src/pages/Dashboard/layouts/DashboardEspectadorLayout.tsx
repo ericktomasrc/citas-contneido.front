@@ -1,6 +1,6 @@
 // src/layouts/DashboardEspectadorLayout.tsx
 import { ReactNode } from 'react'; 
-import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
+import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
 import { OnlineCreator } from '@/shared/types/creator.types'; 
 
 interface OnlineCreatorExtended extends OnlineCreator {

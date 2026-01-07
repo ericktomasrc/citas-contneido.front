@@ -1,8 +1,8 @@
 // src/components/DashboardCreadora/Tabs/Contenido/AgregarContenidoModal.tsx
 import { useState, useRef } from 'react';
 import { X, Upload, Camera, Video as VideoIcon, Trash2, Eye, Image, Video } from 'lucide-react';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
-import { ModalVisualizador } from '../../../Common/ModalVisualizador';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
+import { ModalVisualizador } from '../../../Common/Modal/ModalVisualizador';
 import type { ArchivoContenido, ArchivoPreview } from './types';
 
 interface AgregarContenidoModalProps {

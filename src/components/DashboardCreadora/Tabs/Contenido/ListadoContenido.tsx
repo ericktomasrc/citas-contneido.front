@@ -1,7 +1,7 @@
 // src/components/DashboardCreadora/Tabs/Contenido/ListadoContenido.tsx
 import { useState } from 'react';
 import { Calendar, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
 import type { GrupoContenido } from './types';
 import { TarjetaArchivo } from './TarjetaArchivo';
 

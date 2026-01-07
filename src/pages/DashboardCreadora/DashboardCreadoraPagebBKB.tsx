@@ -9,7 +9,7 @@ import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/M
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { OnlineCreator } from '@/shared/types/creator.types';
-import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
+import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
 
 interface OnlineCreatorExtended extends OnlineCreator {
   edad?: number;

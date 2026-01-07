@@ -4,7 +4,7 @@ import { ArrowLeft, MapPin, Calendar, Briefcase, Heart, GraduationCap, Users, X,
 import { NavbarCreadora } from '../../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { OnlineCreator } from '@/shared/types/creator.types';
-import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
+import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
 
 interface OnlineCreatorExtended extends OnlineCreator {
   edad?: number;

@@ -1,8 +1,8 @@
 // src/components/DashboardCreadora/Tabs/Contenido/EstadoSuscripcion.tsx
 import { useState } from 'react';
 import { Crown, Edit2, Check, X, Users } from 'lucide-react';
-import { ConfirmacionModal } from '../../../Common/ConfirmacionModal';
-import { CONTENIDO_CONFIG } from '../../../Common/config';
+import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
+import { CONTENIDO_CONFIG } from '../../../Common/config/config';
 
 interface EstadoSuscripcionProps {
   tipo: 'fotos' | 'videos';

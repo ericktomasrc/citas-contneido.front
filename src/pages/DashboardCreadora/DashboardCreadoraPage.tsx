@@ -9,7 +9,7 @@ import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/M
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { OnlineCreator } from '@/shared/types/creator.types';
-import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
+import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
 import { Heart, MapPin, X, Check, Calendar, Eye } from 'lucide-react';
 
 interface OnlineCreatorExtended extends OnlineCreator {
