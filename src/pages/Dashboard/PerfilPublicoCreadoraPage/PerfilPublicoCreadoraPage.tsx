@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Heart, MessageCircle, Share2, MapPin, Cake, Globe, Users, CheckCircle, Star, Calendar, Shield, Camera, Gift } from 'lucide-react';
+import { ArrowLeft, Heart, MessageCircle, Share2, MapPin, Globe, Users, CheckCircle, Star, Calendar, Shield, Camera, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const PerfilPublicoCreadoraPage = () => {

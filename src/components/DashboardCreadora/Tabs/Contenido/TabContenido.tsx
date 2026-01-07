@@ -286,12 +286,12 @@ export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
           <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
             Comienza subiendo {tipo} para tus suscriptores
           </p>
-          <button
+          {/* <button
             onClick={() => setShowAgregarModal(true)}
             className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-xl hover:scale-[1.02]"
           >
             Agregar tus Primeras {labelTipo}
-          </button>
+          </button> */}
         </div>
       ) : (
         <ListadoContenido

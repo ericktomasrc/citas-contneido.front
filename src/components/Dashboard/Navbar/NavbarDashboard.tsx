@@ -108,6 +108,22 @@ export const NavbarDashboard = ({
 
         {/* Right Section */}
         <div className="flex items-center gap-2">
+          {/* Notificaciones */}
+          <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+            <Bell className="w-6 h-6 text-gray-700" />
+            <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              8
+            </span>
+          </button>
+
+          {/* Mensajes */}
+          <button className="relative p-2 hover:bg-gray-100 rounded-lg transition">
+            <MessageCircle className="w-6 h-6 text-gray-700" />
+            <span className="absolute top-1 right-1 w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              12
+            </span>
+          </button>
+
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button 
@@ -186,8 +202,7 @@ export const NavbarDashboard = ({
                   </button>
                 </div>
 
-                {/* Logout */}
-                <div className="border-t border-gray-100 pt-1">
+                {/* Logout */}                 
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
@@ -195,8 +210,7 @@ export const NavbarDashboard = ({
                   >
                     <LogOut className={`w-4 h-4 ${isLoggingOut ? 'animate-pulse' : ''}`} />
                     <span>{isLoggingOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}</span>
-                  </button>
-                </div>
+                  </button>                
               </div>
             )}
           </div>

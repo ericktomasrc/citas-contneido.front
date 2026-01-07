@@ -33,7 +33,7 @@ export const LoginPage = () => {
       localStorage.setItem('user', JSON.stringify(response.user));
       
       // ✅ REDIRIGIR AL DASHBOARD
-      navigate('/dashboard');
+      navigate('/dashboard-espectador');
       
     } catch (err: any) {
       // ✅ MANEJO DE ERRORES

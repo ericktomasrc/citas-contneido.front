@@ -376,7 +376,7 @@ const handleCancelRegistro = () => {
      setTimeout(() => {
         if (registrationData.tipoUsuario === 1) {
           // Espectador → Dashboard existente
-          navigate('/dashboard');
+          navigate('/dashboard-espectador');
         } else if (registrationData.tipoUsuario === 2) {
           // Creadora → Dashboard de Monetizador (nuevo)
           navigate('/dashboard-creadora');
@@ -1495,7 +1495,7 @@ const handleCancelRegistro = () => {
             onClose={() => {
               setShowConfirmModal(false);
               if (registrationData.tipoUsuario === 1) {
-                  navigate('/dashboard');
+                  navigate('/dashboard-espectador');
                 } else {
                   navigate('/dashboard-creadora');
                 }

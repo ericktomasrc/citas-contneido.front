@@ -1,49 +1,39 @@
-import { useState } from 'react';
+import { DashboardEspectadorLayout } from './layouts/DashboardEspectadorLayout'; 
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, Video, MapPin, UserPlus, Eye } from 'lucide-react';
 import { NavbarDashboard } from '../../components/Dashboard/Navbar/NavbarDashboard';
 import { SidebarDashboard } from '../../components/Dashboard/Sidebar/SidebarDashboard';
-import { TabsNavigation } from '../../components/Dashboard/Tabs/TabsNavigation';
-import { OnlineCreatorsCarousel } from '../../components/Dashboard/OnlineCreators/OnlineCreatorsCarousel';
-import { CreatorGrid } from '../../components/Dashboard/CreatorCard/CreatorGrid';
 import { LiveGrid } from '../../components/Dashboard/CreatorProfile/LiveStream/LiveGrid'; 
 import { useDashboard } from '../../shared/hooks/useDashboard';
-import { LiveStream } from '../../shared/types/creator-profile.types';  
-import { OnlineCreator } from '@/shared/types/creator.types';
-import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
+import { LiveStream } from '../../shared/types/creator-profile.types';
+import { Creator } from '@/shared/types/creator.types'; 
 
-interface OnlineCreatorExtended extends OnlineCreator {
-  edad?: number;
-}
-
-export const DashboardEspectadorPage = () => {
+const DashboardEspectadorPageContent = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false); 
-  const [quickFilter, setQuickFilter] = useState<'favoritas' | 'nuevas' | 'sugeridas' | null>(null);
+  const [activeTab, setActiveTab] = useState<'descubrir' | 'en-vivo'>('descubrir');
+  
+  // Estados para infinite scroll
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   const {
-    activeTab,
-    creators,
+    creators: initialCreators,
     loading,
-    handleTabChange,
-    handleCreatorClick,
     handleLike,
-  } = useDashboard();
+  } = useDashboard(); 
 
-  // Mock data - Creadoras en línea
-  const onlineCreators: OnlineCreatorExtended[] = [
-    { id: 1, slug: 'maria-rodriguez-a7k3', nombre: 'Chelsea', edad: 24, avatar: 'https://i.pravatar.cc/150?img=1', isLive: true, isFavorite: true },
-    { id: 2, slug: 'amanda-garcia-b9d2', nombre: 'Amanda', edad: 26, avatar: 'https://i.pravatar.cc/150?img=2', isLive: false, isFavorite: false },
-    { id: 3, slug: 'chloe-martin-c4f7', nombre: 'Chloe', edad: 22, avatar: 'https://i.pravatar.cc/150?img=3', isLive: true, isFavorite: false },
-    { id: 4, slug: 'leslie-hall-e8k1', nombre: 'Leslie', edad: 28, avatar: 'https://i.pravatar.cc/150?img=4', isLive: false, isFavorite: true },
-    { id: 5, slug: 'maria-lopez-d3j9', nombre: 'María', edad: 25, avatar: 'https://i.pravatar.cc/150?img=5', isLive: false, isFavorite: false },
-    { id: 6, slug: 'ana-martinez-f6l4', nombre: 'Ana', edad: 27, avatar: 'https://i.pravatar.cc/150?img=6', isLive: true, isFavorite: true },
-    { id: 7, slug: 'sofia-gonzalez-h7k2', nombre: 'Sofía', edad: 23, avatar: 'https://i.pravatar.cc/150?img=7', isLive: false, isFavorite: false },
-    { id: 8, slug: 'lucia-morales-j9l8', nombre: 'Lucía', edad: 29, avatar: 'https://i.pravatar.cc/150?img=8', isLive: false, isFavorite: true },
-    { id: 9, slug: 'valeria-castro-t8n4', nombre: 'Valeria', edad: 24, avatar: 'https://i.pravatar.cc/150?img=9', isLive: true, isFavorite: false },
-    { id: 10, slug: 'camila-torres-r3b9', nombre: 'Camila', edad: 26, avatar: 'https://i.pravatar.cc/150?img=10', isLive: false, isFavorite: true },
-    { id: 11, slug: 'daniela-ruiz-w5p3', nombre: 'Daniela', edad: 25, avatar: 'https://i.pravatar.cc/150?img=11', isLive: true, isFavorite: false },
-    { id: 12, slug: 'andrea-silva-q7m8', nombre: 'Andrea', edad: 28, avatar: 'https://i.pravatar.cc/150?img=12', isLive: false, isFavorite: false },
-  ];
+  const [creators, setCreators] = useState<Creator[]>(initialCreators);
 
-  //   NUEVO - Mock data de Lives
+  // Sincronizar creators iniciales
+  useEffect(() => {
+    setCreators(initialCreators);
+  }, [initialCreators]); 
+
   const mockLives: LiveStream[] = [
     {
       id: 1,
@@ -152,99 +142,271 @@ export const DashboardEspectadorPage = () => {
     },
   ];
 
-  // Filtrar creators según quick filter
-const filteredCreators = quickFilter
-  ? creators.filter(c => {
-      if (quickFilter === 'favoritas') {
-        return c.isFavorite; // Mostrar solo favoritas
+  const tabs = [
+    { id: 'descubrir' as const, label: 'Descubrir', icon: Heart },
+    { id: 'en-vivo' as const, label: 'En Vivo', icon: Video },
+  ];
+
+  // Función para navegar al perfil
+  const handleVerPerfil = (creator: Creator) => {
+    if (creator.slug) {
+      navigate(`/creadora/${creator.slug}`);
+    }
+  };
+
+  // Función para invitar
+  const handleInvitar = (creatorId: number) => {
+    console.log('💌 Invitando a creadora:', creatorId);
+    // TODO: Conectar con backend
+    // await fetch(`/api/invitaciones`, { method: 'POST', body: JSON.stringify({ creatorId }) });
+  };
+
+  // Función para cargar más contenido
+  const loadMoreCreators = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    
+    setIsLoadingMore(true);
+    console.log('📥 Cargando más creadoras... Página:', page + 1);
+    
+    // Simular llamada al API
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // TODO: Aquí iría la llamada real al backend
+    // const response = await fetch(`/api/creators?page=${page + 1}&limit=12`);
+    // const newCreators = await response.json();
+    
+    // Simulación: duplicar creators existentes con nuevos IDs
+    const newCreators = initialCreators.slice(0, 6).map((creator, index) => ({
+      ...creator,
+      id: creator.id + (page * 100) + index,
+      nombre: `${creator.nombre} ${page + 1}`,
+    }));
+
+    if (newCreators.length === 0 || page >= 5) { // Limitar a 5 páginas en demo
+      setHasMore(false);
+    } else {
+      setCreators(prev => [...prev, ...newCreators]);
+      setPage(prev => prev + 1);
+    }
+    
+    setIsLoadingMore(false);
+  }, [page, isLoadingMore, hasMore, initialCreators]);
+
+  // Intersection Observer para infinite scroll automático
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && !isLoadingMore && hasMore && activeTab === 'descubrir') {
+          loadMoreCreators();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
       }
-      if (quickFilter === 'nuevas') {
-        const dias = Math.floor((Date.now() - new Date(c.fechaRegistro || 0).getTime()) / (1000 * 60 * 60 * 24));
-        return dias <= 7;
-      }
-      if (quickFilter === 'sugeridas') {
-        return c.isVerified && c.likes > 1000; // O tu lógica de sugeridas
-      }
-      return true;
-    })
-  : creators;
+    };
+  }, [loadMoreCreators, isLoadingMore, hasMore, activeTab]);
+
+  // Reset page cuando cambia de tab
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    setCreators(initialCreators);
+  }, [activeTab, initialCreators]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navbar */}
+    <>
       <NavbarDashboard
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         notificationsCount={5}
         messagesCount={3}
       />
 
-      {/* Sidebar */}
       <SidebarDashboard
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-      />
-
-      <OnlineCreatorsSidebar creators={onlineCreators} />
-      {/* Main Content */}
-      <main className="pt-16 lg:pl-64 pr-24 min-h-screen">
-        <div className="p-4 md:p-6 lg:p-8"> 
-
-          {/* Tabs + Quick Filters */}
-          <div className="mb-6">
-            <TabsNavigation
-              activeTab={activeTab}
-              onTabChange={handleTabChange}
-              activeQuickFilter={quickFilter}
-              onQuickFilterChange={setQuickFilter}
-            />
+      /> 
+      
+      <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-64 pr-0 lg:pr-24 overflow-hidden flex flex-col">
+        {/* Header Fijo */}
+        <div className="flex-shrink-0 bg-white border-b border-slate-200">
+          {/* Tabs */}
+          <div className="flex border-b border-slate-200 px-6">
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    relative flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap
+                    ${isActive 
+                      ? 'text-pink-600' 
+                      : 'text-slate-600 hover:text-slate-900'
+                    }
+                  `}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                  
+                  {isActive && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+                  )}
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          {/*   CONDICIONAL SEGÚN TAB ACTIVO */}
-          {activeTab === 'descubrir' && (
-            <>
-              {/* Online Creators Carousel */}
-              {/* <OnlineCreatorsCarousel
-                creators={onlineCreators}
-                onCreatorClick={handleCreatorClick}
-              /> */}
+        {/* Contenido con Scroll */}
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          <div className="p-6">
+            {activeTab === 'descubrir' && (
+              <>
+                {/* Grid de Creadoras */}
+                {creators.length === 0 && !loading ? (
+                  <div className="text-center py-16">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mb-4">
+                      <Heart className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                      No hay creadoras disponibles
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Vuelve más tarde para ver nuevos perfiles
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {creators.map((creator) => (
+                        <div
+                          key={creator.id}
+                          className="bg-white rounded-2xl border-2 border-slate-200 hover:border-pink-300 transition-all overflow-hidden group shadow-sm hover:shadow-md"
+                        >
+                          {/* Avatar */}
+                          <div 
+                            className="relative aspect-[3/4] bg-slate-100 cursor-pointer"
+                            onClick={() => handleVerPerfil(creator)}
+                          >
+                            <img
+                              src={creator.avatar}
+                              alt={creator.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                            
+                            {/* Badge de Live */}
+                            {creator.isLive && (
+                              <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-lg animate-pulse">
+                                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                                EN VIVO
+                              </div>
+                            )}
 
-              {/* Grid */}
-              <CreatorGrid
-                creators={filteredCreators}
-                loading={loading}
-                onCreatorClick={handleCreatorClick}
-                onLike={handleLike}
-              />
+                            {/* Badge Verificado */}
+                            {creator.isVerified && (
+                              <div className="absolute top-2 left-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs">✓</span>
+                              </div>
+                            )}
 
-              {/* Load More */}
-              {!loading && filteredCreators.length > 0 && (
-                <div className="text-center mt-8">
-                  <button className="px-8 py-3 bg-white border-2 border-gray-200 rounded-xl font-semibold text-gray-700 hover:border-pink-500 hover:text-pink-600 transition">
-                    Cargar más
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+                            {/* Gradient overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-          {/*  NUEVO - SECCIÓN EN VIVO */}
-          {activeTab === 'en-vivo' && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h4 className="text-gray-900 text-3xl font-bold mb-2">
-                    Transmisiones en Vivo
-                  </h4>
-                  <p className="text-gray-600">
+                            {/* Info sobre la foto */}
+                            <div className="absolute bottom-0 left-0 right-0 p-3">
+                              <h3 className="text-white font-bold text-lg mb-0.5">
+                                {creator.nombre}
+                              </h3>
+                              <div className="flex items-center gap-1.5 text-white/90 text-xs">
+                                <MapPin className="w-3 h-3" />
+                                <span>{creator.ubicacion || 'Lima, Perú'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Botones de Acción */}
+                          <div className="p-3 space-y-2">
+                            {/* Botón Ver Perfil */}
+                            <button
+                              onClick={() => handleVerPerfil(creator)}
+                              className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver Perfil
+                            </button>
+                            
+                            {/* Botón Invitar */}
+                            <button
+                              onClick={() => handleInvitar(creator.id)}
+                              className="w-full px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                            >
+                              <UserPlus className="w-4 h-4" />
+                              Invitar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Loading indicator para infinite scroll */}
+                    {isLoadingMore && (
+                      <div className="text-center py-8 mt-6">
+                        <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                          <div className="w-5 h-5 border-3 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-sm font-medium text-slate-600">Cargando más creadoras...</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Observer target para infinite scroll */}
+                    <div 
+                      ref={observerTarget} 
+                      className="h-20 flex items-center justify-center mt-4"
+                    >
+                      {!isLoadingMore && hasMore && creators.length > 0 && (
+                        <p className="text-xs text-slate-400">Cargando más contenido automáticamente...</p>
+                      )}
+                      
+                      {!hasMore && creators.length > 0 && (
+                        <p className="text-xs text-slate-500">Has llegado al final</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {activeTab === 'en-vivo' && (
+              <div>
+                <div className="mb-6">
+                  <p className="text-sm text-slate-600">
                     {mockLives.length} creadoras transmitiendo ahora
                   </p>
                 </div>
+                <LiveGrid lives={mockLives} userPurchasedLives={[]} />
               </div>
-              <LiveGrid lives={mockLives} userPurchasedLives={[]} />
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
-    </div>
+    </>
   );
 };
+
+// ⚠️ IMPORTANTE: Aquí estaba el error - faltaba el return
+export const DashboardEspectadorPage = () => (
+  <DashboardEspectadorLayout>
+    <DashboardEspectadorPageContent />
+  </DashboardEspectadorLayout>
+);

@@ -1,39 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react'; 
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect } from 'react'; 
+import { useSearchParams } from 'react-router-dom';
 import { TrendingUp, Crown, Users, Activity } from 'lucide-react';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { StatsCards } from '../../components/DashboardCreadora/StatsCards/StatsCards';
-import { InvitacionesFilters } from '../../components/DashboardCreadora/Invitaciones/InvitacionesFilters'; 
+import { InvitacionesCarousel } from '../../components/DashboardCreadora/Invitaciones/InvitacionesCarousel'; 
 import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/MiActividadTab';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { OnlineCreator } from '@/shared/types/creator.types';
 import { OnlineCreatorsSidebar } from '@/components/Dashboard/OnlineCreators/OnlineCreatorsSidebar';
-import { Heart, MapPin, X, Check, Calendar, Eye } from 'lucide-react';
 
 interface OnlineCreatorExtended extends OnlineCreator {
   edad?: number;
 }
 
-interface Invitacion {
-  id: number;
-  slug: string;
-  nombre: string;
-  edad: number;
-  ubicacion: string;
-  distancia: number;
-  avatar: string;
-  isLive: boolean;
-  isFavorite: boolean;
-  fechaInvitacion: string;
-}
-
 type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
 type SubTabType = 'invitaciones' | 'resumen' | 'miactividad';
 
-export const DashboardCreadoraPage = () => {
-  const navigate = useNavigate();
+export const DashboardCreadoraPagebBKB = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -42,26 +27,6 @@ export const DashboardCreadoraPage = () => {
   
   const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>(subTabFromUrl);
-
-  // Estados para infinite scroll
-  const [page, setPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const observerTarget = useRef<HTMLDivElement>(null);
-
-  // Función para formatear fecha
-  const formatFecha = (fecha?: string) => {
-    if (!fecha) return '';
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  // Función para navegar al perfil
-  const handleVerPerfil = (invitacion: Invitacion) => {
-    if (invitacion.slug) {
-      navigate(`/perfil-usuario/${invitacion.slug}`);
-    }
-  };
 
   useEffect(() => {
     const params: Record<string, string> = { tab: activeTab };
@@ -95,8 +60,7 @@ export const DashboardCreadoraPage = () => {
     { id: 12, slug: 'andrea-silva-q7m8', nombre: 'Andrea', edad: 28, avatar: 'https://i.pravatar.cc/150?img=12', isLive: false, isFavorite: false },
   ];
 
-  // Invitaciones iniciales
-  const invitacionesIniciales: Invitacion[] = [
+  const [invitaciones] = useState([
     { id: 1, slug: 'juan-perez-x7m3', nombre: 'Juan', edad: 28, ubicacion: 'San Isidro, Lima', distancia: 2.3, avatar: 'https://i.pravatar.cc/150?img=12', isLive: false, isFavorite: false, fechaInvitacion: '2025-01-02' },
     { id: 2, slug: 'carlos-gomez-k9p2', nombre: 'Carlos', edad: 32, ubicacion: 'Miraflores, Lima', distancia: 4.1, avatar: 'https://i.pravatar.cc/150?img=13', isLive: true, isFavorite: false, fechaInvitacion: '2025-01-01' },
     { id: 3, slug: 'diego-torres-a4n8', nombre: 'Diego', edad: 25, ubicacion: 'Barranco, Lima', distancia: 5.8, avatar: 'https://i.pravatar.cc/150?img=14', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-31' },
@@ -109,76 +73,13 @@ export const DashboardCreadoraPage = () => {
     { id: 10, slug: 'ricardo-flores-h9j2', nombre: 'Ricardo', edad: 24, ubicacion: 'Pueblo Libre, Lima', distancia: 6.8, avatar: 'https://i.pravatar.cc/150?img=21', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-24' },
     { id: 11, slug: 'eduardo-chavez-i3k7', nombre: 'Eduardo', edad: 35, ubicacion: 'Magdalena, Lima', distancia: 7.5, avatar: 'https://i.pravatar.cc/150?img=22', isLive: true, isFavorite: false, fechaInvitacion: '2024-12-23' },
     { id: 12, slug: 'pablo-ramirez-j8l4', nombre: 'Pablo', edad: 29, ubicacion: 'Breña, Lima', distancia: 4.2, avatar: 'https://i.pravatar.cc/150?img=23', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-22' },
-  ];
-
-  const [invitaciones, setInvitaciones] = useState<Invitacion[]>(invitacionesIniciales);
+  ]);
 
   const subTabs = [
     { id: 'invitaciones' as const, label: 'Invitaciones', icon: Users },
     { id: 'resumen' as const, label: 'Resumen', icon: TrendingUp },
     { id: 'miactividad' as const, label: 'Mi Actividad', icon: Activity },
   ];
-
-  // Función para cargar más invitaciones
-  const loadMoreInvitaciones = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    
-    setIsLoadingMore(true);
-    console.log('📥 Cargando más invitaciones... Página:', page + 1);
-    
-    // Simular llamada al API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // TODO: Aquí iría la llamada real al backend
-    // const response = await fetch(`/api/invitaciones?page=${page + 1}&limit=12`);
-    // const newInvitaciones = await response.json();
-    
-    // Simulación: duplicar invitaciones existentes con nuevos IDs
-    const newInvitaciones = invitacionesIniciales.slice(0, 6).map((inv, index) => ({
-      ...inv,
-      id: inv.id + (page * 100) + index,
-      nombre: `${inv.nombre} ${page + 1}`,
-    }));
-
-    if (newInvitaciones.length === 0 || page >= 5) { // Limitar a 5 páginas en demo
-      setHasMore(false);
-    } else {
-      setInvitaciones(prev => [...prev, ...newInvitaciones]);
-      setPage(prev => prev + 1);
-    }
-    
-    setIsLoadingMore(false);
-  }, [page, isLoadingMore, hasMore, invitacionesIniciales]);
-
-  // Intersection Observer para infinite scroll automático
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && !isLoadingMore && hasMore && activeSubTab === 'invitaciones') {
-          loadMoreInvitaciones();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [loadMoreInvitaciones, isLoadingMore, hasMore, activeSubTab]);
-
-  // Reset page cuando cambia de subtab
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    setInvitaciones(invitacionesIniciales);
-  }, [activeSubTab]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -197,16 +98,6 @@ export const DashboardCreadoraPage = () => {
 
   const handleProgramarEvento = () => {
     console.log('Programar evento');
-  };
-
-  const handleAceptar = (invitacionId: number) => {
-    console.log('✅ Invitación aceptada:', invitacionId);
-    setInvitaciones(prev => prev.filter(inv => inv.id !== invitacionId));
-  };
-
-  const handleRechazar = (invitacionId: number) => {
-    console.log('❌ Invitación rechazada:', invitacionId);
-    setInvitaciones(prev => prev.filter(inv => inv.id !== invitacionId));
   };
 
   return (
@@ -281,136 +172,13 @@ export const DashboardCreadoraPage = () => {
           <div className="p-6">
             {activeTab === 'resumen' || activeTab === 'invitaciones' ? (
               <>
-                {/* TAB INVITACIONES CON INFINITE SCROLL */}
                 {activeSubTab === 'invitaciones' && (
-                  <div>
-                    {/* Grid de Invitaciones */}
-                    {invitaciones.length === 0 ? (
-                      <div className="text-center py-16">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mb-4">
-                          <Heart className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                          No tienes invitaciones
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Cuando alguien se interese en ti, aparecerá aquí
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {invitaciones.map((invitacion) => (
-                            <div
-                              key={invitacion.id}
-                              className="bg-white rounded-2xl border-2 border-slate-200 hover:border-pink-300 transition-all overflow-hidden group shadow-sm hover:shadow-md"
-                            >
-                              {/* Avatar */}
-                              <div 
-                                className="relative aspect-[3/4] bg-slate-100 cursor-pointer"
-                                onClick={() => handleVerPerfil(invitacion)}
-                              >
-                                <img
-                                  src={invitacion.avatar}
-                                  alt={invitacion.nombre}
-                                  className="w-full h-full object-cover"
-                                />
-                                
-                                {/* Fecha de invitación */}
-                                {invitacion.fechaInvitacion && (
-                                  <div className="absolute top-2 left-2 px-2 py-1 bg-white/95 backdrop-blur-sm text-[10px] font-semibold text-slate-700 rounded-lg flex items-center gap-1 shadow-sm">
-                                    <Calendar className="w-3 h-3 text-pink-500" />
-                                    {formatFecha(invitacion.fechaInvitacion)}
-                                  </div>
-                                )}
-                                
-                                {/* Badge de Live */}
-                                {invitacion.isLive && (
-                                  <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-lg animate-pulse">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                    EN VIVO
-                                  </div>
-                                )}
-
-                                {/* Gradient overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                                {/* Info sobre la foto */}
-                                <div className="absolute bottom-0 left-0 right-0 p-3">
-                                  <h3 className="text-white font-bold text-lg mb-0.5">
-                                    {invitacion.nombre}, {invitacion.edad}
-                                  </h3>
-                                  <div className="flex items-center gap-1.5 text-white/90 text-xs">
-                                    <MapPin className="w-3 h-3" />
-                                    <span>{invitacion.distancia.toFixed(1)} km</span>
-                                    <span>•</span>
-                                    <span>{invitacion.ubicacion}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Botones de Acción */}
-                              <div className="p-3 space-y-2">
-                                {/* Botón Ver Perfil */}
-                                <button
-                                  onClick={() => handleVerPerfil(invitacion)}
-                                  className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  Ver Perfil
-                                </button>
-                                
-                                {/* Botones Aceptar/Rechazar */}
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleRechazar(invitacion.id)}
-                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                                  >
-                                    <X className="w-4 h-4" />
-                                    Rechazar
-                                  </button>
-                                  <button
-                                    onClick={() => handleAceptar(invitacion.id)}
-                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                    Aceptar
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Loading indicator para infinite scroll */}
-                        {isLoadingMore && (
-                          <div className="text-center py-8 mt-6">
-                            <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                              <div className="w-5 h-5 border-3 border-pink-500 border-t-transparent rounded-full animate-spin" />
-                              <span className="text-sm font-medium text-slate-600">Cargando más invitaciones...</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Observer target para infinite scroll */}
-                        <div 
-                          ref={observerTarget} 
-                          className="h-20 flex items-center justify-center mt-4"
-                        >
-                          {!isLoadingMore && hasMore && invitaciones.length > 0 && (
-                            <p className="text-xs text-slate-400">Cargando más contenido automáticamente...</p>
-                          )}
-                          
-                          {!hasMore && invitaciones.length > 0 && (
-                            <p className="text-xs text-slate-500">Has llegado al final de las invitaciones</p>
-                          )}
-                        </div>
-                      </>
-                    )}
+                  <div> 
+                    {/* <InvitacionesFilters /> */}
+                    <InvitacionesCarousel invitaciones={invitaciones} />
                   </div>
                 )}
 
-                {/* TAB RESUMEN */}
                 {activeSubTab === 'resumen' && (
                   <>
                     <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
@@ -512,7 +280,6 @@ export const DashboardCreadoraPage = () => {
                   </>
                 )}
 
-                {/* TAB MI ACTIVIDAD */}
                 {activeSubTab === 'miactividad' && (
                   <MiActividadTab onProgramarEvento={handleProgramarEvento} />
                 )}

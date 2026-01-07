@@ -1,64 +1,30 @@
 import { useState } from 'react';
 import { Crown, Mail, Coins, Gift, FileText, CreditCard } from 'lucide-react';
 import { NavbarDashboard } from '../../../components/Dashboard/Navbar/NavbarDashboard';
-import { SidebarDashboard } from '../../../components/Dashboard/Sidebar/SidebarDashboard';
+import { SidebarDashboard } from '../../../components/Dashboard/Sidebar/SidebarDashboard'; 
 import { ActiveSubscriptionsTable } from '../../../components/Dashboard/Subscriptions/ActiveSubscriptionsTable';
 import { InvitationsTable } from '../../../components/Dashboard/Subscriptions/InvitationsTable';
 import { CoinsTable } from '../../../components/Dashboard/Subscriptions/CoinsTable';
 import { GiftsTable } from '../../../components/Dashboard/Subscriptions/GiftsTable';
 import { PurchaseHistoryTable } from '../../../components/Dashboard/Subscriptions/PurchaseHistoryTable';
+import { DashboardEspectadorLayout } from '../layouts/DashboardEspectadorLayout';
 
-type TabType = 'activas' | 'invitaciones' | 'saldo' | 'regalos' | 'historial';
+type TabType = 'activas' | 'invitaciones' | 'saldo' | 'regalos' | 'historial'; 
 
-export const SubscriptionsPage = () => {
+export const SubscriptionsPageContent = () => {
   const [activeTab, setActiveTab] = useState<TabType>('activas');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); 
 
   const tabs = [
-    { 
-      id: 'activas' as TabType, 
-      label: 'Suscripciones Activas',
-      icon: Crown,
-      gradient: 'from-purple-500 to-pink-600',
-      bgActive: 'bg-purple-50',
-      borderActive: 'border-purple-500'
-    },
-    { 
-      id: 'invitaciones' as TabType, 
-      label: 'Invitaciones',
-      icon: Mail,
-      gradient: 'from-pink-500 to-rose-600',
-      bgActive: 'bg-pink-50',
-      borderActive: 'border-pink-500'
-    },
-    { 
-      id: 'saldo' as TabType, 
-      label: 'Recargar Saldo',
-      icon: Coins,
-      gradient: 'from-yellow-500 to-orange-600',
-      bgActive: 'bg-yellow-50',
-      borderActive: 'border-yellow-500'
-    },
-    { 
-      id: 'regalos' as TabType, 
-      label: 'Comprar Regalos',
-      icon: Gift,
-      gradient: 'from-blue-500 to-cyan-600',
-      bgActive: 'bg-blue-50',
-      borderActive: 'border-blue-500'
-    },
-    { 
-      id: 'historial' as TabType, 
-      label: 'Historial',
-      icon: FileText,
-      gradient: 'from-gray-600 to-gray-800',
-      bgActive: 'bg-gray-50',
-      borderActive: 'border-gray-600'
-    },
+    { id: 'activas' as TabType, label: 'Suscripciones Activas', icon: Crown },
+    { id: 'invitaciones' as TabType, label: 'Invitaciones', icon: Mail },
+    { id: 'saldo' as TabType, label: 'Recargar Saldo', icon: Coins },
+    { id: 'regalos' as TabType, label: 'Comprar Regalos', icon: Gift },
+    { id: 'historial' as TabType, label: 'Historial', icon: FileText },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       <NavbarDashboard
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         notificationsCount={5}
@@ -67,78 +33,72 @@ export const SubscriptionsPage = () => {
 
       <SidebarDashboard isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <main className="pt-16 lg:pl-64 min-h-screen">
-        <div className="p-8">
-          {/* Header compacto con icono */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <CreditCard className="w-7 h-7 text-purple-500" />
-              Mis Suscripciones
-            </h1>
-            <p className="text-gray-600">Administra tus suscripciones, invitaciones y compras</p>
-          </div>
-
-          {/* Tabs Premium */}
-          <div className="mb-8">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                const Icon = tab.icon;
-                
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      group relative flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all whitespace-nowrap
-                      ${isActive 
-                        ? `${tab.bgActive} ring-1 ${tab.borderActive.replace('border-', 'ring-')}` 
-                        : 'bg-white border border-gray-200 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    {/* Icono */}
-                    <div className={`
-                      flex items-center justify-center w-7 h-7 rounded-md transition-all
-                      ${isActive 
-                        ? `bg-gradient-to-r ${tab.gradient}` 
-                        : 'bg-gray-100'
-                      }
-                    `}>
-                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-gray-600'}`} />
-                    </div>
-
-                    {/* Label */}
-                    <span className={`
-                      font-semibold text-sm transition-colors
-                      ${isActive 
-                        ? `bg-gradient-to-r ${tab.gradient} bg-clip-text text-transparent` 
-                        : 'text-gray-700'
-                      }
-                    `}>
-                      {tab.label}
-                    </span>
-
-                    {/* Indicator activo */}
-                    {isActive && (
-                      <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-gradient-to-r ${tab.gradient}`} />
-                    )}
-                  </button>
-                );
-              })}
+      <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-64 overflow-hidden flex flex-col">
+        {/* Header Fijo */}
+        <div className="flex-shrink-0 bg-white border-b border-slate-200 px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <CreditCard className="w-6 h-6 text-pink-500" />
+                Mis Suscripciones
+              </h1> 
             </div>
           </div>
+        </div>
 
-          {/* Content */}
-          <div>
-            {activeTab === 'activas' && <ActiveSubscriptionsTable />}
-            {activeTab === 'invitaciones' && <InvitationsTable />}
-            {activeTab === 'saldo' && <CoinsTable />}
-            {activeTab === 'regalos' && <GiftsTable />}
-            {activeTab === 'historial' && <PurchaseHistoryTable />}
+        {/* Contenido con Scroll */}
+        <div className="flex-1 overflow-y-auto bg-slate-50">
+          <div className="max-w-7xl mx-auto p-6">
+            {/* Tabs Simples y Elegantes */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mb-6">
+              <div className="flex border-b border-slate-200 overflow-x-auto">
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const Icon = tab.icon;
+                  
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`
+                        relative flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap
+                        ${isActive 
+                          ? 'text-pink-600' 
+                          : 'text-slate-600 hover:text-slate-900'
+                        }
+                      `}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {tab.label}
+                      
+                      {/* Línea inferior cuando está activo */}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div>
+              {activeTab === 'activas' && <ActiveSubscriptionsTable />}
+              {activeTab === 'invitaciones' && <InvitationsTable />}
+              {activeTab === 'saldo' && <CoinsTable />}
+              {activeTab === 'regalos' && <GiftsTable />}
+              {activeTab === 'historial' && <PurchaseHistoryTable />}
+            </div>
           </div>
         </div>
-      </main>
+      </main> 
     </div>
   );
 };
+
+export const SubscriptionsPage = () => (
+  <DashboardEspectadorLayout>
+    <SubscriptionsPageContent />
+  </DashboardEspectadorLayout>
+);
+

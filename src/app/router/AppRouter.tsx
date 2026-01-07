@@ -38,7 +38,7 @@ export const AppRouter = () => {
         <Route path="/completar-registro" element={<CompletarRegistroPage />} />
         
         {/* Dashboard Routes */}
-        <Route path="/dashboard" element={<DashboardEspectadorPage />} /> {/*  NUEVO */}
+        <Route path="/dashboard-espectador" element={<DashboardEspectadorPage />} /> {/*  NUEVO */}
         {/* <Route path="/perfil/:id" element={<CreatorProfilePage />} /> */}
         
         <Route path="/perfil/:slug" element={<CreatorProfilePageFullscreen />} />

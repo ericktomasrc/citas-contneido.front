@@ -195,7 +195,7 @@ export const TabPacks = () => {
           <p className="text-sm text-slate-500 mb-6 max-w-sm mx-auto">
             Crea tu primer pack combinando fotos y videos para vender
           </p>
-          <button
+          {/* <button
             onClick={() => {
               setPackEditar(null);
               setShowAgregarModal(true);
@@ -203,7 +203,7 @@ export const TabPacks = () => {
             className="px-6 py-3 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-xl font-medium text-sm transition-all shadow-lg hover:shadow-xl hover:scale-[1.02]"
           >
             Crear tu Primer Pack
-          </button>
+          </button> */}
         </div>
       ) : (
         <ListadoPacks

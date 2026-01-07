@@ -37,7 +37,7 @@ export const OAuthButtons = ({ onError, onSuccess }: OAuthButtonsProps) => {
       localStorage.setItem('user', JSON.stringify(response.user));
       
       onSuccess?.();
-      navigate('/dashboard');
+      navigate('/dashboard-espectador');
     } catch (error: any) {
       onError?.(error.response?.data?.message || 'Error al iniciar sesión con Google');
     } finally {

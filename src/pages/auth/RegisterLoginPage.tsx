@@ -160,7 +160,7 @@ export const RegisterLoginPage = () => {
           {/* OAuth Buttons */}
           <OAuthButtons 
             onError={setError}
-            onSuccess={() => navigate('/dashboard')}
+            onSuccess={() => navigate('/dashboard-espectador')}
           />
 
           {/* Divider */}

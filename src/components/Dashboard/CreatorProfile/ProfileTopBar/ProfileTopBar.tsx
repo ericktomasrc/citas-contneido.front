@@ -48,7 +48,7 @@ export const ProfileTopBar = ({ username, edad, isVerified, isFavorite, onToggle
       <div className="flex items-center justify-between px-6 py-3">
         {/* Left */}
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/dashboard-espectador')}
           className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition"
         >
           <ArrowLeft className="w-5 h-5" />
