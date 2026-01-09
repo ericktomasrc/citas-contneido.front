@@ -1,99 +1,108 @@
-import { Star } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { OnlineCreator } from '../../../shared/types/creator.types';
+// src/components/Common/OnlineCreators/OnlineCreatorsSidebar_ConChat.tsx
+// EJEMPLO CON BOTÓN DE CHAT AL HACER HOVER
 
-interface OnlineCreatorExtended extends OnlineCreator {
-  edad?: number;
-}
+import { Heart, MessageCircle } from 'lucide-react';
+import { OnlineCreator } from '@/shared/types/creator.types';
 
 interface OnlineCreatorsSidebarProps {
-  creators: OnlineCreatorExtended[];
+  creators: OnlineCreator[];
+  onOpenChat?: (creatorId: string, creatorName: string, creatorAvatar: string) => void;
 }
 
-export const OnlineCreatorsSidebar = ({ creators }: OnlineCreatorsSidebarProps) => {
-  const navigate = useNavigate();
-
-  const handleClick = (creator: OnlineCreatorExtended) => {
-    if (creator.slug) {
-      navigate(`/perfil/${creator.slug}`);
-    }
-  };
-
-  if (creators.length === 0) return null;
-
+export const OnlineCreatorsSidebar = ({ 
+  creators, 
+  onOpenChat 
+}: OnlineCreatorsSidebarProps) => {
   return (
-    <div className="fixed top-16 right-0 bottom-0 w-24 bg-white border-l border-gray-200 z-30 shadow-lg flex flex-col">
-      {/* Header - FIJO ARRIBA */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 p-2 text-center">
-        <div className="flex items-center justify-center gap-1 mb-1">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs font-bold text-gray-900">EN LÍNEA</span>
+    <aside className="fixed top-16 right-0 w-24 h-[calc(100vh-4rem)] bg-white border-l border-slate-200 overflow-y-auto hidden lg:block z-30">
+      {/* Header */}
+      <div className="sticky top-0 bg-white border-b border-slate-200 p-3 z-10">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-lg flex items-center justify-center">
+            <span className="text-lg">💚</span>
+          </div>
+          <p className="text-[10px] font-semibold text-slate-600 text-center leading-tight">
+            EN LÍNEA
+          </p>
+          <span className="text-xs font-bold text-emerald-600">
+            {creators.filter(c => c.isLive).length}
+          </span>
         </div>
-        <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-          {creators.length}
-        </span>
       </div>
 
-      {/* Lista de Creators - CON SCROLL */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-3">
+      {/* Lista de creadoras */}
+      <div className="p-2 space-y-2">
         {creators.map((creator) => (
-          <button
+          <div
             key={creator.id}
-            onClick={() => handleClick(creator)}
-            className="w-full group/item"
+            className="relative group cursor-pointer"
           >
-            <div className="flex flex-col items-center gap-1.5">
-              {/* Avatar con badges */}
-              <div className="relative">
-                {/* Gradient ring */}
-                <div className={`w-14 h-14 rounded-full p-0.5 ${
-                  creator.isLive
-                    ? 'bg-gradient-to-tr from-red-500 via-pink-500 to-purple-500'
-                    : 'bg-gradient-to-tr from-green-400 to-emerald-500'
-                }`}>
-                  <div className="w-full h-full bg-white rounded-full p-0.5">
-                    <img
-                      src={creator.avatar}
-                      alt={creator.nombre}
-                      className="w-full h-full rounded-full object-cover group-hover/item:scale-105 transition"
-                    />
-                  </div>
+            {/* Avatar */}
+            <div className="relative">
+              <img
+                src={creator.avatar}
+                alt={creator.nombre}
+                className="w-20 h-20 rounded-2xl object-cover mx-auto border-2 border-slate-100 group-hover:border-pink-300 transition"
+              />
+              
+              {/* Indicador online */}
+              {creator.isLive && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full" />
+              )}
+              
+              {/* Favorite badge */}
+              {creator.isFavorite && (
+                <div className="absolute -top-1 -left-1 w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                  <Heart className="w-3 h-3 text-white fill-white" />
                 </div>
+              )}
 
-                {/* LIVE Badge */}
-                {creator.isLive && (
-                  <div className="absolute -top-0.5 -left-0.5 flex items-center gap-0.5 px-1 py-0.5 bg-red-500 text-white text-[7px] font-bold rounded-full shadow-lg border border-white">
-                    <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
-                    LIVE
-                  </div>
+              {/* 🔥 NUEVO: Overlay con botón de chat (aparece al hover) */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition rounded-2xl flex flex-col items-center justify-center gap-1">
+                {/* Botón de chat */}
+                {onOpenChat && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenChat(
+                        creator.id.toString(),
+                        creator.nombre,
+                        creator.avatar
+                      );
+                    }}
+                    className="w-10 h-10 bg-white hover:bg-pink-50 rounded-full flex items-center justify-center transition shadow-lg"
+                    title={`Chatear con ${creator.nombre}`}
+                  >
+                    <MessageCircle className="w-5 h-5 text-pink-600" />
+                  </button>
                 )}
-
-                {/* FAVORITO Badge */}
-                {creator.isFavorite && (
-                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center border border-white shadow-lg">
-                    <Star className="w-2 h-2 text-white fill-white" />
-                  </div>
-                )}
-
-                {/* Online indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
-              </div>
-
-              {/* Nombre + Edad */}
-              <div className="text-center w-full px-1">
-                <p className="text-xs font-semibold text-gray-900 group-hover/item:text-pink-600 transition truncate leading-tight">
+                
+                {/* Nombre (visible al hover) */}
+                <p className="text-white text-[10px] font-semibold text-center px-1">
                   {creator.nombre}
                 </p>
-                {creator.edad && (
-                  <p className="text-[10px] text-gray-500 leading-tight">
-                    {creator.edad} años
-                  </p>
-                )}
               </div>
             </div>
-          </button>
+
+            {/* Nombre (siempre visible) */}
+            <p className="text-[10px] font-medium text-slate-600 text-center mt-1 truncate px-1">
+              {creator.nombre}
+            </p>
+          </div>
         ))}
       </div>
-    </div>
+
+      {/* Empty state */}
+      {creators.length === 0 && (
+        <div className="flex flex-col items-center justify-center h-64 px-4">
+          <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+            <span className="text-2xl">👋</span>
+          </div>
+          <p className="text-[10px] text-slate-400 text-center">
+            No hay creadoras en línea
+          </p>
+        </div>
+      )}
+    </aside>
   );
 };

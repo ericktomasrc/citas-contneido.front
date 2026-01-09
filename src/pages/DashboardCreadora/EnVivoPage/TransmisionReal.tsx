@@ -417,7 +417,7 @@ export const TransmisionReal = () => {
           }`}
         >
           <Radio className="w-5 h-5" />
-          {cargando ? 'Conectando...' : enVivo ? 'Finalizar Transmisión' : 'Iniciar Transmisión2'}
+          {cargando ? 'Conectando...' : enVivo ? 'Finalizar Transmisión' : 'Iniciar Transmisión'}
         </button>
       </div>
     </div>

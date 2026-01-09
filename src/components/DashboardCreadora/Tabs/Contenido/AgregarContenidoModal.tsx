@@ -1,5 +1,8 @@
 // src/components/DashboardCreadora/Tabs/Contenido/AgregarContenidoModal.tsx
+// ✅ CON REACT PORTAL - BLOQUEA TODA LA PANTALLA
+
 import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Upload, Camera, Video as VideoIcon, Trash2, Eye, Image, Video } from 'lucide-react';
 import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
 import { ModalVisualizador } from '../../../Common/Modal/ModalVisualizador';
@@ -31,10 +34,8 @@ export const AgregarContenidoModal = ({
   const acceptType = tipo === 'fotos' ? 'image/*' : 'video/*';
   const tipoArchivo: 'foto' | 'video' = tipo === 'fotos' ? 'foto' : 'video';
 
-  // Manejar selección de archivos
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-
     const nuevosArchivos: ArchivoPreview[] = files.map((file) => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
@@ -42,16 +43,10 @@ export const AgregarContenidoModal = ({
       tipo: tipoArchivo,
       seleccionado: true,
     }));
-
     setArchivos((prev) => [...prev, ...nuevosArchivos]);
-
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Toggle selección individual
   const toggleSeleccion = (id: string) => {
     setArchivos((prev) =>
       prev.map((arch) =>
@@ -60,7 +55,6 @@ export const AgregarContenidoModal = ({
     );
   };
 
-  // Seleccionar/Deseleccionar todos
   const handleToggleTodos = () => {
     const nuevoEstado = !seleccionarTodos;
     setSeleccionarTodos(nuevoEstado);
@@ -69,68 +63,43 @@ export const AgregarContenidoModal = ({
     );
   };
 
-  // Eliminar archivo individual
   const handleEliminarArchivo = (id: string) => {
-    setArchivos((prev) => {
-      // NO revocar URL aquí porque podría estar siendo usado en el listado principal
-      // const archivo = prev.find((a) => a.id === id);
-      // if (archivo) {
-      //   URL.revokeObjectURL(archivo.preview);
-      // }
-      return prev.filter((a) => a.id !== id);
-    });
+    setArchivos((prev) => prev.filter((a) => a.id !== id));
   };
 
-  // Eliminar archivos seleccionados
   const handleEliminarSeleccionados = () => {
     setShowConfirmDelete(true);
   };
 
   const confirmarEliminarSeleccionados = () => {
-    setArchivos((prev) => {
-      // NO revocar URLs - podrían estar siendo usados en el listado
-      // const eliminados = prev.filter((a) => a.seleccionado);
-      // eliminados.forEach((arch) => URL.revokeObjectURL(arch.preview));
-      return prev.filter((a) => !a.seleccionado);
-    });
+    setArchivos((prev) => prev.filter((a) => !a.seleccionado));
     setShowConfirmDelete(false);
   };
 
-  // Guardar contenido
   const handleGuardar = () => {
     const archivosSeleccionados = archivos.filter((a) => a.seleccionado);
-
     if (archivosSeleccionados.length === 0) {
       setShowAlertNoFiles(true);
       return;
     }
-
-    // Convertir a ArchivoContenido
     const archivosParaGuardar: ArchivoContenido[] = archivosSeleccionados.map(
       (arch) => ({
         id: arch.id,
         tipo: arch.tipo,
-        url: arch.preview, // En producción sería la URL del servidor
+        url: arch.preview,
         thumbnail: arch.preview,
         nombre: arch.file.name,
         tamano: arch.file.size,
         fechaSubida: new Date(),
       })
     );
-
     onGuardar(archivosParaGuardar);
-
-    // NO REVOCAR URLs - dejarlos para que las imágenes se puedan ver
-    // archivos.forEach((arch) => URL.revokeObjectURL(arch.preview));
     setArchivos([]);
     setSeleccionarTodos(true);
     onClose();
   };
 
-  // Cerrar modal
   const handleCerrar = () => {
-    // NO REVOCAR previews - las URLs son necesarias para mostrar las imágenes
-    // archivos.forEach((arch) => URL.revokeObjectURL(arch.preview));
     setArchivos([]);
     setSeleccionarTodos(true);
     onClose();
@@ -140,9 +109,11 @@ export const AgregarContenidoModal = ({
   const labelTipo = tipo === 'fotos' ? 'Fotos' : 'Videos';
   const IconoTipo = tipo === 'fotos' ? Image : Video;
 
-  return (
+  // ✅ USAR PORTAL PARA RENDERIZAR FUERA DEL DOM
+  const modalContent = (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {/* ✅ FONDO OSCURO QUE BLOQUEA TODA LA PANTALLA */}
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
           {/* Header */}
           <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
@@ -237,7 +208,6 @@ export const AgregarContenidoModal = ({
                         : 'border-slate-200 opacity-60'
                     }`}
                   >
-                    {/* Preview */}
                     <div className="aspect-square bg-slate-100 relative">
                       {archivo.tipo === 'foto' ? (
                         <img
@@ -251,7 +221,6 @@ export const AgregarContenidoModal = ({
                         </div>
                       )}
 
-                      {/* Badge tipo - SOLO ÍCONO PREMIUM */}
                       <div className="absolute top-2 left-2 z-10">
                         {archivo.tipo === 'foto' ? (
                           <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-xl flex items-center justify-center backdrop-blur-sm">
@@ -264,7 +233,6 @@ export const AgregarContenidoModal = ({
                         )}
                       </div>
 
-                      {/* Botón Ver - OJITO con Z-INDEX ALTO para que funcione */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -276,7 +244,6 @@ export const AgregarContenidoModal = ({
                         <Eye className="w-5 h-5" />
                       </button>
 
-                      {/* Overlay con controles */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="absolute bottom-2 left-2 right-2 flex gap-2">
                           <button
@@ -298,7 +265,6 @@ export const AgregarContenidoModal = ({
                         </div>
                       </div>
 
-                      {/* Indicador de selección */}
                       {archivo.seleccionado && (
                         <div className="absolute top-2 right-2 w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg">
                           <div className="w-2 h-2 bg-white rounded-full" />
@@ -306,7 +272,6 @@ export const AgregarContenidoModal = ({
                       )}
                     </div>
 
-                    {/* Info */}
                     <div className="p-2 bg-white">
                       <p className="text-xs font-medium text-slate-700 truncate">
                         {archivo.file.name}
@@ -346,39 +311,32 @@ export const AgregarContenidoModal = ({
         </div>
       </div>
 
-      {/* Modal de Confirmación - Eliminar Seleccionados */}
       {showConfirmDelete && (
-        <div className="fixed inset-0 z-[100000]">
-          <ConfirmacionModal
-            isOpen={showConfirmDelete}
-            title="Eliminar Archivos"
-            message={`¿Estás segura de eliminar ${archivosSeleccionados} archivo(s)?`}
-            confirmText="Sí, eliminar"
-            cancelText="Cancelar"
-            type="danger"
-            onConfirm={confirmarEliminarSeleccionados}
-            onCancel={() => setShowConfirmDelete(false)}
-          />
-        </div>
+        <ConfirmacionModal
+          isOpen={showConfirmDelete}
+          title="Eliminar Archivos"
+          message={`¿Estás segura de eliminar ${archivosSeleccionados} archivo(s)?`}
+          confirmText="Sí, eliminar"
+          cancelText="Cancelar"
+          type="danger"
+          onConfirm={confirmarEliminarSeleccionados}
+          onCancel={() => setShowConfirmDelete(false)}
+        />
       )}
 
-      {/* Modal de Alerta - Sin Archivos Seleccionados */}
       {showAlertNoFiles && (
-        <div className="fixed inset-0 z-[100000]">
-          <ConfirmacionModal
-            isOpen={showAlertNoFiles}
-            title="Selecciona al menos un archivo"
-            message="Debes seleccionar al menos un archivo para poder guardar."
-            confirmText="Entendido"
-            cancelText=""
-            type="warning"
-            onConfirm={() => setShowAlertNoFiles(false)}
-            onCancel={() => setShowAlertNoFiles(false)}
-          />
-        </div>
+        <ConfirmacionModal
+          isOpen={showAlertNoFiles}
+          title="Selecciona al menos un archivo"
+          message="Debes seleccionar al menos un archivo para poder guardar."
+          confirmText="Entendido"
+          cancelText=""
+          type="warning"
+          onConfirm={() => setShowAlertNoFiles(false)}
+          onCancel={() => setShowAlertNoFiles(false)}
+        />
       )}
 
-      {/* Modal Visualizador */}
       {showVisualizador && (
         <ModalVisualizador
           isOpen={showVisualizador}
@@ -397,4 +355,7 @@ export const AgregarContenidoModal = ({
       )}
     </>
   );
+
+  // ✅ RENDERIZAR CON PORTAL DIRECTAMENTE EN EL BODY
+  return createPortal(modalContent, document.body);
 };

@@ -1,78 +1,76 @@
-import { useState, useEffect, useRef, useCallback } from 'react'; 
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { TrendingUp, Crown, Users, Activity } from 'lucide-react';
+// src/pages/DashboardCreadora/DashboardCreadoraPage.tsx
+// ✅ SOLUCIÓN 1: PERSISTIR TAB EN URL
+
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Crown, Settings, MessageCircle } from 'lucide-react';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
-import { StatsCards } from '../../components/DashboardCreadora/StatsCards/StatsCards';
-import { InvitacionesFilters } from '../../components/DashboardCreadora/Invitaciones/InvitacionesFilters'; 
-import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/MiActividadTab';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { OnlineCreator } from '@/shared/types/creator.types';
 import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
-import { Heart, MapPin, X, Check, Calendar, Eye } from 'lucide-react';
+
+// 🔥 Importar componentes del chat
+import { FloatingChatModal } from '@/features/chat/components/FloatingChat/FloatingChatModal';
+import { QuickSettingsPanel } from '@/features/chat/components/Settings/QuickSettingsPanel';
+
+// Importar tabs
+import { InvitacionesTab } from './tabs/InvitacionesTab/InvitacionesTab';
+import { ResumenTab } from './tabs/ResumenTab/ResumenTab';
+import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/MiActividadTab';
+
+// Componentes
+import { SubTabsHeader } from './components/SubTabsHeader';
+import { PageHeader } from './components/PageHeader';
+
+// Configuración y datos
+import { subTabsConfig } from './config/subtabs.config';
+import { invitacionesIniciales } from './data/invitaciones.data';
+
+// Tipos
+type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
+type SubTabId = 'resumen' | 'invitaciones' | 'miactividad';
 
 interface OnlineCreatorExtended extends OnlineCreator {
   edad?: number;
 }
 
-interface Invitacion {
-  id: number;
-  slug: string;
-  nombre: string;
-  edad: number;
-  ubicacion: string;
-  distancia: number;
-  avatar: string;
-  isLive: boolean;
-  isFavorite: boolean;
-  fechaInvitacion: string;
-}
-
-type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
-type SubTabType = 'invitaciones' | 'resumen' | 'miactividad';
-
 export const DashboardCreadoraPage = () => {
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  const tabFromUrl = (searchParams.get('tab') as TabType) || 'resumen';
-  const subTabFromUrl = (searchParams.get('subtab') as SubTabType) || 'invitaciones';
+  // ✅ SOLUCIÓN: Usar URL params para persistir el tab
+  const [searchParams, setSearchParams] = useSearchParams();
   
+  // Leer tab de la URL, si no existe usar 'resumen'
+  const tabFromUrl = (searchParams.get('tab') as TabType) || 'resumen';
   const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
-  const [activeSubTab, setActiveSubTab] = useState<SubTabType>(subTabFromUrl);
+  
+  const [activeSubTab, setActiveSubTab] = useState<SubTabId>('resumen');
 
-  // Estados para infinite scroll
-  const [page, setPage] = useState(1);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  // Estados para el chat
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [chatRecipient, setChatRecipient] = useState<{
+    id: string;
+    name: string;
+    avatar: string;
+  } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
-  // Función para formatear fecha
-  const formatFecha = (fecha?: string) => {
-    if (!fecha) return '';
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  // Función para navegar al perfil
-  const handleVerPerfil = (invitacion: Invitacion) => {
-    if (invitacion.slug) {
-      navigate(`/perfil-usuario/${invitacion.slug}`);
-    }
-  };
-
+  // ✅ SOLUCIÓN: Actualizar URL cuando cambia el tab
   useEffect(() => {
-    const params: Record<string, string> = { tab: activeTab };
-    
-    if (activeTab === 'resumen' || activeTab === 'invitaciones') {
-      params.subtab = activeSubTab;
-    }
-    
-    setSearchParams(params, { replace: true });
-  }, [activeTab, activeSubTab, setSearchParams]);
+    setSearchParams({ tab: activeTab }, { replace: true });
+  }, [activeTab, setSearchParams]);
 
+  // ✅ SOLUCIÓN: Sincronizar tab cuando cambia la URL (botón atrás/adelante)
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') as TabType;
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
+
+  // Usuario actual
   const currentUser = {
     nombre: 'María Rodriguez',
     username: '@maria_lima3',
@@ -80,134 +78,46 @@ export const DashboardCreadoraPage = () => {
     gananciasMes: 2450,
   };
 
+  // Mock de suscriptores
+  const subscribersWithMessages = [
+    { id: '1', nombre: 'Juan Pérez', avatar: 'https://i.pravatar.cc/150?img=11', lastMessage: 'Hola! ¿Cómo estás?', unreadCount: 3 },
+    { id: '2', nombre: 'Carlos López', avatar: 'https://i.pravatar.cc/150?img=12', lastMessage: '¿Disponible para videollamada?', unreadCount: 1 },
+    { id: '3', nombre: 'Miguel Torres', avatar: 'https://i.pravatar.cc/150?img=13', lastMessage: 'Gracias por el contenido!', unreadCount: 0 },
+    { id: '4', nombre: 'Pedro Sánchez', avatar: 'https://i.pravatar.cc/150?img=14', lastMessage: 'Me encanta tu perfil 💕', unreadCount: 2 },
+  ];
+
+  // Creadores online
   const onlineCreators: OnlineCreatorExtended[] = [
     { id: 1, slug: 'maria-rodriguez-a7k3', nombre: 'Chelsea', edad: 24, avatar: 'https://i.pravatar.cc/150?img=1', isLive: true, isFavorite: true },
     { id: 2, slug: 'amanda-garcia-b9d2', nombre: 'Amanda', edad: 26, avatar: 'https://i.pravatar.cc/150?img=2', isLive: false, isFavorite: false },
     { id: 3, slug: 'chloe-martin-c4f7', nombre: 'Chloe', edad: 22, avatar: 'https://i.pravatar.cc/150?img=3', isLive: true, isFavorite: false },
-    { id: 4, slug: 'leslie-hall-e8k1', nombre: 'Leslie', edad: 28, avatar: 'https://i.pravatar.cc/150?img=4', isLive: false, isFavorite: true },
-    { id: 5, slug: 'maria-lopez-d3j9', nombre: 'María', edad: 25, avatar: 'https://i.pravatar.cc/150?img=5', isLive: false, isFavorite: false },
-    { id: 6, slug: 'ana-martinez-f6l4', nombre: 'Ana', edad: 27, avatar: 'https://i.pravatar.cc/150?img=6', isLive: true, isFavorite: true },
-    { id: 7, slug: 'sofia-gonzalez-h7k2', nombre: 'Sofía', edad: 23, avatar: 'https://i.pravatar.cc/150?img=7', isLive: false, isFavorite: false },
-    { id: 8, slug: 'lucia-morales-j9l8', nombre: 'Lucía', edad: 29, avatar: 'https://i.pravatar.cc/150?img=8', isLive: false, isFavorite: true },
-    { id: 9, slug: 'valeria-castro-t8n4', nombre: 'Valeria', edad: 24, avatar: 'https://i.pravatar.cc/150?img=9', isLive: true, isFavorite: false },
-    { id: 10, slug: 'camila-torres-r3b9', nombre: 'Camila', edad: 26, avatar: 'https://i.pravatar.cc/150?img=10', isLive: false, isFavorite: true },
-    { id: 11, slug: 'daniela-ruiz-w5p3', nombre: 'Daniela', edad: 25, avatar: 'https://i.pravatar.cc/150?img=11', isLive: true, isFavorite: false },
-    { id: 12, slug: 'andrea-silva-q7m8', nombre: 'Andrea', edad: 28, avatar: 'https://i.pravatar.cc/150?img=12', isLive: false, isFavorite: false },
   ];
 
-  // Invitaciones iniciales
-  const invitacionesIniciales: Invitacion[] = [
-    { id: 1, slug: 'juan-perez-x7m3', nombre: 'Juan', edad: 28, ubicacion: 'San Isidro, Lima', distancia: 2.3, avatar: 'https://i.pravatar.cc/150?img=12', isLive: false, isFavorite: false, fechaInvitacion: '2025-01-02' },
-    { id: 2, slug: 'carlos-gomez-k9p2', nombre: 'Carlos', edad: 32, ubicacion: 'Miraflores, Lima', distancia: 4.1, avatar: 'https://i.pravatar.cc/150?img=13', isLive: true, isFavorite: false, fechaInvitacion: '2025-01-01' },
-    { id: 3, slug: 'diego-torres-a4n8', nombre: 'Diego', edad: 25, ubicacion: 'Barranco, Lima', distancia: 5.8, avatar: 'https://i.pravatar.cc/150?img=14', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-31' },
-    { id: 4, slug: 'miguel-santos-b6q1', nombre: 'Miguel', edad: 30, ubicacion: 'Surco, Lima', distancia: 7.2, avatar: 'https://i.pravatar.cc/150?img=15', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-30' },
-    { id: 5, slug: 'alejandro-ruiz-c2r7', nombre: 'Alejandro', edad: 27, ubicacion: 'San Miguel, Lima', distancia: 3.5, avatar: 'https://i.pravatar.cc/150?img=16', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-29' },
-    { id: 6, slug: 'andres-morales-d8t4', nombre: 'Andrés', edad: 29, ubicacion: 'Lince, Lima', distancia: 6.0, avatar: 'https://i.pravatar.cc/150?img=17', isLive: true, isFavorite: false, fechaInvitacion: '2024-12-28' },
-    { id: 7, slug: 'luis-castro-e3w9', nombre: 'Luis', edad: 31, ubicacion: 'Jesús María, Lima', distancia: 4.7, avatar: 'https://i.pravatar.cc/150?img=18', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-27' },
-    { id: 8, slug: 'roberto-vargas-f5y6', nombre: 'Roberto', edad: 26, ubicacion: 'La Molina, Lima', distancia: 8.9, avatar: 'https://i.pravatar.cc/150?img=19', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-26' },
-    { id: 9, slug: 'fernando-diaz-g1h5', nombre: 'Fernando', edad: 33, ubicacion: 'San Borja, Lima', distancia: 5.3, avatar: 'https://i.pravatar.cc/150?img=20', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-25' },
-    { id: 10, slug: 'ricardo-flores-h9j2', nombre: 'Ricardo', edad: 24, ubicacion: 'Pueblo Libre, Lima', distancia: 6.8, avatar: 'https://i.pravatar.cc/150?img=21', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-24' },
-    { id: 11, slug: 'eduardo-chavez-i3k7', nombre: 'Eduardo', edad: 35, ubicacion: 'Magdalena, Lima', distancia: 7.5, avatar: 'https://i.pravatar.cc/150?img=22', isLive: true, isFavorite: false, fechaInvitacion: '2024-12-23' },
-    { id: 12, slug: 'pablo-ramirez-j8l4', nombre: 'Pablo', edad: 29, ubicacion: 'Breña, Lima', distancia: 4.2, avatar: 'https://i.pravatar.cc/150?img=23', isLive: false, isFavorite: false, fechaInvitacion: '2024-12-22' },
-  ];
-
-  const [invitaciones, setInvitaciones] = useState<Invitacion[]>(invitacionesIniciales);
-
-  const subTabs = [
-    { id: 'invitaciones' as const, label: 'Invitaciones', icon: Users },
-    { id: 'resumen' as const, label: 'Resumen', icon: TrendingUp },
-    { id: 'miactividad' as const, label: 'Mi Actividad', icon: Activity },
-  ];
-
-  // Función para cargar más invitaciones
-  const loadMoreInvitaciones = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
-    
-    setIsLoadingMore(true);
-    console.log('📥 Cargando más invitaciones... Página:', page + 1);
-    
-    // Simular llamada al API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // TODO: Aquí iría la llamada real al backend
-    // const response = await fetch(`/api/invitaciones?page=${page + 1}&limit=12`);
-    // const newInvitaciones = await response.json();
-    
-    // Simulación: duplicar invitaciones existentes con nuevos IDs
-    const newInvitaciones = invitacionesIniciales.slice(0, 6).map((inv, index) => ({
-      ...inv,
-      id: inv.id + (page * 100) + index,
-      nombre: `${inv.nombre} ${page + 1}`,
-    }));
-
-    if (newInvitaciones.length === 0 || page >= 5) { // Limitar a 5 páginas en demo
-      setHasMore(false);
-    } else {
-      setInvitaciones(prev => [...prev, ...newInvitaciones]);
-      setPage(prev => prev + 1);
-    }
-    
-    setIsLoadingMore(false);
-  }, [page, isLoadingMore, hasMore, invitacionesIniciales]);
-
-  // Intersection Observer para infinite scroll automático
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0].isIntersecting && !isLoadingMore && hasMore && activeSubTab === 'invitaciones') {
-          loadMoreInvitaciones();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    const currentTarget = observerTarget.current;
-    if (currentTarget) {
-      observer.observe(currentTarget);
-    }
-
-    return () => {
-      if (currentTarget) {
-        observer.unobserve(currentTarget);
-      }
-    };
-  }, [loadMoreInvitaciones, isLoadingMore, hasMore, activeSubTab]);
-
-  // Reset page cuando cambia de subtab
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    setInvitaciones(invitacionesIniciales);
-  }, [activeSubTab]);
-
-  const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
-    if (tab === 'invitaciones') {
-      setActiveSubTab('invitaciones');
-    } else if (tab === 'resumen') {
-      setActiveSubTab('invitaciones');
-    }
+  // Funciones del chat
+  const handleOpenChat = (subscriberId: string, subscriberName: string, subscriberAvatar: string) => {
+    console.log('💬 Abriendo chat con:', subscriberName);
+    setActiveChatId(subscriberId);
+    setChatRecipient({
+      id: subscriberId,
+      name: subscriberName,
+      avatar: subscriberAvatar,
+    });
   };
 
-  const handleSubTabChange = (tab: string) => {
-    if (tab === 'invitaciones' || tab === 'resumen' || tab === 'miactividad') {
-      setActiveSubTab(tab as SubTabType);
-    }
+  const handleCloseChat = () => {
+    setActiveChatId(null);
+    setChatRecipient(null);
   };
 
   const handleProgramarEvento = () => {
     console.log('Programar evento');
   };
 
-  const handleAceptar = (invitacionId: number) => {
-    console.log('✅ Invitación aceptada:', invitacionId);
-    setInvitaciones(prev => prev.filter(inv => inv.id !== invitacionId));
+  const handleSubTabChange = (tabId: string) => {
+    setActiveSubTab(tabId as SubTabId);
   };
 
-  const handleRechazar = (invitacionId: number) => {
-    console.log('❌ Invitación rechazada:', invitacionId);
-    setInvitaciones(prev => prev.filter(inv => inv.id !== invitacionId));
-  };
+  const showSubTabs = activeTab === 'resumen';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -217,316 +127,141 @@ export const DashboardCreadoraPage = () => {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         activeTab={activeTab}
-        onTabChange={handleTabChange}
+        onTabChange={setActiveTab}
       />
 
-      <OnlineCreatorsSidebar creators={onlineCreators} />
-
       <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-64 pr-0 lg:pr-24 overflow-hidden flex flex-col">
-        {/* Header Fijo con Tabs */}
-        {(activeTab === 'resumen' || activeTab === 'invitaciones') && (
-          <div className="flex-shrink-0 bg-white border-b border-slate-200">
-            <div className="flex border-b border-slate-200 px-6 overflow-x-auto">
-              {subTabs.map((tab) => {
-                const isActive = activeSubTab === tab.id;
-                const Icon = tab.icon;
-                
-                return (
+        {/* Header */}
+        {showSubTabs ? (
+          <SubTabsHeader
+            tabs={subTabsConfig}
+            activeTab={activeSubTab}
+            onTabChange={handleSubTabChange}
+          />
+        ) : (
+          <>
+            {activeTab === 'contenido' && (
+              <PageHeader icon={Crown} title="Contenido" iconColor="text-pink-500" />
+            )}
+            {activeTab === 'packs' && (
+              <PageHeader icon={Crown} title="Packs" iconColor="text-violet-500" />
+            )}
+            {activeTab === 'mensajes' && (
+              <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                      <MessageCircle className="w-6 h-6 text-pink-600" />
+                      Mensajes
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                      {subscribersWithMessages.filter(s => s.unreadCount > 0).length} conversaciones sin leer
+                    </p>
+                  </div>
+                  
                   <button
-                    key={tab.id}
-                    onClick={() => handleSubTabChange(tab.id)}
-                    className={`
-                      relative flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap
-                      ${isActive 
-                        ? 'text-pink-600' 
-                        : 'text-slate-600 hover:text-slate-900'
-                      }
-                    `}
+                    onClick={() => setShowSettings(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 text-violet-600 rounded-xl font-semibold text-sm transition-all flex items-center gap-2 border border-violet-200"
                   >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                    
-                    {isActive && (
-                      <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
-                    )}
+                    <Settings className="w-4 h-4" />
+                    Configurar Chat
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Header solo para Contenido */}
-        {activeTab === 'contenido' && (
-          <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-pink-500" />
-              <h1 className="text-xl font-bold text-slate-800">Contenido</h1>
-            </div>
-          </div>
-        )}
-
-        {/* Header solo para Packs */}
-        {activeTab === 'packs' && (
-          <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-violet-500" />
-              <h1 className="text-xl font-bold text-slate-800">Packs</h1>
-            </div>
-          </div>
-        )}
-        
         {/* Contenido con Scroll */}
         <div className="flex-1 overflow-y-auto bg-slate-50">
           <div className="p-6">
-            {activeTab === 'resumen' || activeTab === 'invitaciones' ? (
+            {showSubTabs && (
               <>
-                {/* TAB INVITACIONES CON INFINITE SCROLL */}
                 {activeSubTab === 'invitaciones' && (
-                  <div>
-                    {/* Grid de Invitaciones */}
-                    {invitaciones.length === 0 ? (
-                      <div className="text-center py-16">
-                        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mb-4">
-                          <Heart className="w-8 h-8 text-slate-400" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                          No tienes invitaciones
-                        </h3>
-                        <p className="text-sm text-slate-500">
-                          Cuando alguien se interese en ti, aparecerá aquí
-                        </p>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {invitaciones.map((invitacion) => (
-                            <div
-                              key={invitacion.id}
-                              className="bg-white rounded-2xl border-2 border-slate-200 hover:border-pink-300 transition-all overflow-hidden group shadow-sm hover:shadow-md"
-                            >
-                              {/* Avatar */}
-                              <div 
-                                className="relative aspect-[3/4] bg-slate-100 cursor-pointer"
-                                onClick={() => handleVerPerfil(invitacion)}
-                              >
-                                <img
-                                  src={invitacion.avatar}
-                                  alt={invitacion.nombre}
-                                  className="w-full h-full object-cover"
-                                />
-                                
-                                {/* Fecha de invitación */}
-                                {invitacion.fechaInvitacion && (
-                                  <div className="absolute top-2 left-2 px-2 py-1 bg-white/95 backdrop-blur-sm text-[10px] font-semibold text-slate-700 rounded-lg flex items-center gap-1 shadow-sm">
-                                    <Calendar className="w-3 h-3 text-pink-500" />
-                                    {formatFecha(invitacion.fechaInvitacion)}
-                                  </div>
-                                )}
-                                
-                                {/* Badge de Live */}
-                                {invitacion.isLive && (
-                                  <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-lg animate-pulse">
-                                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
-                                    EN VIVO
-                                  </div>
-                                )}
-
-                                {/* Gradient overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-
-                                {/* Info sobre la foto */}
-                                <div className="absolute bottom-0 left-0 right-0 p-3">
-                                  <h3 className="text-white font-bold text-lg mb-0.5">
-                                    {invitacion.nombre}, {invitacion.edad}
-                                  </h3>
-                                  <div className="flex items-center gap-1.5 text-white/90 text-xs">
-                                    <MapPin className="w-3 h-3" />
-                                    <span>{invitacion.distancia.toFixed(1)} km</span>
-                                    <span>•</span>
-                                    <span>{invitacion.ubicacion}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Botones de Acción */}
-                              <div className="p-3 space-y-2">
-                                {/* Botón Ver Perfil */}
-                                <button
-                                  onClick={() => handleVerPerfil(invitacion)}
-                                  className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  Ver Perfil
-                                </button>
-                                
-                                {/* Botones Aceptar/Rechazar */}
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => handleRechazar(invitacion.id)}
-                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
-                                  >
-                                    <X className="w-4 h-4" />
-                                    Rechazar
-                                  </button>
-                                  <button
-                                    onClick={() => handleAceptar(invitacion.id)}
-                                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                                  >
-                                    <Check className="w-4 h-4" />
-                                    Aceptar
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Loading indicator para infinite scroll */}
-                        {isLoadingMore && (
-                          <div className="text-center py-8 mt-6">
-                            <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-                              <div className="w-5 h-5 border-3 border-pink-500 border-t-transparent rounded-full animate-spin" />
-                              <span className="text-sm font-medium text-slate-600">Cargando más invitaciones...</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Observer target para infinite scroll */}
-                        <div 
-                          ref={observerTarget} 
-                          className="h-20 flex items-center justify-center mt-4"
-                        >
-                          {!isLoadingMore && hasMore && invitaciones.length > 0 && (
-                            <p className="text-xs text-slate-400">Cargando más contenido automáticamente...</p>
-                          )}
-                          
-                          {!hasMore && invitaciones.length > 0 && (
-                            <p className="text-xs text-slate-500">Has llegado al final de las invitaciones</p>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  <InvitacionesTab
+                    invitacionesIniciales={invitacionesIniciales}
+                    enabled={activeSubTab === 'invitaciones'}
+                  />
                 )}
 
-                {/* TAB RESUMEN */}
                 {activeSubTab === 'resumen' && (
-                  <>
-                    <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
-                      <div>
-                        <h2 className="text-2xl font-bold text-slate-800 mb-1">
-                          ¡Hola {currentUser.nombre}! 👋
-                        </h2>
-                        <p className="text-sm text-slate-600">
-                          Aquí tienes un resumen de tu actividad
-                        </p>
-                      </div>
-
-                      <div className="hidden md:block">
-                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl px-5 py-3 flex items-center gap-3 shadow-sm">
-                          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
-                            <TrendingUp className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-emerald-700 font-medium">Ganancias este mes</p>
-                            <p className="text-xl font-bold text-emerald-900">
-                              S/. {currentUser.gananciasMes.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <StatsCards />
-
-                    <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-200">
-                        <h3 className="text-base font-bold text-slate-800 mb-4">
-                          Actividad Reciente
-                        </h3>
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
-                            <div className="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-emerald-600 font-bold text-sm">+</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">
-                                Nueva suscripción
-                              </p>
-                              <p className="text-xs text-slate-500">Hace 2 horas</p>
-                            </div>
-                            <span className="text-emerald-600 font-bold text-sm">+S/. 140</span>
-                          </div>
-
-                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
-                            <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-lg">🎁</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">
-                                Regalo recibido
-                              </p>
-                              <p className="text-xs text-slate-500">Hace 5 horas</p>
-                            </div>
-                            <span className="text-purple-600 font-bold text-sm">+S/. 50</span>
-                          </div>
-
-                          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
-                            <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <span className="text-lg">📦</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">
-                                Pack vendido
-                              </p>
-                              <p className="text-xs text-slate-500">Hace 1 día</p>
-                            </div>
-                            <span className="text-blue-600 font-bold text-sm">+S/. 80</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="bg-white rounded-2xl shadow-sm p-5 border border-slate-200">
-                        <h3 className="text-base font-bold text-slate-800 mb-4">
-                          Próximos Lives
-                        </h3>
-                        <div className="space-y-3">
-                          <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border border-red-200">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-                              <span className="text-xs font-bold text-red-600">PROGRAMADO</span>
-                            </div>
-                            <p className="font-semibold text-slate-900 text-sm">Yoga Matutina</p>
-                            <p className="text-xs text-slate-600 mt-0.5">Hoy a las 10:00 AM</p>
-                          </div>
-
-                          <div className="p-4 bg-slate-50 rounded-xl">
-                            <p className="text-xs text-slate-500 text-center">
-                              No tienes más lives programados
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </>
+                  <ResumenTab
+                    nombreUsuario={currentUser.nombre}
+                    gananciasMes={currentUser.gananciasMes}
+                  />
                 )}
 
-                {/* TAB MI ACTIVIDAD */}
                 {activeSubTab === 'miactividad' && (
                   <MiActividadTab onProgramarEvento={handleProgramarEvento} />
                 )}
               </>
-            ) : (
-              <div>
-                {activeTab === 'contenido' && <ContenidoPage />}
-                {activeTab === 'packs' && <PacksPage />}
-                {activeTab === 'mensajes' && (
-                  <div className="text-center py-16">
-                    <h2 className="text-xl font-bold text-slate-800">Mensajes</h2>
-                    <p className="text-sm text-slate-600 mt-2">Próximamente</p>
+            )}
+
+            {activeTab === 'mensajes' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {subscribersWithMessages.map((subscriber) => (
+                  <div
+                    key={subscriber.id}
+                    className="bg-white rounded-2xl border-2 border-slate-200 hover:border-violet-300 transition-all p-5 cursor-pointer group"
+                    onClick={() => handleOpenChat(subscriber.id, subscriber.nombre, subscriber.avatar)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="relative">
+                        <img
+                          src={subscriber.avatar}
+                          alt={subscriber.nombre}
+                          className="w-14 h-14 rounded-full object-cover ring-2 ring-slate-100 group-hover:ring-violet-200 transition"
+                        />
+                        {subscriber.unreadCount > 0 && (
+                          <div className="absolute -top-1 -right-1 w-6 h-6 bg-pink-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md">
+                            {subscriber.unreadCount}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-slate-800 truncate group-hover:text-violet-600 transition">
+                          {subscriber.nombre}
+                        </h3>
+                        <p className="text-sm text-slate-500 truncate mt-0.5">
+                          {subscriber.lastMessage}
+                        </p>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenChat(subscriber.id, subscriber.nombre, subscriber.avatar);
+                          }}
+                          className="mt-3 px-4 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 text-pink-600 rounded-lg font-semibold text-xs transition-all flex items-center gap-2 border border-pink-200"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          Abrir Chat
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {subscribersWithMessages.length === 0 && (
+                  <div className="col-span-full text-center py-16">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl mb-4">
+                      <MessageCircle className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                      No hay mensajes aún
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Los suscriptores podrán enviarte mensajes desde tu perfil
+                    </p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {!showSubTabs && activeTab !== 'mensajes' && (
+              <>
+                {activeTab === 'contenido' && <ContenidoPage />}
+                {activeTab === 'packs' && <PacksPage />}
                 {activeTab === 'donaciones' && (
                   <div className="text-center py-16">
                     <h2 className="text-xl font-bold text-slate-800">Donaciones</h2>
@@ -545,11 +280,28 @@ export const DashboardCreadoraPage = () => {
                     <p className="text-sm text-slate-600 mt-2">Próximamente</p>
                   </div>
                 )}
-              </div>
+              </>
             )}
           </div>
         </div>
       </main>
+
+      {/* <OnlineCreatorsSidebar creators={onlineCreators} /> */}
+
+      {/* Modales del chat */}
+      {activeChatId && chatRecipient && (
+        <FloatingChatModal
+          recipientId={chatRecipient.id}
+          recipientName={chatRecipient.name}
+          recipientAvatar={chatRecipient.avatar}
+          isOnline={true}
+          onClose={handleCloseChat}
+        />
+      )}
+
+      {showSettings && (
+        <QuickSettingsPanel onClose={() => setShowSettings(false)} />
+      )}
     </div>
   );
 };

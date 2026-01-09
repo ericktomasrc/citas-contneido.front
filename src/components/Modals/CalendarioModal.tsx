@@ -1,5 +1,8 @@
 // src/components/DashboardCreadora/Modals/CalendarioModal.tsx
+// ✅ CON REACT PORTAL - BLOQUEA TODA LA PANTALLA
+
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, ChevronLeft, Calendar, Clock, Plus, Trash2, AlertCircle } from 'lucide-react';
 
 export interface EventoCalendario {
@@ -76,7 +79,6 @@ export const CalendarioModal = ({
     const year = new Date().getFullYear();
     if (isDatePast(day, mesSeleccionado, year)) return;
     
-    // Verificar límite de 5 eventos por día
     const eventosDelDia = getEventosForDay(day, mesSeleccionado, year);
     if (eventosDelDia.length >= 5) {
       alert('⚠️ Límite alcanzado: máximo 5 eventos por día');
@@ -87,7 +89,6 @@ export const CalendarioModal = ({
   };
 
   const handleAbrirModalCrear = () => {
-    // Resetear formulario
     setNuevoEvento({
       titulo: '',
       hora: new Date().toTimeString().slice(0, 5),
@@ -104,7 +105,6 @@ export const CalendarioModal = ({
       return;
     }
     
-    // Validar PPV
     if (nuevoEvento.tipoAcceso === 'ppv') {
       if (!nuevoEvento.precioPPV || nuevoEvento.precioPPV < 1) {
         alert('⚠️ Debes ingresar un precio válido para PPV');
@@ -126,7 +126,6 @@ export const CalendarioModal = ({
       descripcionPPV: nuevoEvento.tipoAcceso === 'ppv' ? nuevoEvento.descripcionPPV : undefined
     });
     
-    // Volver al calendario
     setVistaActual('calendario');
   };
 
@@ -154,11 +153,12 @@ export const CalendarioModal = ({
 
   if (!isOpen) return null;
 
-  return (
+  // ✅ CONTENIDO DEL MODAL
+  const modalContent = (
     <>
       {/* VISTA 1: Selección de Meses */}
       {vistaActual === 'meses' && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden">
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200 px-6 py-4 flex items-center justify-between">
               <div>
@@ -209,11 +209,10 @@ export const CalendarioModal = ({
         </div>
       )}
 
-      {/* VISTA 2: Calendario del Mes con Panel Lateral MEJORADO */}
+      {/* VISTA 2: Calendario */}
       {vistaActual === 'calendario' && mesSeleccionado !== null && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] overflow-hidden flex flex-col">
-            {/* Header */}
             <div className="bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
                 <button onClick={handleVolver} className="p-2 hover:bg-violet-100 rounded-lg transition-colors">
@@ -229,9 +228,7 @@ export const CalendarioModal = ({
               </button>
             </div>
 
-            {/* Contenido Split */}
             <div className="flex-1 flex overflow-hidden min-h-0">
-              {/* Panel Izquierdo: Calendario */}
               <div className="w-[60%] border-r border-slate-200 p-6 flex-shrink-0 bg-slate-50">
                 <div className="grid grid-cols-7 gap-2">
                   {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day) => (
@@ -277,7 +274,6 @@ export const CalendarioModal = ({
                 </div>
               </div>
 
-              {/* Panel Derecho: Eventos del día MEJORADO */}
               <div className="w-[40%] flex flex-col bg-white">
                 {diaSeleccionado === null ? (
                   <div className="flex-1 flex items-center justify-center p-6 text-center">
@@ -293,7 +289,6 @@ export const CalendarioModal = ({
                   </div>
                 ) : (
                   <>
-                    {/* Header del día con botón CREAR */}
                     <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-violet-50 to-purple-50 flex-shrink-0 flex items-center justify-between">
                       <div className="flex-1">
                         <h3 className="text-base font-bold text-slate-900">Eventos</h3>
@@ -303,7 +298,7 @@ export const CalendarioModal = ({
                       </div>
                       <button
                         onClick={handleAbrirModalCrear}
-                        disabled={getEventosForDay(diaSeleccionado, mesSeleccionado, 2026).length >= 3}
+                        disabled={getEventosForDay(diaSeleccionado, mesSeleccionado, 2026).length >= 5}
                         className={`px-4 py-2 rounded-xl text-sm font-semibold transition inline-flex items-center gap-2 shadow-md ${
                           getEventosForDay(diaSeleccionado, mesSeleccionado, 2026).length >= 5
                             ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
@@ -315,7 +310,6 @@ export const CalendarioModal = ({
                       </button>
                     </div>
 
-                    {/* Lista de eventos */}
                     <div className="flex-1 overflow-y-auto p-5 min-h-0 bg-slate-50">
                       {getEventosForDay(diaSeleccionado, mesSeleccionado, 2026).length === 0 ? (
                         <div className="text-center py-12">
@@ -381,9 +375,9 @@ export const CalendarioModal = ({
         </div>
       )}
 
-      {/* VISTA 3: Crear Evento (Modal de Tipo de Transmisión) */}
+      {/* VISTA 3: Crear Evento */}
       {vistaActual === 'crear' && diaSeleccionado && mesSeleccionado !== null && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 overflow-hidden">
             <div className="bg-gradient-to-r from-violet-50 to-purple-50 border-b border-violet-200 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -401,7 +395,6 @@ export const CalendarioModal = ({
             </div>
 
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              {/* Título (100 caracteres) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   Título del Evento <span className="text-red-500">*</span>
@@ -417,7 +410,6 @@ export const CalendarioModal = ({
                 <p className="text-xs text-slate-500 mt-1">{nuevoEvento.titulo.length}/100</p>
               </div>
 
-              {/* Hora */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1.5">
                   <Clock className="w-3.5 h-3.5" />
@@ -431,11 +423,9 @@ export const CalendarioModal = ({
                 />
               </div>
 
-              {/* Tipo de Acceso */}
               <div className="space-y-2">
                 <label className="block text-xs font-semibold text-slate-700 mb-2">Tipo de Acceso</label>
                 
-                {/* Público */}
                 <button
                   onClick={() => setNuevoEvento({ ...nuevoEvento, tipoAcceso: 'publico' })}
                   className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
@@ -458,7 +448,6 @@ export const CalendarioModal = ({
                   </div>
                 </button>
 
-                {/* Suscriptores */}
                 <button
                   onClick={() => setNuevoEvento({ ...nuevoEvento, tipoAcceso: 'suscriptores' })}
                   className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
@@ -476,12 +465,11 @@ export const CalendarioModal = ({
                         <span className="text-lg">👑</span>
                         <h4 className="text-sm font-bold text-slate-900">Solo Suscriptores</h4>
                       </div>
-                      <p className="text-xs text-slate-600">Requiere suscripción (S/.20-150/mes)</p>
+                      <p className="text-xs text-slate-600">Requiere suscripción</p>
                     </div>
                   </div>
                 </button>
 
-                {/* PPV */}
                 <button
                   onClick={() => setNuevoEvento({ ...nuevoEvento, tipoAcceso: 'ppv' })}
                   className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
@@ -505,7 +493,6 @@ export const CalendarioModal = ({
                 </button>
               </div>
 
-              {/* Formulario PPV */}
               {nuevoEvento.tipoAcceso === 'ppv' && (
                 <div className="space-y-3 p-4 bg-pink-50 rounded-xl border border-pink-200">
                   <div>
@@ -520,7 +507,6 @@ export const CalendarioModal = ({
                       placeholder="15"
                       min="1"
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">💡 Sugerido: S/.10-30</p>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1.5">
@@ -530,17 +516,15 @@ export const CalendarioModal = ({
                       value={nuevoEvento.descripcionPPV}
                       onChange={(e) => setNuevoEvento({ ...nuevoEvento, descripcionPPV: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-400"
-                      placeholder="Ej: Evento especial con contenido exclusivo..."
+                      placeholder="Ej: Evento especial..."
                       rows={2}
                       maxLength={100}
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">{nuevoEvento.descripcionPPV?.length || 0}/100</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Footer */}
             <div className="p-5 border-t border-slate-200 bg-slate-50 flex gap-3">
               <button
                 onClick={handleVolver}
@@ -564,10 +548,10 @@ export const CalendarioModal = ({
         </div>
       )}
 
-      {/* Modal de Confirmación de Eliminación */}
+      {/* Modal de Confirmación */}
       {eventoAEliminar && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full border border-red-200 overflow-hidden animate-scale-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[10001] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full border border-red-200 overflow-hidden">
             <div className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-200 px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center">
@@ -602,4 +586,7 @@ export const CalendarioModal = ({
       )}
     </>
   );
+
+  // ✅ RENDERIZAR CON PORTAL DIRECTAMENTE EN EL BODY
+  return createPortal(modalContent, document.body);
 };
