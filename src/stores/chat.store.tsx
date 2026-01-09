@@ -1,4 +1,5 @@
 // src/stores/chat.store.ts
+// ✅ AGREGADO: updateMessage para evitar duplicados
 
 import { create } from 'zustand';
 import { Message, Chat } from '@/features/chat/types/message.types';
@@ -22,6 +23,7 @@ interface ChatState {
   openChat: (chat: Chat) => void;
   closeChat: () => void;
   addMessage: (chatId: string, message: Message) => void;
+  updateMessage: (chatId: string, messageId: string, updates: Partial<Message>) => void;  // ✅ NUEVO
   markAsRead: (chatId: string) => void;
   setTyping: (chatId: string, isTyping: boolean) => void;
   updateChat: (chatId: string, updates: Partial<Chat>) => void;
@@ -42,7 +44,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       isModalOpen: true,
     });
     
-    // Agregar a chats activos si no existe
     const { activeChats } = get();
     if (!activeChats.find(c => c.id === chat.id)) {
       set({ activeChats: [...activeChats, chat] });
@@ -58,10 +59,44 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { messagesByChat } = get();
     const chatMessages = messagesByChat[chatId] || [];
     
+    // ✅ Verificar si ya existe el mensaje (evitar duplicados)
+    const existingIndex = chatMessages.findIndex(m => m.id === message.id);
+    
+    if (existingIndex >= 0) {
+      // Ya existe, actualizar
+      const updatedMessages = [...chatMessages];
+      updatedMessages[existingIndex] = message;
+      
+      set({
+        messagesByChat: {
+          ...messagesByChat,
+          [chatId]: updatedMessages,
+        },
+      });
+    } else {
+      // No existe, agregar
+      set({
+        messagesByChat: {
+          ...messagesByChat,
+          [chatId]: [...chatMessages, message],
+        },
+      });
+    }
+  },
+
+  // ✅ NUEVO: Actualizar mensaje existente por ID
+  updateMessage: (chatId, messageId, updates) => {
+    const { messagesByChat } = get();
+    const chatMessages = messagesByChat[chatId] || [];
+    
+    const updatedMessages = chatMessages.map(msg =>
+      msg.id === messageId ? { ...msg, ...updates } : msg
+    );
+    
     set({
       messagesByChat: {
         ...messagesByChat,
-        [chatId]: [...chatMessages, message],
+        [chatId]: updatedMessages,
       },
     });
   },

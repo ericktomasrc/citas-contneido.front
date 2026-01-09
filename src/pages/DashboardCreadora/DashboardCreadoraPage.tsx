@@ -27,6 +27,7 @@ import { PageHeader } from './components/PageHeader';
 // Configuración y datos
 import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
+import { RoleSwitcher } from '@/components/dev/RoleSwitcher';
 
 // Tipos
 type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
@@ -286,8 +287,6 @@ export const DashboardCreadoraPage = () => {
         </div>
       </main>
 
-      {/* <OnlineCreatorsSidebar creators={onlineCreators} /> */}
-
       {/* Modales del chat */}
       {activeChatId && chatRecipient && (
         <FloatingChatModal
@@ -302,6 +301,8 @@ export const DashboardCreadoraPage = () => {
       {showSettings && (
         <QuickSettingsPanel onClose={() => setShowSettings(false)} />
       )}
-    </div>
+         <RoleSwitcher />
+               {/* <OnlineCreatorsSidebar creators={onlineCreators} /> */}
+    </div>    
   );
 };

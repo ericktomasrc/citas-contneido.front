@@ -1,5 +1,5 @@
 // src/features/chat/hooks/useChat.ts
-// ✅ AGREGADO: sendVideoMessage y sendAudioMessage
+// ✅ CORREGIDO: Usa updateMessage para evitar duplicados
 
 import { useState, useCallback, useEffect } from 'react';
 import { useChatStore } from '@/stores/chat.store';
@@ -8,7 +8,7 @@ import { useCurrentUser } from './useUserRole';
 
 export const useChat = (recipientId: string) => {
   const currentUser = useCurrentUser();
-  const { messagesByChat, addMessage, setTyping } = useChatStore();
+  const { messagesByChat, addMessage, updateMessage, setTyping } = useChatStore();
   
   const chatId = `${currentUser?.id}_${recipientId}`;
   const messages = messagesByChat[chatId] || [];
@@ -16,7 +16,6 @@ export const useChat = (recipientId: string) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Cargar mensajes iniciales
   useEffect(() => {
     loadMessages();
   }, [chatId]);
@@ -24,7 +23,6 @@ export const useChat = (recipientId: string) => {
   const loadMessages = async () => {
     setIsLoading(true);
     try {
-      // TODO: Llamar API para obtener mensajes
       console.log('🔥 Cargando mensajes del chat:', chatId);
     } catch (error) {
       console.error('Error cargando mensajes:', error);
@@ -39,8 +37,9 @@ export const useChat = (recipientId: string) => {
 
     setIsSending(true);
 
+    const messageId = `msg_${Date.now()}`;
     const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+      id: messageId,
       chatId,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -52,21 +51,23 @@ export const useChat = (recipientId: string) => {
       createdAt: new Date(),
     };
 
+    // ✅ Agregar mensaje con status: sending
     addMessage(chatId, newMessage);
 
     try {
       console.log('📤 Enviando mensaje:', newMessage);
       
+      // ✅ Actualizar status a sent (no agregar nuevo)
       setTimeout(() => {
-        addMessage(chatId, { ...newMessage, status: 'sent' });
+        updateMessage(chatId, messageId, { status: 'sent' });
+        setIsSending(false);
       }, 500);
     } catch (error) {
       console.error('Error enviando mensaje:', error);
-      addMessage(chatId, { ...newMessage, status: 'failed' });
-    } finally {
+      updateMessage(chatId, messageId, { status: 'failed' });
       setIsSending(false);
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
   // Enviar imagen
   const sendImageMessage = useCallback(async (file: File) => {
@@ -77,8 +78,9 @@ export const useChat = (recipientId: string) => {
     try {
       console.log('📤 Enviando imagen:', file.name);
 
+      const messageId = `msg_${Date.now()}`;
       const newMessage: Message = {
-        id: `msg_${Date.now()}`,
+        id: messageId,
         chatId,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -98,16 +100,16 @@ export const useChat = (recipientId: string) => {
       addMessage(chatId, newMessage);
       
       setTimeout(() => {
-        addMessage(chatId, { ...newMessage, status: 'sent' });
+        updateMessage(chatId, messageId, { status: 'sent' });
+        setIsSending(false);
       }, 500);
     } catch (error) {
       console.error('Error enviando imagen:', error);
-    } finally {
       setIsSending(false);
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
-  // ✅ AGREGADO: Enviar video
+  // Enviar video
   const sendVideoMessage = useCallback(async (file: File) => {
     if (!currentUser) return;
 
@@ -116,8 +118,9 @@ export const useChat = (recipientId: string) => {
     try {
       console.log('📤 Enviando video:', file.name);
 
+      const messageId = `msg_${Date.now()}`;
       const newMessage: Message = {
-        id: `msg_${Date.now()}`,
+        id: messageId,
         chatId,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -137,16 +140,16 @@ export const useChat = (recipientId: string) => {
       addMessage(chatId, newMessage);
       
       setTimeout(() => {
-        addMessage(chatId, { ...newMessage, status: 'sent' });
+        updateMessage(chatId, messageId, { status: 'sent' });
+        setIsSending(false);
       }, 500);
     } catch (error) {
       console.error('Error enviando video:', error);
-    } finally {
       setIsSending(false);
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
-  // ✅ AGREGADO: Enviar audio
+  // Enviar audio
   const sendAudioMessage = useCallback(async (file: File) => {
     if (!currentUser) return;
 
@@ -155,8 +158,9 @@ export const useChat = (recipientId: string) => {
     try {
       console.log('📤 Enviando audio:', file.name);
 
+      const messageId = `msg_${Date.now()}`;
       const newMessage: Message = {
-        id: `msg_${Date.now()}`,
+        id: messageId,
         chatId,
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -176,21 +180,22 @@ export const useChat = (recipientId: string) => {
       addMessage(chatId, newMessage);
       
       setTimeout(() => {
-        addMessage(chatId, { ...newMessage, status: 'sent' });
+        updateMessage(chatId, messageId, { status: 'sent' });
+        setIsSending(false);
       }, 500);
     } catch (error) {
       console.error('Error enviando audio:', error);
-    } finally {
       setIsSending(false);
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
   // Enviar regalo
   const sendGift = useCallback(async (giftId: string, giftName: string, giftEmoji: string, amount: number) => {
     if (!currentUser) return;
 
+    const messageId = `msg_${Date.now()}`;
     const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+      id: messageId,
       chatId,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -208,24 +213,29 @@ export const useChat = (recipientId: string) => {
       createdAt: new Date(),
     };
 
+    // ✅ Agregar mensaje
     addMessage(chatId, newMessage);
 
     try {
       console.log('🎁 Enviando regalo:', giftName, amount);
       
-      addMessage(chatId, { ...newMessage, status: 'sent' });
+      // ✅ Actualizar status (no agregar nuevo)
+      setTimeout(() => {
+        updateMessage(chatId, messageId, { status: 'sent' });
+      }, 500);
     } catch (error) {
       console.error('Error enviando regalo:', error);
-      addMessage(chatId, { ...newMessage, status: 'failed' });
+      updateMessage(chatId, messageId, { status: 'failed' });
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
   // Enviar propina
   const sendTip = useCallback(async (amount: number, message?: string) => {
     if (!currentUser) return;
 
+    const messageId = `msg_${Date.now()}`;
     const newMessage: Message = {
-      id: `msg_${Date.now()}`,
+      id: messageId,
       chatId,
       senderId: currentUser.id,
       senderName: currentUser.name,
@@ -248,12 +258,14 @@ export const useChat = (recipientId: string) => {
     try {
       console.log('💰 Enviando propina:', amount);
       
-      addMessage(chatId, { ...newMessage, status: 'sent' });
+      setTimeout(() => {
+        updateMessage(chatId, messageId, { status: 'sent' });
+      }, 500);
     } catch (error) {
       console.error('Error enviando propina:', error);
-      addMessage(chatId, { ...newMessage, status: 'failed' });
+      updateMessage(chatId, messageId, { status: 'failed' });
     }
-  }, [currentUser, chatId, addMessage]);
+  }, [currentUser, chatId, addMessage, updateMessage]);
 
   // Indicador de escritura
   const startTyping = useCallback(() => {
@@ -270,8 +282,8 @@ export const useChat = (recipientId: string) => {
     isSending,
     sendTextMessage,
     sendImageMessage,
-    sendVideoMessage,     // ✅ EXPORTADO
-    sendAudioMessage,     // ✅ EXPORTADO
+    sendVideoMessage,
+    sendAudioMessage,
     sendGift,
     sendTip,
     startTyping,
