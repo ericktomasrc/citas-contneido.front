@@ -23,6 +23,7 @@ import { PerfilPublicoCreadoraPage } from '@/pages/DashboardCreadora/PerfilPubli
 import { EditarPerfilCreadoraPage } from '@/pages/DashboardCreadora/PerfilPublicoCreadoraPage/EditarPerfilCreadoraPage';
 import { EnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/EnVivoPage';
 import { VerEnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/VerEnVivoPage'; 
+import { MessagesPage } from '@/pages/Messages/MessagesPage';
 
 export const AppRouter = () => {
   return (
