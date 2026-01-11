@@ -9,11 +9,11 @@ export interface ChatSettings {
   subscriberCanSendImages: boolean;
   subscriberCanSendVideos: boolean;
   subscriberCanSendAudio: boolean;
-  
+
   // Palabras bloqueadas
   blockedWords: string[];
   autoBlockEnabled: boolean;
-  
+
   // Videollamadas
   videocallsEnabled: boolean;
   videocallPrice: number;
@@ -22,15 +22,15 @@ export interface ChatSettings {
     videoEnabled: boolean;
     maxDuration: number; // minutos
   };
-  
+
   // Propinas
   allowAnonymousTips: boolean;
   minTipAmount: number;
-  
+
   // Regalos (siempre habilitados para espectadores)
   allowGifts: boolean;
   allowTips: boolean;
-  
+
   // Contenido premium
   allowPremiumContent: boolean;
 }
@@ -41,11 +41,11 @@ export const defaultChatSettings: ChatSettings = {
   subscriberCanSendImages: false,
   subscriberCanSendVideos: false,
   subscriberCanSendAudio: false,
-  
+
   // Palabras bloqueadas (vacío por defecto)
   blockedWords: [],
   autoBlockEnabled: true,
-  
+
   // Videollamadas (deshabilitadas por defecto)
   videocallsEnabled: false,
   videocallPrice: 10, // S/. 10 por minuto
@@ -54,21 +54,23 @@ export const defaultChatSettings: ChatSettings = {
     videoEnabled: true,
     maxDuration: 30, // 30 minutos máximo
   },
-  
+
   // Propinas (habilitadas por defecto)
   allowAnonymousTips: false,
   minTipAmount: 5, // S/. 5 mínimo
-  
+
   // Regalos (siempre habilitados)
   allowGifts: true,
   allowTips: true,
-  
+
   // Premium
   allowPremiumContent: false,
 };
 
 // Permisos calculados para el usuario actual
 export interface ChatPermissions {
+  canSendImages: boolean;
+  canSendAudio: boolean;
   canSendMessages: boolean;
   canSendGifts: boolean;
   canSendTips: boolean;
@@ -87,13 +89,13 @@ export interface ChatConfig {
 }
 
 // Tipos de mensajes
-export type MessageType = 
-  | 'text' 
-  | 'image' 
-  | 'video' 
-  | 'audio' 
-  | 'gift' 
-  | 'tip' 
+export type MessageType =
+  | 'text'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'gift'
+  | 'tip'
   | 'premium';
 
 export interface Message {

@@ -1,9 +1,8 @@
 // src/features/chat/components/ChatWindow/ChatHeaderWhatsApp.tsx
-// ✅ Header elegante con Badge PRIMERO + Config SEGUNDO
+// ✅ Header elegante SIN botón minimizar
 
-import { Settings, Minimize2 } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { User, UserRole } from '../../types/user.types';
-import { BadgeComponent } from '../Badge/BadgeComponent';
 
 interface ChatHeaderWhatsAppProps {
   participant: User;
@@ -40,7 +39,7 @@ export const ChatHeaderWhatsApp = ({
         </p>
       </div>
 
-      {/* Botones: Badge PRIMERO + Config SEGUNDO */}
+      {/* Botones: Badge PRIMERO + Config SEGUNDO (SIN minimizar) */}
       <div className="flex items-center gap-2">
         {/* ✅ BADGE PRIMERO (para creadora viendo espectador) */}
         {userRole === 'creadora' && participant.role === 'espectador' && participant.badge && (
@@ -62,14 +61,6 @@ export const ChatHeaderWhatsApp = ({
             <Settings className="w-5 h-5" />
           </button>
         )}
-
-        {/* Minimizar (opcional) */}
-        <button
-          className="w-10 h-10 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600 hover:text-slate-800"
-          title="Minimizar"
-        >
-          <Minimize2 className="w-5 h-5" />
-        </button>
       </div>
     </div>
   );

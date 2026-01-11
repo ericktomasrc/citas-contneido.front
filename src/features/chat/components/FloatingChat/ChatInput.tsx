@@ -1,49 +1,61 @@
 // src/features/chat/components/FloatingChat/ChatInput.tsx
-// ✅ CORREGIDO: Sin panel interno, solo botones que activan el panel del padre
+// ✅ CORREGIDO: Iconos más pequeños (w-7 h-7)
 
 import { useState, useRef } from 'react';
-import { Send, Gift, DollarSign, Paperclip, Image, Video, Mic } from 'lucide-react';
+import { Send, Paperclip, Gift, DollarSign, Smile, Camera, Video, Mic, Phone } from 'lucide-react';
+import { EmojiPicker } from '../Emoji/EmojiPicker';
+import { CameraCapture } from '../Capture/CameraCapture';
+import { VideoRecorder } from '../Capture/VideoRecorder';
+import { AudioRecorder } from '../Capture/AudioRecorder';
+import { VideoCallModal } from '../VideoCall/VideoCallModal';
 import { UserRole } from '../../types/user.types';
 import { ChatPermissions } from '../../types/chat.types';
 
 interface ChatInputProps {
   userRole: UserRole;
   permissions: ChatPermissions;
-  onSendMessage: (content: string) => void;
-  onSendGift?: (giftId: string, giftName: string, giftEmoji: string, amount: number) => void;
-  onSendTip?: (amount: number) => void;
-  onSendImage?: (file: File) => void;
-  onSendVideo?: (file: File) => void;
-  onSendAudio?: (file: File) => void;
-  isSending?: boolean;
-  showGiftPanel?: boolean;
-  onToggleGiftPanel?: () => void;
+  onSendMessage: (message: string) => void;
+  onSendGift: (giftId: string, giftName: string, giftEmoji: string, amount: number) => void;
+  onSendTip: (amount: number) => void;
+  onSendImage: (file: File) => void;
+  onSendVideo: (file: File) => void;
+  onSendAudio: (file: File) => void;
+  isSending: boolean;
+  showGiftPanel: boolean;
+  onToggleGiftPanel: () => void;
+  showTipPanel?: boolean;
+  onToggleTipPanel?: () => void;
 }
 
 export const ChatInput = ({
   userRole,
   permissions,
   onSendMessage,
-  onSendGift,
-  onSendTip,
   onSendImage,
   onSendVideo,
   onSendAudio,
-  isSending = false,
-  showGiftPanel = false,
+  isSending,
+  showGiftPanel,
   onToggleGiftPanel,
+  showTipPanel,
+  onToggleTipPanel,
 }: ChatInputProps) => {
   const [message, setMessage] = useState('');
-  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCameraCapture, setShowCameraCapture] = useState(false);
+  const [showVideoRecorder, setShowVideoRecorder] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
+  const [showVideoCall, setShowVideoCall] = useState(false);
   
-  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = () => {
-    if (!message.trim() || isSending) return;
-    onSendMessage(message);
-    setMessage('');
+    if (message.trim() && !isSending) {
+      onSendMessage(message.trim());
+      setMessage('');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -53,180 +65,285 @@ export const ChatInput = ({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmojiSelect = (emoji: string) => {
+    setMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      onSendImage?.(file);
-    }
-    setShowUploadMenu(false);
+    if (file) onSendImage(file);
   };
 
   const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      onSendVideo?.(file);
-    }
-    setShowUploadMenu(false);
+    if (file) onSendVideo(file);
   };
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      onSendAudio?.(file);
-    }
-    setShowUploadMenu(false);
+    if (file) onSendAudio(file);
+  };
+
+  const handleCameraCapture = (file: File) => {
+    onSendImage(file);
+    setShowCameraCapture(false);
+  };
+
+  const handleVideoRecord = (file: File) => {
+    onSendVideo(file);
+    setShowVideoRecorder(false);
+  };
+
+  const handleAudioRecord = (file: File) => {
+    onSendAudio(file);
+    setShowAudioRecorder(false);
   };
 
   return (
-    <div className="border-t border-slate-200 bg-white">
-      {/* INPUT PRINCIPAL */}
-      <div className="p-4">
-        {/* Botones de acción */}
-        <div className="flex items-center gap-2 mb-3">
-          {/* Regalo (solo espectador) */}
-          {userRole === 'espectador' && permissions.canSendGifts && (
+    <>
+      <div className="p-3 bg-white border-t border-slate-200">
+        <div className="flex items-end gap-2">
+          {/* Botones izquierda - ✅ MÁS PEQUEÑOS (w-7 h-7) */}
+          <div className="flex items-center gap-1">
+            {/* CREADORA: Subir archivos */}
+            {userRole === 'creadora' && (
+              <>
+                {/* Subir imagen */}
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                  title="Subir imagen"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
+                {/* Tomar foto */}
+                <button
+                  onClick={() => setShowCameraCapture(true)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                  title="Tomar foto"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+
+                {/* Grabar video */}
+                <button
+                  onClick={() => setShowVideoRecorder(true)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                  title="Grabar video"
+                >
+                  <Video className="w-4 h-4" />
+                </button>
+
+                {/* Grabar audio */}
+                <button
+                  onClick={() => setShowAudioRecorder(true)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                  title="Grabar audio"
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+
+                {/* Videollamada */}
+                <button
+                  onClick={() => setShowVideoCall(true)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                  title="Videollamada"
+                >
+                  <Phone className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            {/* ESPECTADOR: Botones según permisos */}
+            {userRole === 'espectador' && (
+              <>
+                {/* Subir imagen */}
+                {permissions.canSendImages && (
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                      title="Subir imagen"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </>
+                )}
+
+                {/* Tomar foto */}
+                {permissions.canSendImages && (
+                  <button
+                    onClick={() => setShowCameraCapture(true)}
+                    className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                    title="Tomar foto"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Subir/Grabar video */}
+                {permissions.canSendVideos && (
+                  <>
+                    <button
+                      onClick={() => videoInputRef.current?.click()}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                      title="Subir video"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => setShowVideoRecorder(true)}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                      title="Grabar video"
+                    >
+                      <Video className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* Subir/Grabar audio */}
+                {permissions.canSendAudio && (
+                  <>
+                    <button
+                      onClick={() => audioInputRef.current?.click()}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                      title="Subir audio"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </button>
+                    <input
+                      ref={audioInputRef}
+                      type="file"
+                      accept="audio/*"
+                      onChange={handleAudioUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => setShowAudioRecorder(true)}
+                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                      title="Grabar audio"
+                    >
+                      <Mic className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+
+                {/* Videollamada */}
+                {permissions.canRequestVideocall && (
+                  <button
+                    onClick={() => setShowVideoCall(true)}
+                    className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
+                    title="Videollamada"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </button>
+                )}
+
+                {/* Regalos y Propinas */}
+                <button
+                  onClick={onToggleGiftPanel}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                    showGiftPanel ? 'bg-pink-100 text-pink-600' : 'hover:bg-slate-100 text-slate-600'
+                  }`}
+                  title="Enviar regalo"
+                >
+                  <Gift className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={onToggleTipPanel}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                    showTipPanel ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-slate-100 text-slate-600'
+                  }`}
+                  title="Enviar propina"
+                >
+                  <DollarSign className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            {/* Emoji picker */}
             <button
-              onClick={onToggleGiftPanel}
-              className={`p-2 rounded-lg transition-colors ${
-                showGiftPanel
-                  ? 'bg-pink-100 text-pink-600'
-                  : 'bg-pink-50 hover:bg-pink-100 text-pink-600'
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
+                showEmojiPicker ? 'bg-violet-100 text-violet-600' : 'hover:bg-slate-100 text-slate-600'
               }`}
-              title="Enviar regalo"
+              title="Emojis"
             >
-              <Gift className="w-5 h-5" />
+              <Smile className="w-4 h-4" />
             </button>
-          )}
+          </div>
 
-          {/* Propina (solo espectador) */}
-          {userRole === 'espectador' && permissions.canSendTips && (
-            <button
-              onClick={onToggleGiftPanel}
-              className={`p-2 rounded-lg transition-colors ${
-                showGiftPanel
-                  ? 'bg-emerald-100 text-emerald-600'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600'
-              }`}
-              title="Enviar propina"
-            >
-              <DollarSign className="w-5 h-5" />
-            </button>
-          )}
+          {/* Input */}
+          <div className="flex-1">
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Escribe un mensaje..."
+              rows={1}
+              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+              style={{ minHeight: '40px', maxHeight: '120px' }}
+            />
+          </div>
 
-          {/* Adjuntar */}
-          {(permissions.canSendPhotos || permissions.canSendVideos || permissions.canSendAudios) && (
-            <div className="relative">
-              <button
-                onClick={() => setShowUploadMenu(!showUploadMenu)}
-                className={`p-2 rounded-lg transition-colors ${
-                  showUploadMenu
-                    ? 'bg-slate-200 text-slate-700'
-                    : 'bg-slate-50 hover:bg-slate-100 text-slate-600'
-                }`}
-                title="Adjuntar archivo"
-              >
-                <Paperclip className="w-5 h-5" />
-              </button>
-
-              {/* Menú de upload ENCIMA */}
-              {showUploadMenu && (
-                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 p-2 min-w-[180px] z-10">
-                  {/* Imagen */}
-                  {permissions.canSendPhotos && (
-                    <>
-                      <button
-                        onClick={() => imageInputRef.current?.click()}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-pink-50 rounded-lg transition text-left"
-                      >
-                        <div className="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
-                          <Image className="w-4 h-4 text-pink-600" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">Foto</span>
-                      </button>
-                      <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleImageUpload}
-                      />
-                    </>
-                  )}
-
-                  {/* Video */}
-                  {permissions.canSendVideos && (
-                    <>
-                      <button
-                        onClick={() => videoInputRef.current?.click()}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-violet-50 rounded-lg transition text-left"
-                      >
-                        <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
-                          <Video className="w-4 h-4 text-violet-600" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">Video</span>
-                      </button>
-                      <input
-                        ref={videoInputRef}
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        onChange={handleVideoUpload}
-                      />
-                    </>
-                  )}
-
-                  {/* Audio */}
-                  {permissions.canSendAudios && (
-                    <>
-                      <button
-                        onClick={() => audioInputRef.current?.click()}
-                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 rounded-lg transition text-left"
-                      >
-                        <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                          <Mic className="w-4 h-4 text-emerald-600" />
-                        </div>
-                        <span className="text-sm font-medium text-slate-700">Audio</span>
-                      </button>
-                      <input
-                        ref={audioInputRef}
-                        type="file"
-                        accept="audio/*"
-                        className="hidden"
-                        onChange={handleAudioUpload}
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Input de mensaje */}
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Escribe tu mensaje..."
-            disabled={isSending}
-            className="flex-1 px-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent disabled:bg-slate-50 disabled:cursor-not-allowed"
-          />
-          
+          {/* Botón enviar */}
           <button
             onClick={handleSend}
             disabled={!message.trim() || isSending}
-            className={`p-2.5 rounded-xl transition-all ${
-              message.trim() && !isSending
-                ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-md'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-            }`}
+            className="w-10 h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-xl flex items-center justify-center transition shadow-md disabled:shadow-none"
           >
-            <Send className={`w-5 h-5 ${isSending ? 'animate-pulse' : ''}`} />
+            <Send className="w-4 h-4" />
           </button>
         </div>
       </div>
-    </div>
+
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-full left-0 mb-2 z-10">
+          <EmojiPicker onSelect={handleEmojiSelect} onClose={() => setShowEmojiPicker(false)} />
+        </div>
+      )}
+
+      {/* Modales de captura */}
+      {showCameraCapture && (
+        <CameraCapture onCapture={handleCameraCapture} onClose={() => setShowCameraCapture(false)} />
+      )}
+
+      {showVideoRecorder && (
+        <VideoRecorder onRecord={handleVideoRecord} onClose={() => setShowVideoRecorder(false)} />
+      )}
+
+      {showAudioRecorder && (
+        <AudioRecorder onRecord={handleAudioRecord} onClose={() => setShowAudioRecorder(false)} />
+      )}
+
+      {showVideoCall && (
+        <VideoCallModal onClose={() => setShowVideoCall(false)} />
+      )}
+    </>
   );
 };

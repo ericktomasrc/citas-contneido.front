@@ -1,17 +1,18 @@
 // src/features/chat/components/ChatWindow/ChatWindow.tsx
-// ✅ Ventana de chat principal - Estilo WhatsApp premium
+// ✅ ACTUALIZADO: Con TipPanel separado y todos los cambios
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChatHeaderWhatsApp } from '../ChatWindow/ChatHeaderWhatsApp';
+import { ChatHeaderWhatsApp } from './ChatHeaderWhatsApp';
 import { ChatMessages } from '../FloatingChat/ChatMessages';
 import { ChatInput } from '../FloatingChat/ChatInput';
-import { GiftPanel } from '../Gifts/GiftPanel';
+import { GiftPanel } from '../Gifts/GiftPanel'; 
 import { QuickSettingsPanel } from '../Settings/QuickSettingsPanel';
 import { useChat } from '../../hooks/useChat';
 import { useUserRole } from '../../hooks/useUserRole';
 import { useChatPermissions } from '../../hooks/useChatPermissions';
 import { Conversation, ChatSettings } from '../../types/chat.types';
+import { TipPanel } from '../Tips/TipPanel';
 
 interface ChatWindowProps {
   conversation: Conversation;
@@ -21,6 +22,7 @@ interface ChatWindowProps {
 export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps) => {
   const { role, user: currentUser } = useUserRole();
   const [showGiftPanel, setShowGiftPanel] = useState(false);
+  const [showTipPanel, setShowTipPanel] = useState(false);
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
 
   const { permissions } = useChatPermissions(role, recipientSettings);
@@ -40,12 +42,13 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
   const [isTyping] = useState(false);
 
   const handleSendGift = (giftId: string, giftName: string, giftEmoji: string, amount: number) => {
-    if (giftId === 'tip') {
-      sendTip(amount);
-    } else {
-      sendGift(giftId, giftName, giftEmoji, amount);
-    }
+    sendGift(giftId, giftName, giftEmoji, amount);
     setShowGiftPanel(false);
+  };
+
+  const handleSendTip = (amount: number) => {
+    sendTip(amount);
+    setShowTipPanel(false);
   };
 
   return (
@@ -57,13 +60,13 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
           badge: conversation.participant.badge
             ? {
                 ...conversation.participant.badge,
-                // Cast or map level to BadgeLevel if needed
+                // Ensure level is cast to BadgeLevel
                 level: conversation.participant.badge.level as any, // Replace 'any' with 'BadgeLevel' if imported
               }
             : undefined,
         }}
         userRole={role}
-        onOpenSettings={() => setShowSettingsPanel(true)}
+        onOpenSettings={role === 'creadora' ? () => setShowSettingsPanel(true) : undefined}
       />
 
       {/* Mensajes */}
@@ -77,8 +80,9 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
         />
       </div>
 
-      {/* Input con panel de regalos */}
+      {/* Input con paneles */}
       <div className="flex-shrink-0 relative bg-white border-t border-slate-200">
+        {/* Panel de regalos */}
         <AnimatePresence>
           {showGiftPanel && (
             <motion.div
@@ -86,12 +90,29 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 20, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="absolute bottom-full left-0 right-0 bg-white border-t border-slate-200"
-              style={{ maxHeight: '400px', boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+              className="absolute bottom-full left-0 right-0"
             >
               <GiftPanel
                 onSendGift={handleSendGift}
                 onClose={() => setShowGiftPanel(false)}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Panel de propinas */}
+        <AnimatePresence>
+          {showTipPanel && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute bottom-full left-0 right-0"
+            >
+              <TipPanel
+                onSendTip={handleSendTip}
+                onClose={() => setShowTipPanel(false)}
               />
             </motion.div>
           )}
@@ -102,13 +123,21 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
           permissions={permissions}
           onSendMessage={sendTextMessage}
           onSendGift={handleSendGift}
-          onSendTip={(amount) => sendTip(amount)}
+          onSendTip={handleSendTip}
           onSendImage={sendImageMessage}
           onSendVideo={sendVideoMessage}
           onSendAudio={sendAudioMessage}
           isSending={isSending}
           showGiftPanel={showGiftPanel}
-          onToggleGiftPanel={() => setShowGiftPanel(!showGiftPanel)}
+          onToggleGiftPanel={() => {
+            setShowGiftPanel(!showGiftPanel);
+            setShowTipPanel(false);
+          }}
+          showTipPanel={showTipPanel}
+          onToggleTipPanel={() => {
+            setShowTipPanel(!showTipPanel);
+            setShowGiftPanel(false);
+          }}
         />
       </div>
 

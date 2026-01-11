@@ -1,51 +1,78 @@
 import { useState } from 'react';
-import { Camera, X, Calendar, Save, User, Eye, MapPin, Heart, Sparkles, Lock, Users, Image as ImageIcon } from 'lucide-react';
+import { Camera, X, Calendar, Save, User, Eye, MapPin, Heart, Sparkles, Lock, Users, UserPlus, Image, Video, Upload, Search, MoreVertical } from 'lucide-react';
 import { NavbarCreadora } from '../../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { useNavigate } from 'react-router-dom';
 
 type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
+type ProfileTab = 'general' | 'privada' | 'comunidad' | 'seguidores' | 'fotos-videos';
 
 export const EditarPerfilCreadoraPage = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [photos, setPhotos] = useState<string[]>([
-    'https://i.pravatar.cc/400?img=1',
-    'https://i.pravatar.cc/400?img=2',
-  ]);
+  const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('general');
+  const [profilePhoto, setProfilePhoto] = useState('https://i.pravatar.cc/400?img=5');
+  const [searchComunidad, setSearchComunidad] = useState('');
+  const [searchSeguidores, setSearchSeguidores] = useState('');
   
   const [formData, setFormData] = useState({
-    // Información General
-    nombre: 'María',
+    nombre: 'María García',
     dedondeEres: 'Lima, Perú',
-    ubicacionActual: '',
+    ubicacion: '',
     fechaNacimiento: '1999-03-15',
-    buscando: ['citas-casuales'],
-    intereses: ['viajar', 'deportes'],
-    sobreTi: 'Soy Ing. Software... y me gusta viajar ✈️ Amante del fitness y la vida saludable 💪',
-    
-    // Información Privada
+    buscando: ['citas-casuales', 'relacion'],
+    intereses: ['viajar', 'deportes', 'cine'],
+    bio: 'Me encanta viajar y conocer nuevas culturas. Apasionada por el fitness y la vida saludable. 🌟',
     whatsapp: '',
-    numeroCuenta: '',
-    
-    // Precio
-    precioSuscripcion: 140,
+    numeroCuenta: ''
   });
 
-  const handlePhotoUpload = () => {
+  // Mock data para comunidad y seguidores
+  const [comunidad] = useState([
+    { id: 1, nombre: 'Carlos M.', foto: 'https://i.pravatar.cc/150?img=12', desde: 'Hace 2 meses' },
+    { id: 2, nombre: 'Diego R.', foto: 'https://i.pravatar.cc/150?img=13', desde: 'Hace 1 mes' },
+    { id: 3, nombre: 'Andrés P.', foto: 'https://i.pravatar.cc/150?img=14', desde: 'Hace 3 semanas' },
+    { id: 4, nombre: 'Roberto L.', foto: 'https://i.pravatar.cc/150?img=15', desde: 'Hace 1 semana' },
+  ]);
+
+  const [seguidores] = useState([
+    { id: 1, nombre: 'Juan S.', foto: 'https://i.pravatar.cc/150?img=16', ubicacion: 'Miraflores, Lima' },
+    { id: 2, nombre: 'Pedro G.', foto: 'https://i.pravatar.cc/150?img=17', ubicacion: 'San Isidro, Lima' },
+    { id: 3, nombre: 'Luis F.', foto: 'https://i.pravatar.cc/150?img=18', ubicacion: 'Barranco, Lima' },
+    { id: 4, nombre: 'Miguel A.', foto: 'https://i.pravatar.cc/150?img=19', ubicacion: 'Surco, Lima' },
+    { id: 5, nombre: 'Jorge T.', foto: 'https://i.pravatar.cc/150?img=20', ubicacion: 'La Molina, Lima' },
+  ]);
+
+  const [mediaFiles, setMediaFiles] = useState([
+    { id: 1, type: 'photo', url: 'https://i.pravatar.cc/400?img=1', fecha: '10 Ene 2026' },
+    { id: 2, type: 'photo', url: 'https://i.pravatar.cc/400?img=2', fecha: '9 Ene 2026' },
+    { id: 3, type: 'video', url: 'https://i.pravatar.cc/400?img=3', fecha: '8 Ene 2026', duracion: '2:30' },
+    { id: 4, type: 'photo', url: 'https://i.pravatar.cc/400?img=4', fecha: '7 Ene 2026' },
+  ]);
+
+  const handleProfilePhotoUpload = () => {
     const newPhoto = `https://i.pravatar.cc/400?img=${Math.floor(Math.random() * 70)}`;
-    if (photos.length < 5) {
-      setPhotos([...photos, newPhoto]);
-    }
+    setProfilePhoto(newPhoto);
   };
 
-  const handleRemovePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index));
+  const handleMediaUpload = () => {
+    const newMedia = {
+      id: mediaFiles.length + 1,
+      type: Math.random() > 0.5 ? 'photo' : 'video',
+      url: `https://i.pravatar.cc/400?img=${Math.floor(Math.random() * 70)}`,
+      fecha: 'Hoy',
+      duracion: Math.random() > 0.5 ? `${Math.floor(Math.random() * 5) + 1}:${Math.floor(Math.random() * 60)}` : undefined
+    };
+    setMediaFiles([newMedia, ...mediaFiles]);
+  };
+
+  const handleRemoveMedia = (id: number) => {
+    setMediaFiles(mediaFiles.filter(m => m.id !== id));
   };
 
   const handleSave = () => {
     alert('¡Perfil guardado exitosamente! 🎉');
-    console.log('Datos del perfil:', { formData, photos });
+    console.log('Datos del perfil:', formData);
   };
 
   const handleViewPublicProfile = () => {
@@ -58,20 +85,24 @@ export const EditarPerfilCreadoraPage = () => {
     }
   };
 
-  const handleToggleMultiple = (field: 'buscando' | 'intereses', value: string) => {
-    const current = formData[field];
-    const isSelected = current.includes(value);
-    
-    setFormData({
-      ...formData,
-      [field]: isSelected
-        ? current.filter((item) => item !== value)
-        : [...current, value]
-    });
-  };
+  const filteredComunidad = comunidad.filter(m => 
+    m.nombre.toLowerCase().includes(searchComunidad.toLowerCase())
+  );
+
+  const filteredSeguidores = seguidores.filter(s => 
+    s.nombre.toLowerCase().includes(searchSeguidores.toLowerCase())
+  );
+
+  const profileTabs = [
+    { id: 'general' as ProfileTab, label: 'Información General', icon: User },
+    { id: 'privada' as ProfileTab, label: 'Información Privada', icon: Lock },
+    { id: 'comunidad' as ProfileTab, label: 'Comunidad', icon: Users },
+    { id: 'seguidores' as ProfileTab, label: 'Seguidores', icon: UserPlus },
+    { id: 'fotos-videos' as ProfileTab, label: 'Fotos y Videos', icon: Image },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-pink-50">
       <NavbarCreadora onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
       <SidebarCreadora
@@ -82,204 +113,147 @@ export const EditarPerfilCreadoraPage = () => {
       />
 
       <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-64 overflow-hidden flex flex-col">
-        {/* Header Fijo */}
-        <div className="flex-shrink-0 bg-gradient-to-r from-white via-rose-50 to-purple-50 border-b border-rose-100 p-6 lg:p-8 pb-4">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-rose-600 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center gap-3 flex-wrap">
-                <User className="w-7 h-7 text-rose-500" />
-                Editar Mi Perfil
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold rounded-full shadow-md">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  Verificado
-                </span>
-              </h1>
-              <p className="text-gray-600">Administra tu información personal y preferencias que verán tus seguidores</p>
-            </div>
+        {/* Header con foto de perfil */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                {/* Foto de perfil circular */}
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                    <img
+                      src={profilePhoto}
+                      alt="Foto de perfil"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    onClick={handleProfilePhotoUpload}
+                    className="absolute bottom-0 right-0 w-7 h-7 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center shadow-lg hover:from-pink-600 hover:to-rose-600 transition-all"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-white" />
+                  </button>
+                </div>
 
-            <div className="hidden lg:flex gap-3">
-              <button
-                onClick={handleViewPublicProfile}
-                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-              >
-                <Eye className="w-4 h-4" />
-                Ver Perfil Público
-              </button>
-              <button
-                onClick={handleSave}
-                className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-6 py-2.5 rounded-xl font-semibold hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg flex items-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Guardar
-              </button>
+                <div>
+                  <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    {formData.nombre}
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500 text-white text-xs font-bold rounded-full">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Verificado
+                    </span>
+                  </h1>
+                  <p className="text-sm text-gray-600">Edita tu perfil y preferencias</p>
+                </div>
+              </div>
+
+              <div className="hidden lg:flex gap-2">
+                <button
+                  onClick={handleViewPublicProfile}
+                  className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-indigo-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
+                >
+                  <Eye className="w-4 h-4" />
+                  Ver Perfil Público
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-2 rounded-lg font-medium hover:from-green-600 hover:to-emerald-600 transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  Guardar
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Contenido con Scroll */}
+        {/* Tabs de navegación */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="flex overflow-x-auto scrollbar-hide gap-1">
+              {profileTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveProfileTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-all whitespace-nowrap text-sm ${
+                    activeProfileTab === tab.id
+                      ? 'border-pink-500 text-pink-600 font-semibold'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido con scroll */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-7xl mx-auto p-4 lg:p-8 pt-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-              {/* Columna Izquierda - Fotos/Videos */}
-              <div className="lg:col-span-1">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 p-6 sticky top-4">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center">
-                      <ImageIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900">Fotos & Videos</h2>
-                      <p className="text-xs text-gray-500">Tu galería visual</p>
-                    </div>
-                  </div>
+          <div className="max-w-6xl mx-auto p-6">
+            {/* Tab: Información General */}
+            {activeProfileTab === 'general' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-pink-500" />
+                    Información Básica
+                  </h2>
                   
-                  <div className="grid grid-cols-2 gap-3">
-                    {photos[0] && (
-                      <div className="col-span-2 relative group rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all aspect-[4/5]">
-                        <img
-                          src={photos[0]}
-                          alt="Foto principal"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <button
-                          onClick={() => handleRemovePhoto(0)}
-                          className="absolute top-2 right-2 w-7 h-7 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg"
-                        >
-                          <X className="w-4 h-4 text-white" />
-                        </button>
-                        <div className="absolute bottom-2 left-2 px-2.5 py-1 bg-white/95 backdrop-blur-sm rounded-lg opacity-0 group-hover:opacity-100 transition">
-                          <p className="text-xs font-bold text-gray-900">Principal</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {photos.slice(1, 5).map((photo, index) => (
-                      <div key={index + 1} className="relative group aspect-square rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all">
-                        <img
-                          src={photo}
-                          alt={`Foto ${index + 2}`}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <button
-                          onClick={() => handleRemovePhoto(index + 1)}
-                          className="absolute top-1.5 right-1.5 w-6 h-6 bg-rose-500 hover:bg-rose-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-lg"
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-
-                    {Array.from({ length: Math.max(0, 5 - photos.length) }).map((_, index) => (
-                      <button
-                        key={`empty-${index}`}
-                        onClick={handlePhotoUpload}
-                        className="aspect-square border-2 border-dashed border-rose-200 rounded-xl flex flex-col items-center justify-center hover:border-rose-400 hover:bg-rose-50 transition group"
-                      >
-                        <Camera className="w-5 h-5 text-rose-300 group-hover:text-rose-500 transition mb-1" />
-                        <span className="text-xs text-rose-400 group-hover:text-rose-600 transition font-medium">Agregar</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <p className="text-xs text-gray-500 mt-4 text-center">
-                    Máximo 5 fotos • La primera es tu portada
-                  </p>
-                  
-                  <div className="mt-4 p-3 bg-gradient-to-r from-rose-50 to-purple-50 rounded-xl border border-rose-100">
-                    <p className="text-xs font-semibold text-rose-700 mb-1 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      Consejo Premium
-                    </p>
-                    <p className="text-xs text-gray-700">
-                      Fotos de calidad y variadas generan 3x más interés
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Columna Derecha - Información */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Botones flotantes móvil */}
-                <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-3">
-                  <button
-                    onClick={handleViewPublicProfile}
-                    className="w-14 h-14 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full hover:from-purple-600 hover:to-indigo-600 transition-all shadow-2xl hover:scale-110 flex items-center justify-center"
-                  >
-                    <Eye className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="w-14 h-14 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full hover:from-rose-600 hover:to-pink-600 transition-all shadow-2xl hover:scale-110 flex items-center justify-center"
-                  >
-                    <Save className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* Card: Información General */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 p-6 lg:p-8">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-pink-500 rounded-xl flex items-center justify-center">
-                      <User className="w-5 h-5 text-white" />
-                    </div>
+                  <div className="space-y-4">
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900">Información General</h2>
-                      <p className="text-xs text-gray-500">Datos básicos de tu perfil</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         Nombre
                       </label>
                       <input
                         type="text"
                         value={formData.nombre}
                         onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                        className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
                         placeholder="Tu nombre"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         ¿De dónde eres?
                       </label>
                       <input
                         type="text"
                         value={formData.dedondeEres}
                         onChange={(e) => setFormData({ ...formData, dedondeEres: e.target.value })}
-                        className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
                         placeholder="Ej: Lima, Perú"
                       />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Tu ciudad de origen
+                      <p className="text-xs text-gray-500 mt-1">
+                        Tu ciudad o país de origen
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-rose-500" />
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         Ubicación actual
                       </label>
-                      <input
-                        type="text"
-                        value={formData.ubicacionActual}
-                        onChange={(e) => setFormData({ ...formData, ubicacionActual: e.target.value })}
-                        className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition bg-white"
-                        placeholder="Escribe o deja que detectemos tu ubicación"
-                      />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Ayuda a usuarios cercanos a encontrarte
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formData.ubicacion}
+                          onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+                          className="w-full px-3 py-2 pl-9 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
+                          placeholder="Escribe o permite acceso a ubicación"
+                        />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Ayuda a que usuarios cercanos te encuentren
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         Fecha de nacimiento
                       </label>
                       <div className="relative">
@@ -287,193 +261,374 @@ export const EditarPerfilCreadoraPage = () => {
                           type="date"
                           value={formData.fechaNacimiento}
                           onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
-                          className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition bg-white"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
                         />
-                        <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-rose-400 pointer-events-none" />
+                        <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Heart className="w-4 h-4 text-rose-500" />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         ¿Qué estás buscando?
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          { value: 'citas-casuales', label: 'Citas Casuales' },
-                          { value: 'relacion', label: 'Relación' },
-                          { value: 'matrimonio', label: 'Matrimonio' },
-                          { value: 'relacion-online', label: 'Relación Online' },
-                          { value: 'amistad', label: 'Amistad' }
-                        ].map((opcion) => {
-                          const isSelected = formData.buscando.includes(opcion.value);
+                        {['citas-casuales', 'relacion', 'matrimonio', 'relacion-en-linea'].map((tipo) => {
+                          const isSelected = formData.buscando.includes(tipo);
                           return (
                             <button
-                              key={opcion.value}
-                              onClick={() => handleToggleMultiple('buscando', opcion.value)}
-                              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                              key={tipo}
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  buscando: isSelected
+                                    ? formData.buscando.filter((b) => b !== tipo)
+                                    : [...formData.buscando, tipo]
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 isSelected
-                                  ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md'
-                                  : 'bg-rose-50 text-gray-700 hover:bg-rose-100 border border-rose-200'
+                                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                             >
-                              {opcion.label}
+                              {tipo.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                             </button>
                           );
                         })}
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Selecciona una o más opciones
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        Puedes seleccionar múltiples opciones
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-rose-500" />
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Intereses
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          { value: 'viajar', label: 'Viajar' },
-                          { value: 'deportes', label: 'Deportes' },
-                          { value: 'cine', label: 'Cine' },
-                          { value: 'conciertos', label: 'Conciertos' },
-                          { value: 'cocina', label: 'Cocina' },
-                          { value: 'lectura', label: 'Lectura' },
-                          { value: 'musica', label: 'Música' },
-                          { value: 'arte', label: 'Arte' },
-                          { value: 'tecnologia', label: 'Tecnología' },
-                          { value: 'naturaleza', label: 'Naturaleza' },
-                          { value: 'fitness', label: 'Fitness' },
-                          { value: 'moda', label: 'Moda' }
-                        ].map((interes) => {
-                          const isSelected = formData.intereses.includes(interes.value);
+                        {['viajar', 'deportes', 'cine', 'conciertos', 'arte', 'lectura', 'cocina', 'tecnologia', 'moda', 'musica'].map((interes) => {
+                          const isSelected = formData.intereses.includes(interes);
                           return (
                             <button
-                              key={interes.value}
-                              onClick={() => handleToggleMultiple('intereses', interes.value)}
-                              className={`px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
+                              key={interes}
+                              onClick={() => {
+                                setFormData({
+                                  ...formData,
+                                  intereses: isSelected
+                                    ? formData.intereses.filter((i) => i !== interes)
+                                    : [...formData.intereses, interes]
+                                });
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 isSelected
-                                  ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md'
-                                  : 'bg-rose-50 text-gray-700 hover:bg-rose-100 border border-rose-200'
+                                  ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                               }`}
                             >
-                              {interes.label}
+                              {interes.charAt(0).toUpperCase() + interes.slice(1)}
                             </button>
                           );
                         })}
                       </div>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Comparte tus pasiones e intereses
+                      <p className="text-xs text-gray-500 mt-1.5">
+                        Selecciona tus pasatiempos favoritos
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         Sobre ti
                       </label>
-                      <p className="text-xs text-gray-500 mb-2">
-                        Cuéntanos sobre tus hobbies, valores y visión de vida
-                      </p>
                       <textarea
-                        value={formData.sobreTi}
-                        onChange={(e) => setFormData({ ...formData, sobreTi: e.target.value })}
+                        value={formData.bio}
+                        onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                         rows={4}
-                        maxLength={500}
-                        className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none transition bg-white"
-                        placeholder="Escribe algo sobre ti..."
+                        maxLength={300}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none transition text-sm"
+                        placeholder="Cuéntanos sobre ti..."
                       />
-                      <div className="flex justify-between items-center mt-2">
-                        <p className="text-xs text-gray-500">Máximo 500 caracteres</p>
-                        <p className={`text-xs font-medium ${formData.sobreTi.length > 450 ? 'text-orange-600' : 'text-gray-600'}`}>
-                          {formData.sobreTi.length}/500
+                      <div className="flex justify-between items-center mt-1">
+                        <p className="text-xs text-gray-500">Máximo 300 caracteres</p>
+                        <p className={`text-xs font-medium ${formData.bio.length > 270 ? 'text-orange-600' : 'text-gray-600'}`}>
+                          {formData.bio.length}/300
                         </p>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
+            {/* Tab: Información Privada */}
+            {activeProfileTab === 'privada' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-start gap-3 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Lock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Precio de Suscripción Mensual (S/.)
-                      </label>
-                      <input
-                        type="number"
-                        value={formData.precioSuscripcion}
-                        onChange={(e) => setFormData({ ...formData, precioSuscripcion: parseInt(e.target.value) })}
-                        className="w-full px-4 py-3 border border-rose-200 rounded-xl focus:ring-2 focus:ring-rose-500 focus:border-transparent transition bg-white"
-                        placeholder="140"
-                        min="10"
-                        max="500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Precio recomendado: S/. 100 - S/. 200
+                      <p className="text-sm font-semibold text-amber-900">Información Confidencial</p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Esta información es privada y solo será visible para ti
                       </p>
                     </div>
                   </div>
-                </div>
-
-                {/* Card: Información Privada */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-rose-100 p-6 lg:p-8">
-                  <div className="flex items-center gap-2 mb-6">
-                    <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center">
-                      <Lock className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-900">Información Privada</h2>
-                      <p className="text-xs text-gray-500">Solo visible para ti y administradores</p>
-                    </div>
-                  </div>
                   
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         WhatsApp
                       </label>
                       <input
                         type="tel"
                         value={formData.whatsapp}
                         onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
-                        className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-white"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
                         placeholder="+51 999 999 999"
                       />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Para contacto y verificación
+                      <p className="text-xs text-gray-500 mt-1">
+                        Para que tus seguidores puedan contactarte directamente
                       </p>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Número de Cuenta Bancaria
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Número de cuenta bancaria
                       </label>
                       <input
                         type="text"
                         value={formData.numeroCuenta}
                         onChange={(e) => setFormData({ ...formData, numeroCuenta: e.target.value })}
-                        className="w-full px-4 py-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition bg-white"
-                        placeholder="Ej: BCP 123-456789-0-00"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent transition text-sm"
+                        placeholder="Número de cuenta para retiros"
                       />
-                      <p className="text-xs text-gray-500 mt-1.5">
-                        Para transferencias y pagos
+                      <p className="text-xs text-gray-500 mt-1">
+                        Para procesar tus pagos y retiros de ganancias
                       </p>
-                    </div>
-
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
-                      <div className="flex gap-3">
-                        <Lock className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-xs font-semibold text-purple-900 mb-1">
-                            Información Protegida
-                          </p>
-                          <p className="text-xs text-gray-700">
-                            Estos datos están encriptados y nunca se mostrarán públicamente. Solo se usan para procesos internos y pagos.
-                          </p>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Tab: Comunidad */}
+            {activeProfileTab === 'comunidad' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-pink-500" />
+                      Comunidad ({comunidad.length})
+                    </h2>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchComunidad}
+                        onChange={(e) => setSearchComunidad(e.target.value)}
+                        placeholder="Buscar miembro..."
+                        className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-56"
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4">
+                    Tus suscriptores activos que tienen acceso a tu contenido premium
+                  </p>
+
+                  <div className="space-y-2">
+                    {filteredComunidad.map((miembro) => (
+                      <div
+                        key={miembro.id}
+                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition border border-gray-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
+                            <img
+                              src={miembro.foto}
+                              alt={miembro.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">{miembro.nombre}</p>
+                            <p className="text-xs text-gray-500">Suscriptor {miembro.desde}</p>
+                          </div>
+                        </div>
+                        <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredComunidad.length === 0 && (
+                    <div className="text-center py-8">
+                      <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No se encontraron miembros</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Seguidores */}
+            {activeProfileTab === 'seguidores' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <UserPlus className="w-5 h-5 text-pink-500" />
+                      Seguidores ({seguidores.length})
+                    </h2>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={searchSeguidores}
+                        onChange={(e) => setSearchSeguidores(e.target.value)}
+                        placeholder="Buscar seguidor..."
+                        className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm w-56"
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4">
+                    Personas que siguen tu perfil y pueden ver tu contenido público
+                  </p>
+
+                  <div className="space-y-2">
+                    {filteredSeguidores.map((seguidor) => (
+                      <div
+                        key={seguidor.id}
+                        className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition border border-gray-100"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
+                            <img
+                              src={seguidor.foto}
+                              alt={seguidor.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 text-sm">{seguidor.nombre}</p>
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {seguidor.ubicacion}
+                            </p>
+                          </div>
+                        </div>
+                        <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                          <MoreVertical className="w-4 h-4 text-gray-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredSeguidores.length === 0 && (
+                    <div className="text-center py-8">
+                      <UserPlus className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No se encontraron seguidores</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Tab: Fotos y Videos */}
+            {activeProfileTab === 'fotos-videos' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <Image className="w-5 h-5 text-pink-500" />
+                      Fotos y Videos ({mediaFiles.length})
+                    </h2>
+                    <button
+                      onClick={handleMediaUpload}
+                      className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-lg font-medium hover:from-pink-600 hover:to-rose-600 transition-all shadow-sm flex items-center gap-2 text-sm"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Subir archivos
+                    </button>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-4">
+                    Comparte fotos y videos con tu comunidad
+                  </p>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {mediaFiles.map((media) => (
+                      <div
+                        key={media.id}
+                        className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-pink-300 transition group"
+                      >
+                        <img
+                          src={media.url}
+                          alt={`Media ${media.id}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        
+                        {media.type === 'video' && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                              <Video className="w-6 h-6 text-gray-700" />
+                            </div>
+                            {media.duracion && (
+                              <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded">
+                                {media.duracion}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-2 left-2 text-white text-xs">
+                            {media.fecha}
+                          </div>
+                          <button
+                            onClick={() => handleRemoveMedia(media.id)}
+                            className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition"
+                          >
+                            <X className="w-4 h-4 text-white" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {mediaFiles.length === 0 && (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                      <Image className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 mb-3">Aún no has subido fotos o videos</p>
+                      <button
+                        onClick={handleMediaUpload}
+                        className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-lg font-medium hover:from-pink-600 hover:to-rose-600 transition-all shadow-sm text-sm"
+                      >
+                        Subir tu primer archivo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+        </div>
+
+        {/* Botones flotantes para móvil */}
+        <div className="lg:hidden fixed bottom-6 right-6 z-40 flex flex-col gap-2">
+          <button
+            onClick={handleViewPublicProfile}
+            className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all flex items-center justify-center"
+          >
+            <Eye className="w-5 h-5" />
+          </button>
+          <button
+            onClick={handleSave}
+            className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all flex items-center justify-center"
+          >
+            <Save className="w-5 h-5" />
+          </button>
         </div>
       </main>
     </div>

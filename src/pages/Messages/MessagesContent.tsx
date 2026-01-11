@@ -1,22 +1,29 @@
 // src/pages/Messages/MessagesContent.tsx
-// ✅ Contenido del chat SIN navbar/sidebar - Para integrar en Dashboard
+// ✅ FINAL: Con botones para creadora Y espectador
 
 import { useState } from 'react';
 import { Gift, DollarSign } from 'lucide-react';
 import { ConversationSidebar } from '@/features/chat/components/ConversationSidebar/ConversationSidebar';
 import { ChatWindow } from '@/features/chat/components/ChatWindow/ChatWindow';
 import { GiftsReportModal } from '@/features/chat/components/Reports/GiftsReportModal';
-import { TipsReportModal } from '@/features/chat/components/Reports/TipsReportModal';
+import { TipsReportModal } from '@/features/chat/components/Reports/TipsReportModal'; 
 import { useUserRole } from '@/features/chat/hooks/useUserRole';
 import { defaultChatSettings } from '@/features/chat/types/chat.types';
+import { SentGiftsModal } from '@/features/chat/components/Reports/SentGiftsModal';
+import { SentTipsModal } from '@/features/chat/components/Reports/SentTipsModal';
 
 export const MessagesContent = () => {
   const { role } = useUserRole();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  
+  // Modales para creadora
   const [showGiftsReport, setShowGiftsReport] = useState(false);
   const [showTipsReport, setShowTipsReport] = useState(false);
+  
+  // Modales para espectador
+  const [showSentGifts, setShowSentGifts] = useState(false);
+  const [showSentTips, setShowSentTips] = useState(false);
 
-  // Mock conversations
   const mockConversations = [
     {
       id: 'conv-1',
@@ -56,57 +63,59 @@ export const MessagesContent = () => {
       lastMessageAt: new Date(Date.now() - 300000), unreadCount: 1,
       isPinned: true, isMuted: false, isArchived: false,
     },
-    {
-      id: 'conv-3',
-      participant: {
-        id: 'user-3',
-        nombre: 'Miguel Torres',
-        avatar: 'https://i.pravatar.cc/150?img=13',
-        estado: 'offline' as const,
-        role: 'espectador' as const,
-        badge: { level: 'basico', name: 'Básico', color: 'slate', icon: '🥉', price: 0 },
-      },
-      lastMessage: {
-        id: 'msg-3', conversationId: 'conv-3', senderId: 'user-3',
-        senderName: 'Miguel Torres', senderAvatar: 'https://i.pravatar.cc/150?img=13',
-        type: 'text' as const, content: 'Gracias por el contenido!',
-        timestamp: new Date(Date.now() - 3600000), read: true,
-      },
-      lastMessageAt: new Date(Date.now() - 3600000), unreadCount: 0,
-      isPinned: false, isMuted: false, isArchived: false,
-    },
   ];
 
   const selectedConversation = mockConversations.find(c => c.id === selectedConversationId);
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
-      {/* Header con botones (solo para creadora) */}
-      {role === 'creadora' && (
-        <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowGiftsReport(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
-            >
-              <Gift className="w-4 h-4" />
-              Mis Regalos
-            </button>
-            
-            <button
-              onClick={() => setShowTipsReport(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 transition-all"
-            >
-              <DollarSign className="w-4 h-4" />
-              Mis Propinas
-            </button>
-          </div>
+      {/* Header con botones según rol */}
+      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-3">
+        <div className="flex items-center gap-3">
+          {role === 'creadora' ? (
+            <>
+              {/* Botones para CREADORA */}
+              <button
+                onClick={() => setShowGiftsReport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
+              >
+                <Gift className="w-4 h-4" />
+                Mis Regalos
+              </button>
+              
+              <button
+                onClick={() => setShowTipsReport(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 transition-all"
+              >
+                <DollarSign className="w-4 h-4" />
+                Mis Propinas
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Botones para ESPECTADOR */}
+              <button
+                onClick={() => setShowSentGifts(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-xl text-sm font-medium text-violet-700 transition-all"
+              >
+                <Gift className="w-4 h-4" />
+                Regalos Enviados
+              </button>
+              
+              <button
+                onClick={() => setShowSentTips(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-xl text-sm font-medium text-blue-700 transition-all"
+              >
+                <DollarSign className="w-4 h-4" />
+                Propinas Enviadas
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Layout principal */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Conversaciones (derecha) */}
         <div className="w-96 flex-shrink-0 border-r border-slate-200 bg-white">
           <ConversationSidebar
             conversations={mockConversations}
@@ -115,39 +124,30 @@ export const MessagesContent = () => {
           />
         </div>
 
-        {/* Chat principal (centro) */}
         <div className="flex-1 bg-slate-50">
           {selectedConversation ? (
-            <ChatWindow
-              conversation={selectedConversation}
-              recipientSettings={defaultChatSettings}
-            />
+            <ChatWindow conversation={selectedConversation} recipientSettings={defaultChatSettings} />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
                 <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <span className="text-4xl">💬</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">
-                  Selecciona una conversación
-                </h3>
-                <p className="text-sm text-slate-500">
-                  Elige un chat para comenzar a conversar
-                </p>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Selecciona una conversación</h3>
+                <p className="text-sm text-slate-500">Elige un chat para comenzar a conversar</p>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Modales */}
-      {showGiftsReport && (
-        <GiftsReportModal onClose={() => setShowGiftsReport(false)} />
-      )}
+      {/* Modales para CREADORA */}
+      {showGiftsReport && <GiftsReportModal onClose={() => setShowGiftsReport(false)} />}
+      {showTipsReport && <TipsReportModal onClose={() => setShowTipsReport(false)} />}
 
-      {showTipsReport && (
-        <TipsReportModal onClose={() => setShowTipsReport(false)} />
-      )}
+      {/* Modales para ESPECTADOR */}
+      {showSentGifts && <SentGiftsModal onClose={() => setShowSentGifts(false)} />}
+      {showSentTips && <SentTipsModal onClose={() => setShowSentTips(false)} />}
     </div>
   );
 };

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Crown, MessageCircle } from 'lucide-react';
+import { Crown } from 'lucide-react';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
