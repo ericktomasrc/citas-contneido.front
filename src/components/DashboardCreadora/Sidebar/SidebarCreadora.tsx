@@ -1,3 +1,6 @@
+// src/components/DashboardCreadora/Sidebar/SidebarCreadora.tsx
+// ✅ MEJORADO: Auto-hide durante videollamada
+
 import { BarChart3, Image, Package, Radio, MessageCircle, Mail, DollarSign, Settings, TrendingUp, X, LogOut, Home, Crown, Sparkles, MoreHorizontal } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '@features/auth/api/authApi';
@@ -10,9 +13,16 @@ interface SidebarCreadoraProps {
   onClose: () => void;
   activeTab: TabType;
   onTabChange: (tab: TabType) => void;
+  isVideoCallActive?: boolean; // ✅ NUEVO
 }
 
-export const SidebarCreadora = ({ isOpen, onClose, activeTab, onTabChange }: SidebarCreadoraProps) => {
+export const SidebarCreadora = ({ 
+  isOpen, 
+  onClose, 
+  activeTab, 
+  onTabChange,
+  isVideoCallActive = false // ✅ NUEVO
+}: SidebarCreadoraProps) => {
   const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -44,19 +54,24 @@ export const SidebarCreadora = ({ isOpen, onClose, activeTab, onTabChange }: Sid
   return (
     <>
       {/* Overlay para móvil */}
-      {isOpen && (
+      {isOpen && !isVideoCallActive && (
         <div 
           className="fixed inset-0 bg-black/5 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar Minimalista */}
+      {/* ✅ Sidebar con auto-hide durante videollamada */}
       <aside
         className={`
           fixed top-16 left-0 bottom-0 w-20 bg-gray-50/80 backdrop-blur-sm border-r border-gray-200/60 z-40
-          transform transition-transform duration-200 ease-out flex flex-col
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          transform transition-all duration-300 ease-out flex flex-col
+          ${isVideoCallActive 
+            ? '-translate-x-full' 
+            : isOpen 
+              ? 'translate-x-0' 
+              : '-translate-x-full lg:translate-x-0'
+          }
         `}
       >
         {/* Navigation */}
@@ -80,7 +95,7 @@ export const SidebarCreadora = ({ isOpen, onClose, activeTab, onTabChange }: Sid
                     }
                   `}
                 >
-                  {/* Indicador activo - barra izquierda */}
+                  {/* Indicador activo */}
                   {isActive && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-8 bg-indigo-600 rounded-r-full" />
                   )}
@@ -116,7 +131,7 @@ export const SidebarCreadora = ({ isOpen, onClose, activeTab, onTabChange }: Sid
           </button>
         </nav>
 
-        {/* Footer - Settings */}
+        {/* Footer */}
         <div className="border-t border-gray-200/60 py-2">
           <button
             onClick={handleLogout}

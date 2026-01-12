@@ -1,13 +1,13 @@
 // src/components/DashboardCreadora/Tabs/Contenido/TabContenido.tsx
-// ✅ VERSIÓN EXACTA SEGÚN IMAGEN
+// ✅ SIN MODAL - BOTONES DIRECTOS + CÁMARA WEB
 
-import { useState } from 'react';
-import { Image, Video, AlertCircle } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Image, Video, AlertCircle, Upload, Camera, VideoIcon } from 'lucide-react';
 import { CONTENIDO_CONFIG } from '../../../Common/config/config';
-import { AgregarContenidoModal } from './AgregarContenidoModal';
 import { ListadoContenido } from './ListadoContenido';
 import { EstadoSuscripcion } from './EstadoSuscripcion';
 import { ConfirmacionModal } from '../../../Common/Modal/ConfirmacionModal';
+import { CameraModal } from './CameraModal';
 import type { ArchivoContenido, GrupoContenido } from './types';
 
 interface TabContenidoProps {
@@ -24,43 +24,114 @@ type TipoConfirmacion =
 export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
   const [suscripcionActiva, setSuscripcionActiva] = useState(false);
   const [precioSuscripcion, setPrecioSuscripcion] = useState<number>(CONTENIDO_CONFIG.PRECIO_DEFAULT);
-  const [showAgregarModal, setShowAgregarModal] = useState(false);
   const [gruposContenido, setGruposContenido] = useState<GrupoContenido[]>([]);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(Date.now()); // ✅ Key única para forzar reset
 
   const [showConfirmacion, setShowConfirmacion] = useState(false);
   const [confirmacionTipo, setConfirmacionTipo] = useState<TipoConfirmacion>(null);
   const [confirmacionData, setConfirmacionData] = useState<any>(null);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const totalArchivos = gruposContenido.reduce((acc, grupo) => acc + grupo.archivos.length, 0);
   const suscriptoresPagaron = 3;
 
-  const handleAgregarContenido = (archivos: ArchivoContenido[]) => {
-    const archivosPorMes = archivos.reduce((acc, archivo) => {
-      const fecha = new Date(archivo.fechaSubida);
-      const mesAnio = `${fecha.getFullYear()}-${fecha.getMonth()}`;
-      if (!acc[mesAnio]) acc[mesAnio] = [];
-      acc[mesAnio].push(archivo);
-      return acc;
-    }, {} as Record<string, ArchivoContenido[]>);
+  // ✅ Manejar subida de archivos directa
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    
+    console.log('🔵 handleFileSelect - Archivos seleccionados:', files.length);
+    
+    const tipoArchivo: 'foto' | 'video' = tipo === 'fotos' ? 'foto' : 'video';
+    
+    const nuevosArchivos: ArchivoContenido[] = files.map((file) => ({
+      id: `${Date.now()}-${Math.random()}`,
+      tipo: tipoArchivo,
+      url: URL.createObjectURL(file),
+      thumbnail: URL.createObjectURL(file),
+      nombre: file.name,
+      tamano: file.size,
+      fechaSubida: new Date(),
+    }));
 
+    console.log('🟢 handleFileSelect - Archivos procesados:', nuevosArchivos.length);
+    agregarArchivosAGrupos(nuevosArchivos);
+    
+    // ✅ Cambiar key para forzar reset del input
+    setFileInputKey(Date.now());
+    console.log('🟣 handleFileSelect - Input reseteado');
+  };
+
+  // ✅ Agregar archivos capturados desde cámara
+  const handleCameraCapture = (blob: Blob, tipoCaptura: 'foto' | 'video') => {
+    const archivo: ArchivoContenido = {
+      id: `${Date.now()}-${Math.random()}`,
+      tipo: tipoCaptura,
+      url: URL.createObjectURL(blob),
+      thumbnail: URL.createObjectURL(blob),
+      nombre: `${tipoCaptura}-${Date.now()}.${tipoCaptura === 'foto' ? 'jpg' : 'mp4'}`,
+      tamano: blob.size,
+      fechaSubida: new Date(),
+    };
+
+    agregarArchivosAGrupos([archivo]);
+    setShowCameraModal(false);
+  };
+
+  // ✅ Agregar archivos a grupos por mes (SIN MUTACIONES)
+  const agregarArchivosAGrupos = (archivos: ArchivoContenido[]) => {
+    console.log('🔴 agregarArchivosAGrupos - Recibiendo archivos:', archivos.length);
+    
     setGruposContenido((prev) => {
-      const nuevosGrupos = [...prev];
+      console.log('🟡 agregarArchivosAGrupos - Estado anterior:', prev.length, 'grupos');
+      prev.forEach((g, i) => {
+        console.log(`   Grupo ${i + 1}: ${g.archivos.length} archivos`);
+      });
+      
+      // ✅ DEEP COPY para evitar mutaciones
+      const nuevosGrupos = prev.map(grupo => ({
+        ...grupo,
+        archivos: [...grupo.archivos]
+      }));
+      
+      // Agrupar archivos nuevos por mes
+      const archivosPorMes = archivos.reduce((acc, archivo) => {
+        const fecha = new Date(archivo.fechaSubida);
+        const mesAnio = `${fecha.getFullYear()}-${fecha.getMonth()}`;
+        if (!acc[mesAnio]) acc[mesAnio] = [];
+        acc[mesAnio].push(archivo);
+        return acc;
+      }, {} as Record<string, ArchivoContenido[]>);
+
+      // Agregar archivos a grupos existentes o crear nuevos
       Object.entries(archivosPorMes).forEach(([mesAnio, archivosDelMes]) => {
         const [anio, mes] = mesAnio.split('-').map(Number);
         const fechaGrupo = new Date(anio, mes, 1);
+        
         const grupoExistente = nuevosGrupos.find((g) => {
           const fechaG = new Date(g.fecha);
           return fechaG.getFullYear() === anio && fechaG.getMonth() === mes;
         });
+        
         if (grupoExistente) {
-          grupoExistente.archivos.push(...archivosDelMes);
+          console.log(`   ✅ Agregando ${archivosDelMes.length} archivos a grupo existente`);
+          // ✅ Agregar sin mutar el original
+          grupoExistente.archivos = [...grupoExistente.archivos, ...archivosDelMes];
         } else {
-          nuevosGrupos.push({ fecha: fechaGrupo, archivos: archivosDelMes });
+          console.log(`   ✅ Creando nuevo grupo con ${archivosDelMes.length} archivos`);
+          nuevosGrupos.push({ fecha: fechaGrupo, archivos: [...archivosDelMes] });
         }
       });
+      
+      console.log('🟢 agregarArchivosAGrupos - Estado nuevo:', nuevosGrupos.length, 'grupos');
+      nuevosGrupos.forEach((g, i) => {
+        console.log(`   Grupo ${i + 1}: ${g.archivos.length} archivos`);
+      });
+      
       return nuevosGrupos.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
     });
-    console.log(`✅ ${tipo} agregadas:`, archivos.length);
   };
 
   const handleEliminarArchivo = (grupoIndex: number, archivoId: string) => {
@@ -155,12 +226,24 @@ export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
   const modalConfig = getModalConfig();
   const labelTipo = tipo === 'fotos' ? 'Fotos' : 'Videos';
   const IconoTipo = tipo === 'fotos' ? Image : Video;
+  const acceptType = tipo === 'fotos' ? 'image/*' : 'video/*';
 
   return (
     <>
-      {/* ✅ FILA CON COMPONENTE PEQUEÑO + BOTÓN A LA DERECHA */}
+      {/* Input oculto para subir archivos */}
+      <input
+        key={fileInputKey}
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={acceptType}
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* ✅ FILA CON SUSCRIPCIÓN + BOTONES */}
       <div className="mb-6 flex items-center justify-between gap-4">
-        {/* Componente de suscripción - ANCHO AUTOMÁTICO (no flex-1) */}
+        {/* Componente de suscripción */}
         <div className="inline-block">
           <EstadoSuscripcion
             tipo={tipo}
@@ -175,14 +258,50 @@ export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
           />
         </div>
 
-        {/* Botón Agregar a la derecha */}
-        <button
-          onClick={() => setShowAgregarModal(true)}
-          className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2"
-        >
-          <IconoTipo className="w-4 h-4" />
-          Agregar {labelTipo}
-        </button>
+        {/* ✅ BOTONES DIRECTOS (SIN MODAL) */}
+        <div className="flex gap-2">
+          {tipo === 'fotos' ? (
+            <>
+              {/* Subir Fotos */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-1.5"
+              >
+                <Upload className="w-4 h-4" />
+                Subir Fotos
+              </button>
+
+              {/* Tomar Foto */}
+              <button
+                onClick={() => setShowCameraModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-1.5"
+              >
+                <Camera className="w-4 h-4" />
+                Tomar Foto
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Subir Videos */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-1.5"
+              >
+                <Upload className="w-4 h-4" />
+                Subir Videos
+              </button>
+
+              {/* Grabar Video */}
+              <button
+                onClick={() => setShowCameraModal(true)}
+                className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-lg font-medium text-sm transition-all shadow-sm hover:shadow-md flex items-center gap-1.5"
+              >
+                <VideoIcon className="w-4 h-4" />
+                Grabar Video
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Aviso si no hay suficientes archivos */}
@@ -200,26 +319,35 @@ export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
         </div>
       )}
 
-      {/* ✅ ÁREA DE CONTENIDO CON BORDE PUNTEADO VISIBLE */}
+      {/* ✅ ÁREA DE CONTENIDO */}
       {gruposContenido.length === 0 ? (
-        <div className="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-16">
+        <div className="border-2 border-dashed border-slate-300 rounded-2xl bg-white p-8">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-2xl mb-4">
-              <IconoTipo className="w-8 h-8 text-slate-400" />
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-slate-100 rounded-2xl mb-3">
+              <IconoTipo className="w-7 h-7 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            <h3 className="text-base font-semibold text-slate-700 mb-1.5">
               Aún no tienes {tipo}
             </h3>
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-xs text-slate-500 mb-4">
               Comienza subiendo {tipo} para tus suscriptores
             </p>
-            <button
-              onClick={() => setShowAgregarModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2"
-            >
-              <IconoTipo className="w-5 h-5" />
-              Subir {labelTipo}
-            </button>
+            <div className="flex gap-2.5 justify-center">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Subir {labelTipo}
+              </button>
+              <button
+                onClick={() => setShowCameraModal(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white rounded-xl font-semibold text-sm transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2"
+              >
+                {tipo === 'fotos' ? <Camera className="w-4 h-4" /> : <VideoIcon className="w-4 h-4" />}
+                {tipo === 'fotos' ? 'Tomar Foto' : 'Grabar Video'}
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -231,12 +359,15 @@ export const TabContenido = ({ tipo, minimo }: TabContenidoProps) => {
         />
       )}
 
-      <AgregarContenidoModal
-        tipo={tipo}
-        isOpen={showAgregarModal}
-        onClose={() => setShowAgregarModal(false)}
-        onGuardar={handleAgregarContenido}
-      />
+      {/* Modal de Cámara */}
+      {showCameraModal && (
+        <CameraModal
+          tipo={tipo === 'fotos' ? 'foto' : 'video'}
+          isOpen={showCameraModal}
+          onClose={() => setShowCameraModal(false)}
+          onCapture={handleCameraCapture}
+        />
+      )}
 
       {showConfirmacion && (
         <ConfirmacionModal

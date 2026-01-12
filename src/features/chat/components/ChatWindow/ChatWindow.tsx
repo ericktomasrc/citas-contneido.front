@@ -1,25 +1,30 @@
 // src/features/chat/components/ChatWindow/ChatWindow.tsx
-// ✅ ACTUALIZADO: Con TipPanel separado y todos los cambios
+// ✅ MEJORADO: Propaga callback de videollamada
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChatHeaderWhatsApp } from './ChatHeaderWhatsApp';
 import { ChatMessages } from '../FloatingChat/ChatMessages';
 import { ChatInput } from '../FloatingChat/ChatInput';
-import { GiftPanel } from '../Gifts/GiftPanel'; 
+import { GiftPanel } from '../Gifts/GiftPanel';
+import { TipPanel } from '../Tips/TipPanel';
 import { QuickSettingsPanel } from '../Settings/QuickSettingsPanel';
 import { useChat } from '../../hooks/useChat';
 import { useUserRole } from '../../hooks/useUserRole';
 import { useChatPermissions } from '../../hooks/useChatPermissions';
 import { Conversation, ChatSettings } from '../../types/chat.types';
-import { TipPanel } from '../Tips/TipPanel';
 
 interface ChatWindowProps {
   conversation: Conversation;
   recipientSettings?: ChatSettings;
+  onVideoCallStart?: () => void; // ✅ NUEVO
 }
 
-export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps) => {
+export const ChatWindow = ({ 
+  conversation, 
+  recipientSettings,
+  onVideoCallStart // ✅ NUEVO
+}: ChatWindowProps) => {
   const { role, user: currentUser } = useUserRole();
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [showTipPanel, setShowTipPanel] = useState(false);
@@ -60,7 +65,7 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
           badge: conversation.participant.badge
             ? {
                 ...conversation.participant.badge,
-                // Ensure level is cast to BadgeLevel
+                // Cast or map level to BadgeLevel if needed
                 level: conversation.participant.badge.level as any, // Replace 'any' with 'BadgeLevel' if imported
               }
             : undefined,
@@ -138,6 +143,7 @@ export const ChatWindow = ({ conversation, recipientSettings }: ChatWindowProps)
             setShowTipPanel(!showTipPanel);
             setShowGiftPanel(false);
           }}
+          onVideoCallStart={onVideoCallStart} // ✅ PASAR CALLBACK
         />
       </div>
 

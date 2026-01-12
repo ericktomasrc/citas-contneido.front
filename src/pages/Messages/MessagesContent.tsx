@@ -1,18 +1,22 @@
 // src/pages/Messages/MessagesContent.tsx
-// ✅ FINAL: Con botones para creadora Y espectador
+// ✅ MEJORADO: Callback para iniciar videollamada persistente
 
 import { useState } from 'react';
 import { Gift, DollarSign } from 'lucide-react';
 import { ConversationSidebar } from '@/features/chat/components/ConversationSidebar/ConversationSidebar';
 import { ChatWindow } from '@/features/chat/components/ChatWindow/ChatWindow';
 import { GiftsReportModal } from '@/features/chat/components/Reports/GiftsReportModal';
-import { TipsReportModal } from '@/features/chat/components/Reports/TipsReportModal'; 
-import { useUserRole } from '@/features/chat/hooks/useUserRole';
-import { defaultChatSettings } from '@/features/chat/types/chat.types';
+import { TipsReportModal } from '@/features/chat/components/Reports/TipsReportModal';
 import { SentGiftsModal } from '@/features/chat/components/Reports/SentGiftsModal';
 import { SentTipsModal } from '@/features/chat/components/Reports/SentTipsModal';
+import { useUserRole } from '@/features/chat/hooks/useUserRole';
+import { defaultChatSettings } from '@/features/chat/types/chat.types';
 
-export const MessagesContent = () => {
+interface MessagesContentProps {
+  onVideoCallStart?: () => void; // ✅ NUEVO
+}
+
+export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
   const { role } = useUserRole();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   
@@ -74,7 +78,6 @@ export const MessagesContent = () => {
         <div className="flex items-center gap-3">
           {role === 'creadora' ? (
             <>
-              {/* Botones para CREADORA */}
               <button
                 onClick={() => setShowGiftsReport(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
@@ -93,7 +96,6 @@ export const MessagesContent = () => {
             </>
           ) : (
             <>
-              {/* Botones para ESPECTADOR */}
               <button
                 onClick={() => setShowSentGifts(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-xl text-sm font-medium text-violet-700 transition-all"
@@ -126,7 +128,11 @@ export const MessagesContent = () => {
 
         <div className="flex-1 bg-slate-50">
           {selectedConversation ? (
-            <ChatWindow conversation={selectedConversation} recipientSettings={defaultChatSettings} />
+            <ChatWindow 
+              conversation={selectedConversation} 
+              recipientSettings={defaultChatSettings}
+              onVideoCallStart={onVideoCallStart} // ✅ PASAR CALLBACK
+            />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
@@ -141,11 +147,9 @@ export const MessagesContent = () => {
         </div>
       </div>
 
-      {/* Modales para CREADORA */}
+      {/* Modales */}
       {showGiftsReport && <GiftsReportModal onClose={() => setShowGiftsReport(false)} />}
       {showTipsReport && <TipsReportModal onClose={() => setShowTipsReport(false)} />}
-
-      {/* Modales para ESPECTADOR */}
       {showSentGifts && <SentGiftsModal onClose={() => setShowSentGifts(false)} />}
       {showSentTips && <SentTipsModal onClose={() => setShowSentTips(false)} />}
     </div>

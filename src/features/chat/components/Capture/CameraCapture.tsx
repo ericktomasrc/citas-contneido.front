@@ -1,8 +1,9 @@
 // src/features/chat/components/Capture/CameraCapture.tsx
-// ✅ Tomar foto EN VIVO desde la cámara
+// ✅ CORREGIDO: createPortal + z-[9999] + estilo igual a CameraModal
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Camera, RotateCcw } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Camera, RotateCw } from 'lucide-react';
 
 interface CameraCaptureProps {
   onCapture: (file: File) => void;
@@ -13,27 +14,25 @@ export const CameraCapture = ({ onCapture, onClose }: CameraCaptureProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [captured, setCaptured] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, []);
+    return () => stopCamera();
+  }, [facingMode]);
 
   const startCamera = async () => {
     try {
+      setError(null);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false,
+        video: { facingMode },
       });
       setStream(mediaStream);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      setError(null);
     } catch (err) {
       setError('No se pudo acceder a la cámara');
       console.error('Camera error:', err);
@@ -47,106 +46,165 @@ export const CameraCapture = ({ onCapture, onClose }: CameraCaptureProps) => {
   };
 
   const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0);
-
-    setCaptured(true);
-    stopCamera();
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.95);
+        setCapturedImage(imageData);
+        stopCamera();
+      }
+    }
   };
 
   const retake = () => {
-    setCaptured(false);
+    setCapturedImage(null);
     startCamera();
   };
 
   const sendPhoto = () => {
-    if (!canvasRef.current) return;
-
-    canvasRef.current.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-      }
-    }, 'image/jpeg', 0.9);
+    if (capturedImage && canvasRef.current) {
+      canvasRef.current.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          onCapture(file);
+          stopCamera();
+        }
+      }, 'image/jpeg', 0.95);
+    }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+  const handleToggleCamera = () => {
+    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
+  };
+
+  const handleClose = () => {
+    stopCamera();
+    onClose();
+  };
+
+  const modalContent = (
+    // ✅ z-[9999] garantiza estar sobre TODO
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-700">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800">Tomar Foto</h3>
+        <div className="bg-slate-700 border-b border-slate-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-pink-600 rounded-xl flex items-center justify-center">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-white">Tomar Foto</h3>
+              <p className="text-xs text-slate-400">Captura tu contenido</p>
+            </div>
+          </div>
+          
           <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition"
+            onClick={handleClose}
+            className="text-slate-300 hover:text-white hover:bg-slate-600 transition-colors p-2 rounded-lg"
           >
-            <X className="w-5 h-5 text-slate-600" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Camera/Canvas */}
-        <div className="relative bg-black aspect-video">
+        {/* Contenido - Video Preview */}
+        <div className="flex-1 overflow-hidden bg-black flex items-center justify-center relative">
           {error ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-white text-sm">{error}</p>
+            <div className="text-center p-8">
+              <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <X className="w-8 h-8 text-red-500" />
+              </div>
+              <p className="text-white font-semibold mb-2">Error de cámara</p>
+              <p className="text-slate-400 text-sm">{error}</p>
             </div>
           ) : (
             <>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${captured ? 'hidden' : ''}`}
-              />
-              <canvas
-                ref={canvasRef}
-                className={`w-full h-full object-cover ${!captured ? 'hidden' : ''}`}
-              />
+              {capturedImage ? (
+                <img
+                  src={capturedImage}
+                  alt="Captured"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-contain"
+                />
+              )}
+              
+              {/* Botón de cambiar cámara */}
+              {!capturedImage && (
+                <button
+                  onClick={handleToggleCamera}
+                  className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all"
+                  title="Cambiar cámara"
+                >
+                  <RotateCw className="w-5 h-5" />
+                </button>
+              )}
             </>
           )}
         </div>
 
-        {/* Controls */}
-        {!error && (
-          <div className="p-4 bg-slate-50">
-            {!captured ? (
-              <button
-                onClick={capturePhoto}
-                className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition shadow-md"
-              >
-                <Camera className="w-5 h-5" />
-                Capturar Foto
-              </button>
-            ) : (
-              <div className="flex gap-2">
+        {/* Canvas oculto para captura de foto */}
+        <canvas ref={canvasRef} className="hidden" />
+
+        {/* Footer - Botones de Acción */}
+        <div className="bg-slate-800 border-t border-slate-700 px-6 py-4 flex-shrink-0">
+          <div className="flex gap-3 justify-center">
+            {capturedImage ? (
+              <>
                 <button
                   onClick={retake}
-                  className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold flex items-center justify-center gap-2 transition"
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition text-sm flex items-center gap-2"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCw className="w-4 h-4" />
                   Repetir
                 </button>
                 <button
                   onClick={sendPhoto}
-                  className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition shadow-md"
+                  className="px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-sm font-medium transition flex items-center gap-2"
                 >
-                  Enviar
+                  <Camera className="w-4 h-4" />
+                  Enviar Foto
                 </button>
-              </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleClose}
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition text-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={capturePhoto}
+                  disabled={!stream || error !== null}
+                  className={`px-8 py-2.5 rounded-xl text-sm font-medium transition flex items-center gap-2 ${
+                    !stream || error !== null
+                      ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                      : 'bg-pink-600 hover:bg-pink-700 text-white'
+                  }`}
+                >
+                  <Camera className="w-4 h-4" />
+                  Capturar Foto
+                </button>
+              </>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

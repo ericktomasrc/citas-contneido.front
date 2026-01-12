@@ -1,8 +1,9 @@
 // src/features/chat/components/Capture/AudioRecorder.tsx
-// ✅ Grabar audio EN VIVO
+// ✅ CORREGIDO: createPortal + z-[9999] + estilo igual a CameraModal
 
 import { useState, useRef, useEffect } from 'react';
-import { X, Mic, Square, Play, Pause } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Mic, Square, Play, RotateCw, Circle } from 'lucide-react';
 
 interface AudioRecorderProps {
   onRecord: (file: File) => void;
@@ -10,56 +11,75 @@ interface AudioRecorderProps {
 }
 
 export const AudioRecorder = ({ onRecord, onClose }: AudioRecorderProps) => {
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioLevel, setAudioLevel] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    startMicrophone();
+    return () => stopMicrophone();
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isRecording) {
       interval = setInterval(() => {
         setRecordingTime(prev => prev + 1);
-      }, 1000);
+        setAudioLevel(Math.random() * 100);
+      }, 100);
     }
     return () => clearInterval(interval);
   }, [isRecording]);
 
-  const startRecording = async () => {
+  const startMicrophone = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      chunksRef.current = [];
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      setError(null);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+      setStream(mediaStream);
+    } catch (err) {
+      setError('No se pudo acceder al micrófono');
+      console.error('Microphone error:', err);
+    }
+  };
 
+  const stopMicrophone = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const startRecording = () => {
+    if (stream) {
+      chunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
         }
       };
-
+      
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        setRecordedBlob(blob);
-        if (audioRef.current) {
-          audioRef.current.src = URL.createObjectURL(blob);
-        }
-        stream.getTracks().forEach(track => track.stop());
+        const url = URL.createObjectURL(blob);
+        setRecordedAudio(url);
+        stopMicrophone();
       };
-
+      
+      mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
-      setError(null);
-    } catch (err) {
-      setError('No se pudo acceder al micrófono');
-      console.error('Microphone error:', err);
     }
   };
 
@@ -67,26 +87,37 @@ export const AudioRecorder = ({ onRecord, onClose }: AudioRecorderProps) => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setAudioLevel(0);
     }
   };
 
-  const togglePlayPause = () => {
-    if (!audioRef.current) return;
-    
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
+  const retake = () => {
+    setRecordedAudio(null);
+    setRecordingTime(0);
+    startMicrophone();
+  };
+
+  const playAudio = () => {
+    if (audioRef.current) {
       audioRef.current.play();
       setIsPlaying(true);
     }
   };
 
   const sendAudio = () => {
-    if (recordedBlob) {
-      const file = new File([recordedBlob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
-      onRecord(file);
+    if (recordedAudio) {
+      fetch(recordedAudio)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], `audio-${Date.now()}.webm`, { type: 'audio/webm' });
+          onRecord(file);
+        });
     }
+  };
+
+  const handleClose = () => {
+    stopMicrophone();
+    onClose();
   };
 
   const formatTime = (seconds: number) => {
@@ -95,132 +126,167 @@ export const AudioRecorder = ({ onRecord, onClose }: AudioRecorderProps) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden border border-slate-700">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-800">Grabar Audio</h3>
+        <div className="bg-slate-700 border-b border-slate-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-pink-600 rounded-xl flex items-center justify-center">
+              <Mic className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold text-white">Grabar Audio</h3>
+              <p className="text-xs text-slate-400">Captura tu contenido</p>
+            </div>
+          </div>
+          
           <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center transition"
+            onClick={handleClose}
+            className="text-slate-300 hover:text-white hover:bg-slate-600 transition-colors p-2 rounded-lg"
           >
-            <X className="w-5 h-5 text-slate-600" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-8">
+        {/* Contenido */}
+        <div className="p-6 bg-slate-800">
           {error ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="h-48 bg-slate-900 rounded-xl flex items-center justify-center border border-slate-700">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <X className="w-8 h-8 text-red-500" />
+                </div>
+                <p className="text-white font-semibold mb-2">Error de micrófono</p>
+                <p className="text-slate-400 text-sm">{error}</p>
+              </div>
             </div>
           ) : (
-            <>
+            <div className="bg-slate-700 rounded-xl p-8 border border-slate-600">
               {/* Visualizer */}
-              <div className="flex items-center justify-center mb-6">
+              <div className="flex items-center justify-center gap-1 h-32 mb-4">
                 {isRecording ? (
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-red-600 rounded-full animate-pulse"
-                        style={{
-                          height: `${20 + Math.random() * 40}px`,
-                          animationDelay: `${i * 0.1}s`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                ) : recordedBlob ? (
-                  <div className="w-20 h-20 bg-gradient-to-br from-violet-100 to-purple-100 rounded-full flex items-center justify-center">
-                    <Mic className="w-10 h-10 text-violet-600" />
+                  Array.from({ length: 40 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-1 bg-gradient-to-t from-pink-600 to-red-600 rounded-full transition-all duration-100"
+                      style={{
+                        height: `${Math.random() * audioLevel}%`,
+                        minHeight: '4px'
+                      }}
+                    />
+                  ))
+                ) : recordedAudio ? (
+                  <div className="flex items-center justify-center w-full">
+                    <div className="w-20 h-20 bg-slate-600 rounded-full flex items-center justify-center">
+                      <Play className="w-10 h-10 text-slate-300" />
+                    </div>
                   </div>
                 ) : (
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center">
-                    <Mic className="w-10 h-10 text-slate-400" />
+                  <div className="flex items-center justify-center w-full">
+                    <div className="w-20 h-20 bg-slate-600 rounded-full flex items-center justify-center">
+                      <Mic className="w-10 h-10 text-slate-400" />
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Time */}
-              <div className="text-center mb-6">
-                <p className="text-3xl font-mono font-bold text-slate-800">
-                  {formatTime(recordingTime)}
-                </p>
-              </div>
-
-              {/* Hidden audio element */}
-              <audio
-                ref={audioRef}
-                onEnded={() => setIsPlaying(false)}
-                className="hidden"
-              />
-
-              {/* Controls */}
-              {!recordedBlob ? (
-                <button
-                  onClick={isRecording ? stopRecording : startRecording}
-                  className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition shadow-md ${
-                    isRecording
-                      ? 'bg-red-600 hover:bg-red-700 text-white'
-                      : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white'
-                  }`}
-                >
-                  {isRecording ? (
-                    <>
-                      <Square className="w-5 h-5" />
-                      Detener
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="w-5 h-5" />
-                      Grabar
-                    </>
-                  )}
-                </button>
-              ) : (
-                <div className="space-y-2">
-                  <button
-                    onClick={togglePlayPause}
-                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold flex items-center justify-center gap-2 transition"
-                  >
-                    {isPlaying ? (
-                      <>
-                        <Pause className="w-5 h-5" />
-                        Pausar
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-5 h-5" />
-                        Reproducir
-                      </>
-                    )}
-                  </button>
-                  
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setRecordedBlob(null);
-                        setRecordingTime(0);
-                      }}
-                      className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold text-sm transition"
-                    >
-                      Grabar Otro
-                    </button>
-                    <button
-                      onClick={sendAudio}
-                      className="flex-1 py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl font-semibold text-sm transition shadow-md"
-                    >
-                      Enviar
-                    </button>
-                  </div>
+              {/* Timer */}
+              {(isRecording || recordedAudio) && (
+                <div className="text-center">
+                  <span className="text-3xl font-bold text-white">
+                    {formatTime(Math.floor(recordingTime / 10))}
+                  </span>
                 </div>
               )}
-            </>
+
+              {/* Status */}
+              <div className="text-center mt-4">
+                {isRecording ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                    <span className="text-white text-sm font-medium">Grabando...</span>
+                  </div>
+                ) : recordedAudio ? (
+                  <button
+                    onClick={playAudio}
+                    className="text-white text-sm font-medium hover:text-pink-400 transition"
+                  >
+                    Reproducir audio
+                  </button>
+                ) : (
+                  <span className="text-slate-400 text-sm">Presiona el botón para grabar</span>
+                )}
+              </div>
+            </div>
           )}
+
+          {/* Hidden audio element */}
+          {recordedAudio && (
+            <audio
+              ref={audioRef}
+              src={recordedAudio}
+              onEnded={() => setIsPlaying(false)}
+              className="hidden"
+            />
+          )}
+
+          {/* Actions */}
+          <div className="flex items-center justify-center gap-3 mt-6">
+            {recordedAudio ? (
+              <>
+                <button
+                  onClick={retake}
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition text-sm flex items-center gap-2"
+                >
+                  <RotateCw className="w-4 h-4" />
+                  Grabar Otro
+                </button>
+                <button
+                  onClick={sendAudio}
+                  className="px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-xl text-sm font-medium transition flex items-center gap-2"
+                >
+                  <Mic className="w-4 h-4" />
+                  Enviar Audio
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleClose}
+                  className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-medium rounded-xl transition text-sm"
+                >
+                  Cancelar
+                </button>
+                {isRecording ? (
+                  <button
+                    onClick={stopRecording}
+                    className="px-8 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-medium transition flex items-center gap-2"
+                  >
+                    <Square className="w-4 h-4 fill-current" />
+                    Detener Grabación
+                  </button>
+                ) : (
+                  <button
+                    onClick={startRecording}
+                    disabled={!stream || error !== null}
+                    className={`px-8 py-2.5 rounded-xl text-sm font-medium transition flex items-center gap-2 ${
+                      !stream || error !== null
+                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                    }`}
+                  >
+                    <Circle className="w-3 h-3 bg-white rounded-full" />
+                    Iniciar Grabación
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

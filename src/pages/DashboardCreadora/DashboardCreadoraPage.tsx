@@ -1,5 +1,5 @@
 // src/pages/DashboardCreadora/DashboardCreadoraPage.tsx
-// ✅ ACTUALIZADO: Con nuevo chat WhatsApp integrado
+// ✅ MEJORADO: Videollamada con modo PiP (minimizado)
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -9,11 +9,12 @@ import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/Side
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
 import { PacksPage } from './PacksPage/PacksPage';
 import { RoleSwitcher } from '@/components/dev/RoleSwitcher';
+import { VideoCallModal } from '@/features/chat/components/VideoCall/VideoCallModal';
 
-// ✅ NUEVO: Importar el contenido del chat
+// Chat
 import { MessagesContent } from '@/pages/Messages/MessagesContent';
 
-// Importar tabs
+// Tabs
 import { InvitacionesTab } from './tabs/InvitacionesTab/InvitacionesTab';
 import { ResumenTab } from './tabs/ResumenTab/ResumenTab';
 import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/MiActividadTab';
@@ -22,7 +23,7 @@ import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/M
 import { SubTabsHeader } from './components/SubTabsHeader';
 import { PageHeader } from './components/PageHeader';
 
-// Configuración y datos
+// Configuración
 import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
 
@@ -37,6 +38,10 @@ export const DashboardCreadoraPage = () => {
   const tabFromUrl = (searchParams.get('tab') as TabType) || 'resumen';
   const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('resumen');
+
+  // ✅ Estado de videollamada: activa + minimizada
+  const [isVideoCallActive, setIsVideoCallActive] = useState(false);
+  const [isVideoCallMinimized, setIsVideoCallMinimized] = useState(false);
 
   useEffect(() => {
     setSearchParams({ tab: activeTab }, { replace: true });
@@ -64,23 +69,46 @@ export const DashboardCreadoraPage = () => {
     setActiveSubTab(tabId as SubTabId);
   };
 
+  // ✅ Iniciar videollamada (fullscreen por defecto)
+  const handleVideoCallStart = () => {
+    setIsVideoCallActive(true);
+    setIsVideoCallMinimized(false);
+  };
+
+  // ✅ Toggle minimizar/maximizar
+  const handleToggleMinimize = () => {
+    setIsVideoCallMinimized(!isVideoCallMinimized);
+  };
+
+  // ✅ Cerrar videollamada
+  const handleVideoCallClose = () => {
+    setIsVideoCallActive(false);
+    setIsVideoCallMinimized(false);
+  };
+
   const showSubTabs = activeTab === 'resumen';
 
   return (
     <div className="min-h-screen bg-slate-50">
       <NavbarCreadora onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
+      {/* ✅ Sidebar siempre visible (excepto en fullscreen) */}
       <SidebarCreadora
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         activeTab={activeTab}
         onTabChange={setActiveTab}
+        isVideoCallActive={isVideoCallActive && !isVideoCallMinimized}
       />
 
-      <main className="fixed top-16 left-0 right-0 bottom-0 lg:left-20 overflow-hidden flex flex-col">
-        {/* ✅ CHAT: Ocupa toda la altura sin header */}
+      {/* ✅ Main con margen condicional */}
+      <main className={`
+        fixed top-16 left-0 right-0 bottom-0 overflow-hidden flex flex-col
+        transition-all duration-300
+        ${isVideoCallActive && !isVideoCallMinimized ? '' : 'lg:left-20'}
+      `}>
         {activeTab === 'mensajes' ? (
-          <MessagesContent />
+          <MessagesContent onVideoCallStart={handleVideoCallStart} />
         ) : (
           <>
             {/* Header */}
@@ -92,16 +120,16 @@ export const DashboardCreadoraPage = () => {
               />
             ) : (
               <>
-                {activeTab === 'contenido' && (
+                {/* {activeTab === 'contenido' && (
                   <PageHeader icon={Crown} title="Contenido" iconColor="text-pink-500" />
                 )}
                 {activeTab === 'packs' && (
                   <PageHeader icon={Crown} title="Packs" iconColor="text-violet-500" />
-                )}
+                )} */}
               </>
             )}
 
-            {/* Contenido con Scroll */}
+            {/* Contenido */}
             <div className="flex-1 overflow-y-auto bg-slate-50">
               <div className="p-6">
                 {showSubTabs && (
@@ -112,14 +140,12 @@ export const DashboardCreadoraPage = () => {
                         enabled={activeSubTab === 'invitaciones'}
                       />
                     )}
-
                     {activeSubTab === 'resumen' && (
                       <ResumenTab
                         nombreUsuario={currentUser.nombre}
                         gananciasMes={currentUser.gananciasMes}
                       />
                     )}
-
                     {activeSubTab === 'miactividad' && (
                       <MiActividadTab onProgramarEvento={handleProgramarEvento} />
                     )}
@@ -155,6 +181,15 @@ export const DashboardCreadoraPage = () => {
           </>
         )}
       </main>
+
+      {/* ✅ Videollamada persistente con modo PiP */}
+      {isVideoCallActive && (
+        <VideoCallModal 
+          onClose={handleVideoCallClose}
+          isMinimized={isVideoCallMinimized}
+          onToggleMinimize={handleToggleMinimize}
+        />
+      )}
 
       <RoleSwitcher />
     </div>    

@@ -1,5 +1,5 @@
 // src/features/chat/components/FloatingChat/ChatInput.tsx
-// ✅ CORREGIDO: Iconos más pequeños (w-7 h-7)
+// ✅ MEJORADO: Usa callback en lugar de modal local
 
 import { useState, useRef } from 'react';
 import { Send, Paperclip, Gift, DollarSign, Smile, Camera, Video, Mic, Phone } from 'lucide-react';
@@ -7,7 +7,7 @@ import { EmojiPicker } from '../Emoji/EmojiPicker';
 import { CameraCapture } from '../Capture/CameraCapture';
 import { VideoRecorder } from '../Capture/VideoRecorder';
 import { AudioRecorder } from '../Capture/AudioRecorder';
-import { VideoCallModal } from '../VideoCall/VideoCallModal';
+// ❌ QUITADO: import { VideoCallModal } from '../VideoCall/VideoCallModal';
 import { UserRole } from '../../types/user.types';
 import { ChatPermissions } from '../../types/chat.types';
 
@@ -25,6 +25,7 @@ interface ChatInputProps {
   onToggleGiftPanel: () => void;
   showTipPanel?: boolean;
   onToggleTipPanel?: () => void;
+  onVideoCallStart?: () => void; // ✅ NUEVO
 }
 
 export const ChatInput = ({
@@ -39,13 +40,14 @@ export const ChatInput = ({
   onToggleGiftPanel,
   showTipPanel,
   onToggleTipPanel,
+  onVideoCallStart, // ✅ NUEVO
 }: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showCameraCapture, setShowCameraCapture] = useState(false);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
-  const [showVideoCall, setShowVideoCall] = useState(false);
+  // ❌ QUITADO: const [showVideoCall, setShowVideoCall] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -100,16 +102,22 @@ export const ChatInput = ({
     setShowAudioRecorder(false);
   };
 
+  // ✅ NUEVO: Inicia videollamada persistente
+  const handleVideoCall = () => {
+    if (onVideoCallStart) {
+      onVideoCallStart();
+    }
+  };
+
   return (
     <>
       <div className="p-3 bg-white border-t border-slate-200">
         <div className="flex items-end gap-2">
-          {/* Botones izquierda - ✅ MÁS PEQUEÑOS (w-7 h-7) */}
+          {/* Botones izquierda */}
           <div className="flex items-center gap-1">
-            {/* CREADORA: Subir archivos */}
+            {/* CREADORA */}
             {userRole === 'creadora' && (
               <>
-                {/* Subir imagen */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
@@ -117,182 +125,85 @@ export const ChatInput = ({
                 >
                   <Paperclip className="w-4 h-4" />
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
 
-                {/* Tomar foto */}
-                <button
-                  onClick={() => setShowCameraCapture(true)}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                  title="Tomar foto"
-                >
+                <button onClick={() => setShowCameraCapture(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Tomar foto">
                   <Camera className="w-4 h-4" />
                 </button>
 
-                {/* Grabar video */}
-                <button
-                  onClick={() => setShowVideoRecorder(true)}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                  title="Grabar video"
-                >
+                <button onClick={() => setShowVideoRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar video">
                   <Video className="w-4 h-4" />
                 </button>
 
-                {/* Grabar audio */}
-                <button
-                  onClick={() => setShowAudioRecorder(true)}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                  title="Grabar audio"
-                >
+                <button onClick={() => setShowAudioRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar audio">
                   <Mic className="w-4 h-4" />
                 </button>
 
-                {/* Videollamada */}
-                <button
-                  onClick={() => setShowVideoCall(true)}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                  title="Videollamada"
-                >
+                {/* ✅ Videollamada con callback */}
+                <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
                   <Phone className="w-4 h-4" />
                 </button>
               </>
             )}
 
-            {/* ESPECTADOR: Botones según permisos */}
+            {/* ESPECTADOR */}
             {userRole === 'espectador' && (
               <>
-                {/* Subir imagen */}
                 {permissions.canSendImages && (
                   <>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                      title="Subir imagen"
-                    >
+                    <button onClick={() => fileInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir imagen">
                       <Paperclip className="w-4 h-4" />
                     </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
+                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
+                    <button onClick={() => setShowCameraCapture(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Tomar foto">
+                      <Camera className="w-4 h-4" />
+                    </button>
                   </>
                 )}
 
-                {/* Tomar foto */}
-                {permissions.canSendImages && (
-                  <button
-                    onClick={() => setShowCameraCapture(true)}
-                    className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                    title="Tomar foto"
-                  >
-                    <Camera className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Subir/Grabar video */}
                 {permissions.canSendVideos && (
                   <>
-                    <button
-                      onClick={() => videoInputRef.current?.click()}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                      title="Subir video"
-                    >
+                    <button onClick={() => videoInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir video">
                       <Paperclip className="w-4 h-4" />
                     </button>
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => setShowVideoRecorder(true)}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                      title="Grabar video"
-                    >
+                    <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                    <button onClick={() => setShowVideoRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar video">
                       <Video className="w-4 h-4" />
                     </button>
                   </>
                 )}
 
-                {/* Subir/Grabar audio */}
                 {permissions.canSendAudio && (
                   <>
-                    <button
-                      onClick={() => audioInputRef.current?.click()}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                      title="Subir audio"
-                    >
+                    <button onClick={() => audioInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir audio">
                       <Paperclip className="w-4 h-4" />
                     </button>
-                    <input
-                      ref={audioInputRef}
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleAudioUpload}
-                      className="hidden"
-                    />
-                    <button
-                      onClick={() => setShowAudioRecorder(true)}
-                      className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                      title="Grabar audio"
-                    >
+                    <input ref={audioInputRef} type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" />
+                    <button onClick={() => setShowAudioRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar audio">
                       <Mic className="w-4 h-4" />
                     </button>
                   </>
                 )}
 
-                {/* Videollamada */}
+                {/* ✅ Videollamada con callback */}
                 {permissions.canRequestVideocall && (
-                  <button
-                    onClick={() => setShowVideoCall(true)}
-                    className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                    title="Videollamada"
-                  >
+                  <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
                     <Phone className="w-4 h-4" />
                   </button>
                 )}
 
-                {/* Regalos y Propinas */}
-                <button
-                  onClick={onToggleGiftPanel}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
-                    showGiftPanel ? 'bg-pink-100 text-pink-600' : 'hover:bg-slate-100 text-slate-600'
-                  }`}
-                  title="Enviar regalo"
-                >
+                <button onClick={onToggleGiftPanel} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showGiftPanel ? 'bg-pink-100 text-pink-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Enviar regalo">
                   <Gift className="w-4 h-4" />
                 </button>
 
-                <button
-                  onClick={onToggleTipPanel}
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
-                    showTipPanel ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-slate-100 text-slate-600'
-                  }`}
-                  title="Enviar propina"
-                >
+                <button onClick={onToggleTipPanel} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showTipPanel ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Enviar propina">
                   <DollarSign className="w-4 h-4" />
                 </button>
               </>
             )}
 
             {/* Emoji picker */}
-            <button
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${
-                showEmojiPicker ? 'bg-violet-100 text-violet-600' : 'hover:bg-slate-100 text-slate-600'
-              }`}
-              title="Emojis"
-            >
+            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showEmojiPicker ? 'bg-violet-100 text-violet-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Emojis">
               <Smile className="w-4 h-4" />
             </button>
           </div>
@@ -311,11 +222,7 @@ export const ChatInput = ({
           </div>
 
           {/* Botón enviar */}
-          <button
-            onClick={handleSend}
-            disabled={!message.trim() || isSending}
-            className="w-10 h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-xl flex items-center justify-center transition shadow-md disabled:shadow-none"
-          >
+          <button onClick={handleSend} disabled={!message.trim() || isSending} className="w-10 h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-xl flex items-center justify-center transition shadow-md disabled:shadow-none">
             <Send className="w-4 h-4" />
           </button>
         </div>
@@ -329,21 +236,11 @@ export const ChatInput = ({
       )}
 
       {/* Modales de captura */}
-      {showCameraCapture && (
-        <CameraCapture onCapture={handleCameraCapture} onClose={() => setShowCameraCapture(false)} />
-      )}
-
-      {showVideoRecorder && (
-        <VideoRecorder onRecord={handleVideoRecord} onClose={() => setShowVideoRecorder(false)} />
-      )}
-
-      {showAudioRecorder && (
-        <AudioRecorder onRecord={handleAudioRecord} onClose={() => setShowAudioRecorder(false)} />
-      )}
-
-      {showVideoCall && (
-        <VideoCallModal onClose={() => setShowVideoCall(false)} />
-      )}
+      {showCameraCapture && <CameraCapture onCapture={handleCameraCapture} onClose={() => setShowCameraCapture(false)} />}
+      {showVideoRecorder && <VideoRecorder onRecord={handleVideoRecord} onClose={() => setShowVideoRecorder(false)} />}
+      {showAudioRecorder && <AudioRecorder onRecord={handleAudioRecord} onClose={() => setShowAudioRecorder(false)} />}
+      
+      {/* ❌ QUITADO: VideoCallModal local */}
     </>
   );
 };

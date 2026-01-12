@@ -22,8 +22,7 @@ import { PacksPage } from '@/pages/DashboardCreadora/PacksPage/PacksPage';
 import { PerfilPublicoCreadoraPage } from '@/pages/DashboardCreadora/PerfilPublicoCreadoraPage/PerfilPublicoCreadoraPage';
 import { EditarPerfilCreadoraPage } from '@/pages/DashboardCreadora/PerfilPublicoCreadoraPage/EditarPerfilCreadoraPage';
 import { EnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/EnVivoPage';
-import { VerEnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/VerEnVivoPage'; 
-import { MessagesPage } from '@/pages/Messages/MessagesPage';
+import { VerEnVivoPage } from '@/pages/DashboardCreadora/EnVivoPage/VerEnVivoPage';  
 
 export const AppRouter = () => {
   return (
