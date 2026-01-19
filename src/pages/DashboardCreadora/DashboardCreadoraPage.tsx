@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Crown } from 'lucide-react';
 import { NavbarCreadora } from '../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage';
@@ -21,22 +20,20 @@ import { MiActividadTab } from '../../components/DashboardCreadora/Tabs/Inicio/M
 
 // Componentes
 import { SubTabsHeader } from './components/SubTabsHeader';
-import { PageHeader } from './components/PageHeader';
 
 // Configuración
 import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
+import { TabTypeMenu } from './hooks/useTabs';
 
-// Tipos
-type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
 type SubTabId = 'resumen' | 'invitaciones' | 'miactividad';
 
 export const DashboardCreadoraPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  const tabFromUrl = (searchParams.get('tab') as TabType) || 'resumen';
-  const [activeTab, setActiveTab] = useState<TabType>(tabFromUrl);
+
+  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) || 'resumen';
+  const [activeTab, setActiveTab] = useState<TabTypeMenu>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('resumen');
 
   // ✅ Estado de videollamada: activa + minimizada
@@ -48,7 +45,7 @@ export const DashboardCreadoraPage = () => {
   }, [activeTab, setSearchParams]);
 
   useEffect(() => {
-    const urlTab = searchParams.get('tab') as TabType;
+    const urlTab = searchParams.get('tab') as TabTypeMenu;
     if (urlTab && urlTab !== activeTab) {
       setActiveTab(urlTab);
     }
@@ -156,6 +153,13 @@ export const DashboardCreadoraPage = () => {
                   <>
                     {activeTab === 'contenido' && <ContenidoPage />}
                     {activeTab === 'packs' && <PacksPage />}
+                    {activeTab === 'inicio' && <MiActividadTab />}
+                    {activeTab === 'invitaciones' && (
+                      <div className="text-center py-16">
+                        <h2 className="text-xl font-bold text-slate-800">Invitaciones</h2>
+                        <p className="text-sm text-slate-600 mt-2">Próximamente</p>
+                      </div>
+                    )}
                     {activeTab === 'donaciones' && (
                       <div className="text-center py-16">
                         <h2 className="text-xl font-bold text-slate-800">Donaciones</h2>
@@ -184,7 +188,7 @@ export const DashboardCreadoraPage = () => {
 
       {/* ✅ Videollamada persistente con modo PiP */}
       {isVideoCallActive && (
-        <VideoCallModal 
+        <VideoCallModal
           onClose={handleVideoCallClose}
           isMinimized={isVideoCallMinimized}
           onToggleMinimize={handleToggleMinimize}
@@ -192,6 +196,6 @@ export const DashboardCreadoraPage = () => {
       )}
 
       <RoleSwitcher />
-    </div>    
+    </div>
   );
 };

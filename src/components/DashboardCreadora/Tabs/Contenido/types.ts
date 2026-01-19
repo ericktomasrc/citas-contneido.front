@@ -1,5 +1,4 @@
-// src/components/DashboardCreadora/Tabs/Contenido/types.ts
-
+// src/components/DashboardCreadora/Tabs/Contenido/types.ts 
 export interface ArchivoContenido {
   id: string;
   tipo: 'foto' | 'video';

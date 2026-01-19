@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Image, Video, Package, Camera } from 'lucide-react';
+import { Image, Video, Package, Camera, AlertCircle, Info, AlertTriangle, Sparkles } from 'lucide-react';
 import { CONTENIDO_CONFIG } from '../../../components/Common/config/config';
 import { TabContenido } from '../../../components/DashboardCreadora/Tabs/Contenido/TabContenido';
-import { TabPacks } from '../../../components/DashboardCreadora/Tabs/Contenido/TabPacks'; 
- 
+import { TabPacks } from '../../../components/DashboardCreadora/Tabs/Contenido/TabPacks';
+
 type TipoTab = 'fotos' | 'videos' | 'packs';
 
 export const ContenidoPage = () => {
@@ -20,7 +20,7 @@ export const ContenidoPage = () => {
     { id: 'videos' as const, label: 'Videos', icon: Video },
     { id: 'packs' as const, label: 'Packs', icon: Package },
   ];
-  
+
   return (
     <>
       {/* Header con Avatar + Info + Tabs */}
@@ -53,7 +53,10 @@ export const ContenidoPage = () => {
                     Verificado
                   </span>
                 </h1>
-                <p className="text-xs text-gray-600">Gestiona tu contenido</p>
+                <p className="text-xs text-rose-600 font-semibold flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Sube tu contenido inicial para empezar a recibir suscriptores
+                </p>
               </div>
             </div>
           </div>
@@ -66,16 +69,15 @@ export const ContenidoPage = () => {
               {tabs.map((tab) => {
                 const isActive = tabActivo === tab.id;
                 const Icon = tab.icon;
-                
+
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setTabActivo(tab.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition-all whitespace-nowrap text-xs ${
-                      isActive
+                    className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition-all whitespace-nowrap text-xs ${isActive
                         ? 'border-pink-500 text-pink-600 font-semibold'
                         : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
                     {tab.label}
@@ -90,14 +92,14 @@ export const ContenidoPage = () => {
       {/* Contenido del Tab - CENTRADO */}
       <div className="max-w-7xl mx-auto">
         <div style={{ display: tabActivo === 'fotos' ? 'block' : 'none' }}>
-          <TabContenido 
+          <TabContenido
             tipo="fotos"
             minimo={CONTENIDO_CONFIG.MINIMO_FOTOS}
           />
         </div>
-        
+
         <div style={{ display: tabActivo === 'videos' ? 'block' : 'none' }}>
-          <TabContenido 
+          <TabContenido
             tipo="videos"
             minimo={CONTENIDO_CONFIG.MINIMO_VIDEOS}
           />

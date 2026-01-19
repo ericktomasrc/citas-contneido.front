@@ -5,6 +5,7 @@ import { NavbarCreadora } from '../../../components/DashboardCreadora/Navbar/Nav
 import { SidebarCreadora } from '../../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { OnlineCreator } from '@/shared/types/creator.types';
 import { OnlineCreatorsSidebar } from '@/components/Common/OnlineCreators/OnlineCreatorsSidebar';
+import { TabTypeMenu } from '../hooks/useTabs';
 
 interface OnlineCreatorExtended extends OnlineCreator {
   edad?: number;
@@ -63,7 +64,7 @@ export const PerfilUsuarioPage = () => {
     intereses: ['Fitness', 'Viajes', 'Tecnología', 'Cine', 'Música', 'Gastronomía'],
   };
 
-  const handleTabChange = (tab: 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes') => {
+  const handleTabChange = (tab: TabTypeMenu) => {
     navigate(`/dashboard-creadora?tab=${tab}`);
   };
 

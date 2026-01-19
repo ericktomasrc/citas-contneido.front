@@ -5,21 +5,21 @@ import { BarChart3, Image, Package, Radio, MessageCircle, Mail, DollarSign, Sett
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '@features/auth/api/authApi';
 import { useState } from 'react';
+import { TabTypeMenu } from '@/pages/DashboardCreadora/hooks/useTabs';
 
-type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
 
 interface SidebarCreadoraProps {
   isOpen: boolean;
   onClose: () => void;
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+  activeTab: TabTypeMenu;
+  onTabChange: (tab: TabTypeMenu) => void;
   isVideoCallActive?: boolean; // ✅ NUEVO
 }
 
-export const SidebarCreadora = ({ 
-  isOpen, 
-  onClose, 
-  activeTab, 
+export const SidebarCreadora = ({
+  isOpen,
+  onClose,
+  activeTab,
   onTabChange,
   isVideoCallActive = false // ✅ NUEVO
 }: SidebarCreadoraProps) => {
@@ -27,11 +27,13 @@ export const SidebarCreadora = ({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const menuItems = [
-    { id: 'resumen' as TabType, icon: Home, label: 'Inicio', badge: null },
-    { id: 'contenido' as TabType, icon: Crown, label: 'Contenido', badge: null },
-    { id: 'mensajes' as TabType, icon: MessageCircle, label: 'Chat', badge: 12 },
-    { id: 'configuracion' as TabType, icon: Settings, label: 'Configuración', badge: null },
-    { id: 'reportes' as TabType, icon: TrendingUp, label: 'Reportes', badge: null },
+    { id: 'inicio' as TabTypeMenu, icon: Home, label: 'Inicio', badge: null },
+    { id: 'invitaciones' as TabTypeMenu, icon: Mail, label: 'Invitaciones', badge: null },
+    { id: 'resumen' as TabTypeMenu, icon: BarChart3, label: 'Resumen', badge: null },
+    { id: 'contenido' as TabTypeMenu, icon: Crown, label: 'Contenido', badge: null },
+    { id: 'mensajes' as TabTypeMenu, icon: MessageCircle, label: 'Chat', badge: 12 },
+    { id: 'configuracion' as TabTypeMenu, icon: Settings, label: 'Configuración', badge: null },
+    { id: 'reportes' as TabTypeMenu, icon: TrendingUp, label: 'Reportes', badge: null },
   ];
 
   const handleLogout = async () => {
@@ -55,7 +57,7 @@ export const SidebarCreadora = ({
     <>
       {/* Overlay para móvil */}
       {isOpen && !isVideoCallActive && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/5 z-40 lg:hidden"
           onClick={onClose}
         />
@@ -66,10 +68,10 @@ export const SidebarCreadora = ({
         className={`
           fixed top-16 left-0 bottom-0 w-20 bg-gray-50/80 backdrop-blur-sm border-r border-gray-200/60 z-40
           transform transition-all duration-300 ease-out flex flex-col
-          ${isVideoCallActive 
-            ? '-translate-x-full' 
-            : isOpen 
-              ? 'translate-x-0' 
+          ${isVideoCallActive
+            ? '-translate-x-full'
+            : isOpen
+              ? 'translate-x-0'
               : '-translate-x-full lg:translate-x-0'
           }
         `}
@@ -89,8 +91,8 @@ export const SidebarCreadora = ({
                   className={`
                     w-full flex flex-col items-center gap-1 py-3 px-2 relative
                     transition-all duration-150 group
-                    ${isActive 
-                      ? 'text-indigo-600' 
+                    ${isActive
+                      ? 'text-indigo-600'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/50'
                     }
                   `}
@@ -103,7 +105,7 @@ export const SidebarCreadora = ({
                   {/* Icono */}
                   <div className="relative">
                     <item.icon className={`w-6 h-6 transition-transform duration-150 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`} />
-                    
+
                     {/* Badge */}
                     {item.badge !== null && item.badge > 0 && (
                       <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
@@ -125,10 +127,10 @@ export const SidebarCreadora = ({
           <div className="w-8 h-px bg-gray-200 my-2" />
 
           {/* Más opciones */}
-          <button className="w-full flex flex-col items-center gap-1 py-3 px-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 transition-all duration-150">
+          {/* <button className="w-full flex flex-col items-center gap-1 py-3 px-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100/50 transition-all duration-150">
             <MoreHorizontal className="w-6 h-6" />
             <span className="text-[10px] font-medium">Más</span>
-          </button>
+          </button> */}
         </nav>
 
         {/* Footer */}

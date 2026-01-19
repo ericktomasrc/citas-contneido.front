@@ -3,8 +3,8 @@ import { Camera, X, Calendar, Save, User, Eye, MapPin, Heart, Sparkles, Lock, Us
 import { NavbarCreadora } from '../../../components/DashboardCreadora/Navbar/NavbarCreadora';
 import { SidebarCreadora } from '../../../components/DashboardCreadora/Sidebar/SidebarCreadora';
 import { useNavigate } from 'react-router-dom';
+import { TabTypeMenu } from '@/pages/DashboardCreadora/hooks/useTabs';
 
-type TabType = 'resumen' | 'contenido' | 'packs' | 'envivo' | 'mensajes' | 'invitaciones' | 'donaciones' | 'configuracion' | 'reportes';
 type ProfileTab = 'general' | 'privada' | 'comunidad' | 'seguidores' | 'fotos-videos';
 
 export const EditarPerfilCreadoraPage = () => {
@@ -14,8 +14,8 @@ export const EditarPerfilCreadoraPage = () => {
   const [profilePhoto, setProfilePhoto] = useState('https://i.pravatar.cc/400?img=5');
   const [searchComunidad, setSearchComunidad] = useState('');
   const [searchSeguidores, setSearchSeguidores] = useState('');
-  const [activeTab] = useState<TabType>('configuracion');
-  
+  const [activeTab] = useState<TabTypeMenu>('configuracion');
+
   const [formData, setFormData] = useState({
     nombre: 'María García',
     dedondeEres: 'Lima, Perú',
@@ -80,16 +80,16 @@ export const EditarPerfilCreadoraPage = () => {
     navigate('/perfil-publico-creadora');
   };
 
-  const handleTabChange = (tab: TabType) => {
+  const handleTabChange = (tab: TabTypeMenu) => {
     // Navegar al dashboard con el tab correspondiente
     navigate(`/dashboard-creadora?tab=${tab}`);
   };
 
-  const filteredComunidad = comunidad.filter(m => 
+  const filteredComunidad = comunidad.filter(m =>
     m.nombre.toLowerCase().includes(searchComunidad.toLowerCase())
   );
 
-  const filteredSeguidores = seguidores.filter(s => 
+  const filteredSeguidores = seguidores.filter(s =>
     s.nombre.toLowerCase().includes(searchSeguidores.toLowerCase())
   );
 
@@ -145,7 +145,10 @@ export const EditarPerfilCreadoraPage = () => {
                       Verificado
                     </span>
                   </h1>
-                  <p className="text-xs text-gray-600">Edita tu perfil y preferencias</p>
+                  <p className="text-xs text-rose-600 font-semibold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Edita tu perfil y motiva a los usuarios a seguirte y a suscribirse a tu contenido
+                  </p>
                 </div>
               </div>
 
@@ -177,11 +180,10 @@ export const EditarPerfilCreadoraPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveProfileTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition-all whitespace-nowrap text-xs ${
-                    activeProfileTab === tab.id
-                      ? 'border-pink-500 text-pink-600 font-semibold'
-                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition-all whitespace-nowrap text-xs ${activeProfileTab === tab.id
+                    ? 'border-pink-500 text-pink-600 font-semibold'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
+                    }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
                   {tab.label}
@@ -202,7 +204,7 @@ export const EditarPerfilCreadoraPage = () => {
                     <User className="w-4 h-4 text-pink-500" />
                     Información Básica
                   </h2>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -286,11 +288,10 @@ export const EditarPerfilCreadoraPage = () => {
                                   : [...formData.buscando, tipo]
                               });
                             }}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                              isSelected
-                                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${isSelected
+                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
                           >
                             {tipo.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                           </button>
@@ -320,11 +321,10 @@ export const EditarPerfilCreadoraPage = () => {
                                   : [...formData.intereses, interes]
                               });
                             }}
-                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                              isSelected
-                                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
+                            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${isSelected
+                              ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-sm'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
                           >
                             {interes.charAt(0).toUpperCase() + interes.slice(1)}
                           </button>
@@ -372,7 +372,7 @@ export const EditarPerfilCreadoraPage = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -430,7 +430,7 @@ export const EditarPerfilCreadoraPage = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <p className="text-xs text-gray-600 mb-3">
                     Tus suscriptores activos con acceso a contenido premium
                   </p>
@@ -491,7 +491,7 @@ export const EditarPerfilCreadoraPage = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <p className="text-xs text-gray-600 mb-3">
                     Personas que siguen tu perfil y ven tu contenido público
                   </p>
@@ -552,7 +552,7 @@ export const EditarPerfilCreadoraPage = () => {
                       Subir
                     </button>
                   </div>
-                  
+
                   <p className="text-xs text-gray-600 mb-3">
                     Comparte fotos y videos con tu comunidad
                   </p>
@@ -568,7 +568,7 @@ export const EditarPerfilCreadoraPage = () => {
                           alt={`Media ${media.id}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        
+
                         {media.type === 'video' && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20">
                             <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center">
@@ -581,7 +581,7 @@ export const EditarPerfilCreadoraPage = () => {
                             )}
                           </div>
                         )}
-                        
+
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                           <div className="absolute bottom-1.5 left-1.5 text-white text-[10px]">
                             {media.fecha}

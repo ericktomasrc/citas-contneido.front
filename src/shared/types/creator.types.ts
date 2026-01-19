@@ -49,4 +49,4 @@ export interface OnlineCreator {
   isFavorite: boolean;  
 }
 
-export type TabType = 'descubrir' | 'en-vivo';
+//export type TabType = 'descubrir' | 'en-vivo';
