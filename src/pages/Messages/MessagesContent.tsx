@@ -1,5 +1,5 @@
 // src/pages/Messages/MessagesContent.tsx
-// ✅ MEJORADO: Callback para iniciar videollamada persistente
+// ✅ ChatWindow sin border-top para pegarlo al header de botones
 
 import { useState } from 'react';
 import { Gift, DollarSign } from 'lucide-react';
@@ -13,7 +13,7 @@ import { useUserRole } from '@/features/chat/hooks/useUserRole';
 import { defaultChatSettings } from '@/features/chat/types/chat.types';
 
 interface MessagesContentProps {
-  onVideoCallStart?: () => void; // ✅ NUEVO
+  onVideoCallStart?: () => void;
 }
 
 export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
@@ -72,66 +72,68 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
   const selectedConversation = mockConversations.find(c => c.id === selectedConversationId);
 
   return (
-    <div className="h-full flex flex-col bg-slate-50">
-      {/* Header con botones según rol */}
-      <div className="flex-shrink-0 bg-white border-b border-slate-200 px-6 py-3">
-        <div className="flex items-center gap-3">
-          {role === 'creadora' ? (
-            <>
-              <button
-                onClick={() => setShowGiftsReport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
-              >
-                <Gift className="w-4 h-4" />
-                Mis Regalos
-              </button>
-              
-              <button
-                onClick={() => setShowTipsReport(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 transition-all"
-              >
-                <DollarSign className="w-4 h-4" />
-                Mis Propinas
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => setShowSentGifts(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-xl text-sm font-medium text-violet-700 transition-all"
-              >
-                <Gift className="w-4 h-4" />
-                Regalos Enviados
-              </button>
-              
-              <button
-                onClick={() => setShowSentTips(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-xl text-sm font-medium text-blue-700 transition-all"
-              >
-                <DollarSign className="w-4 h-4" />
-                Propinas Enviadas
-              </button>
-            </>
-          )}
-        </div>
+    <div className="h-full flex overflow-hidden bg-slate-50">
+      {/* Sidebar izquierdo */}
+      <div className="w-96 flex-shrink-0 border-r border-slate-200 bg-white">
+        <ConversationSidebar
+          conversations={mockConversations}
+          selectedConversationId={selectedConversationId}
+          onSelectConversation={setSelectedConversationId}
+        />
       </div>
 
-      {/* Layout principal */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-96 flex-shrink-0 border-r border-slate-200 bg-white">
-          <ConversationSidebar
-            conversations={mockConversations}
-            selectedConversationId={selectedConversationId}
-            onSelectConversation={setSelectedConversationId}
-          />
+      {/* Área principal derecha */}
+      <div className="flex-1 flex flex-col bg-slate-50">
+        {/* ✅ Header único con botones (h-16) */}
+        <div className="flex-shrink-0 bg-white border-b border-slate-200">
+          <div className="h-16 px-6 flex items-center gap-3">
+            {role === 'creadora' ? (
+              <>
+                <button
+                  onClick={() => setShowGiftsReport(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
+                >
+                  <Gift className="w-4 h-4" />
+                  Mis Regalos
+                </button>
+                
+                <button
+                  onClick={() => setShowTipsReport(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 transition-all"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Mis Propinas
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => setShowSentGifts(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-xl text-sm font-medium text-violet-700 transition-all"
+                >
+                  <Gift className="w-4 h-4" />
+                  Regalos Enviados
+                </button>
+                
+                <button
+                  onClick={() => setShowSentTips(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-xl text-sm font-medium text-blue-700 transition-all"
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Propinas Enviadas
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1 bg-slate-50">
+        {/* Contenido: ChatWindow o placeholder (SIN espacio extra) */}
+        <div className="flex-1 overflow-hidden">
           {selectedConversation ? (
             <ChatWindow 
               conversation={selectedConversation} 
               recipientSettings={defaultChatSettings}
-              onVideoCallStart={onVideoCallStart} // ✅ PASAR CALLBACK
+              onVideoCallStart={onVideoCallStart}
             />
           ) : (
             <div className="h-full flex items-center justify-center">
