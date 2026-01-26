@@ -1,6 +1,6 @@
 // src/features/chat/types/message.types.ts
 
-export type MessageType = 
+export type MessageType =
   | 'text'           // Mensaje de texto simple
   | 'image'          // Imagen/Foto
   | 'video'          // Video
@@ -11,7 +11,7 @@ export type MessageType =
   | 'system'         // Mensaje del sistema
   | 'videocall';     // Invitación a videollamada
 
-export type MessageStatus = 
+export type MessageStatus =
   | 'sending'        // Enviando
   | 'sent'           // Enviado
   | 'delivered'      // Entregado
@@ -21,6 +21,7 @@ export type MessageStatus =
 
 export interface Message {
   id: string;
+  conversationId: string;
   chatId: string;
   senderId: string;
   senderName: string;
@@ -28,7 +29,8 @@ export interface Message {
   senderType: 'creator' | 'subscriber';
   type: MessageType;
   content: string;
-  
+  timestamp: Date;
+
   // Media
   mediaUrl?: string;
   thumbnailUrl?: string;
@@ -39,13 +41,13 @@ export interface Message {
     width?: number;
     height?: number;
   };
-  
+
   // Premium Content
   isPremium?: boolean;
   isPurchased?: boolean;
   price?: number;
   previewText?: string;
-  
+
   // Gift/Tip
   gift?: {
     id: string;
@@ -53,16 +55,16 @@ export interface Message {
     emoji: string;
     amount: number;
   };
-  
+
   // Status
   status: MessageStatus;
   isBlocked?: boolean;
   blockReason?: string;
-  
+
   // Timestamps
   createdAt: Date;
   readAt?: Date;
-  
+
   // Reactions
   reactions?: Array<{
     userId: string;

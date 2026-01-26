@@ -1,5 +1,5 @@
 // src/pages/DashboardCreadora/DashboardCreadoraPage.tsx
-// ✅ MEJORADO: Videollamada con modo PiP (minimizado)
+// ✅ MEJORADO: Reducido espacio entre navbar y contenido
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -26,17 +26,16 @@ import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
 import { TabTypeMenu } from './hooks/useTabs';
 
-type SubTabId = 'resumen' | 'invitaciones' | 'miactividad';
+type SubTabId = 'invitaciones' | 'miactividad' | 'resumen';
 
 export const DashboardCreadoraPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) || 'resumen';
+  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) || 'invitaciones';
   const [activeTab, setActiveTab] = useState<TabTypeMenu>(tabFromUrl);
-  const [activeSubTab, setActiveSubTab] = useState<SubTabId>('resumen');
+  const [activeSubTab, setActiveSubTab] = useState<SubTabId>('invitaciones');
 
-  // ✅ Estado de videollamada: activa + minimizada
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [isVideoCallMinimized, setIsVideoCallMinimized] = useState(false);
 
@@ -54,7 +53,7 @@ export const DashboardCreadoraPage = () => {
   const currentUser = {
     nombre: 'María Rodriguez',
     username: '@maria_lima3',
-    avatar: 'https://i.pravatar.cc/150?img=1',
+    avatar: 'https://i.pravatar.cc/150?img=47', // ⭐ Foto real
     gananciasMes: 2450,
   };
 
@@ -66,30 +65,26 @@ export const DashboardCreadoraPage = () => {
     setActiveSubTab(tabId as SubTabId);
   };
 
-  // ✅ Iniciar videollamada (fullscreen por defecto)
   const handleVideoCallStart = () => {
     setIsVideoCallActive(true);
     setIsVideoCallMinimized(false);
   };
 
-  // ✅ Toggle minimizar/maximizar
   const handleToggleMinimize = () => {
     setIsVideoCallMinimized(!isVideoCallMinimized);
   };
 
-  // ✅ Cerrar videollamada
   const handleVideoCallClose = () => {
     setIsVideoCallActive(false);
     setIsVideoCallMinimized(false);
   };
 
-  const showSubTabs = activeTab === 'resumen';
+  const showSubTabs = activeTab === 'invitaciones' || activeTab === 'resumen';
 
   return (
     <div className="min-h-screen bg-slate-50">
       <NavbarCreadora onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
 
-      {/* ✅ Sidebar siempre visible (excepto en fullscreen) */}
       <SidebarCreadora
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -98,7 +93,7 @@ export const DashboardCreadoraPage = () => {
         isVideoCallActive={isVideoCallActive && !isVideoCallMinimized}
       />
 
-      {/* ✅ Main con margen condicional */}
+      {/* ⭐ REDUCIDO ESPACIO: top-16 sin padding extra */}
       <main className={`
         fixed top-16 left-0 right-0 bottom-0 overflow-hidden flex flex-col
         transition-all duration-300
@@ -109,26 +104,17 @@ export const DashboardCreadoraPage = () => {
         ) : (
           <>
             {/* Header */}
-            {showSubTabs ? (
+            {showSubTabs && (
               <SubTabsHeader
                 tabs={subTabsConfig}
                 activeTab={activeSubTab}
                 onTabChange={handleSubTabChange}
               />
-            ) : (
-              <>
-                {/* {activeTab === 'contenido' && (
-                  <PageHeader icon={Crown} title="Contenido" iconColor="text-pink-500" />
-                )}
-                {activeTab === 'packs' && (
-                  <PageHeader icon={Crown} title="Packs" iconColor="text-violet-500" />
-                )} */}
-              </>
             )}
 
-            {/* Contenido */}
+            {/* ⭐ Contenido SIN padding-top extra */}
             <div className="flex-1 overflow-y-auto bg-slate-50">
-              <div className="p-6">
+              <div className="p-4"> {/* Reducido de p-6 a p-4 */}
                 {showSubTabs && (
                   <>
                     {activeSubTab === 'invitaciones' && (
@@ -137,14 +123,14 @@ export const DashboardCreadoraPage = () => {
                         enabled={activeSubTab === 'invitaciones'}
                       />
                     )}
+                    {activeSubTab === 'miactividad' && (
+                      <MiActividadTab onProgramarEvento={handleProgramarEvento} />
+                    )}
                     {activeSubTab === 'resumen' && (
                       <ResumenTab
                         nombreUsuario={currentUser.nombre}
                         gananciasMes={currentUser.gananciasMes}
                       />
-                    )}
-                    {activeSubTab === 'miactividad' && (
-                      <MiActividadTab onProgramarEvento={handleProgramarEvento} />
                     )}
                   </>
                 )}
@@ -153,13 +139,13 @@ export const DashboardCreadoraPage = () => {
                   <>
                     {activeTab === 'contenido' && <ContenidoPage />}
                     {activeTab === 'packs' && <PacksPage />}
-                    {activeTab === 'inicio' && <MiActividadTab />}
+                    {/* {activeTab === 'inicio' && <MiActividadTab />}
                     {activeTab === 'invitaciones' && (
                       <div className="text-center py-16">
                         <h2 className="text-xl font-bold text-slate-800">Invitaciones</h2>
                         <p className="text-sm text-slate-600 mt-2">Próximamente</p>
                       </div>
-                    )}
+                    )} */}
                     {activeTab === 'donaciones' && (
                       <div className="text-center py-16">
                         <h2 className="text-xl font-bold text-slate-800">Donaciones</h2>
@@ -186,7 +172,6 @@ export const DashboardCreadoraPage = () => {
         )}
       </main>
 
-      {/* ✅ Videollamada persistente con modo PiP */}
       {isVideoCallActive && (
         <VideoCallModal
           onClose={handleVideoCallClose}

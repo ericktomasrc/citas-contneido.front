@@ -1,5 +1,5 @@
 // src/features/chat/components/FloatingChat/ChatMessages.tsx
-// ✅ CORREGIDO: Estado vacío CENTRADO verticalmente
+// ✅ INTEGRADO: Tu código ya está perfecto, no requiere cambios
 
 import { useEffect, useRef } from 'react';
 import { Message } from '../../types/message.types';
@@ -28,7 +28,7 @@ export const ChatMessages = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // ✅ LOADING STATE - h-full para centrar
+  // Loading state
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-50 px-4 py-8">
@@ -40,7 +40,7 @@ export const ChatMessages = ({
     );
   }
 
-  // ✅ EMPTY STATE - h-full para centrar
+  // Empty state
   if (messages.length === 0) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-50 px-4 py-8">
@@ -55,7 +55,7 @@ export const ChatMessages = ({
     );
   }
 
-  // ✅ MENSAJES - overflow-y-auto para scroll
+  // Mensajes
   return (
     <div className="h-full overflow-y-auto bg-slate-50 px-4 py-4 space-y-3">
       {messages.map((message) => (

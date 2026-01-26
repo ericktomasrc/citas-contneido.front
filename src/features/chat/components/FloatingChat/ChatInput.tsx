@@ -1,5 +1,5 @@
 // src/features/chat/components/FloatingChat/ChatInput.tsx
-// ✅ MEJORADO: Usa callback en lugar de modal local
+// ✅ CORREGIDO: Sin propiedad 'read' (compatible con tu tipo Message)
 
 import { useState, useRef } from 'react';
 import { Send, Paperclip, Gift, DollarSign, Smile, Camera, Video, Mic, Phone } from 'lucide-react';
@@ -7,9 +7,11 @@ import { EmojiPicker } from '../Emoji/EmojiPicker';
 import { CameraCapture } from '../Capture/CameraCapture';
 import { VideoRecorder } from '../Capture/VideoRecorder';
 import { AudioRecorder } from '../Capture/AudioRecorder';
-// ❌ QUITADO: import { VideoCallModal } from '../VideoCall/VideoCallModal';
 import { UserRole } from '../../types/user.types';
 import { ChatPermissions } from '../../types/chat.types';
+// ✨ NUEVO: Servicios mock (opcional) 
+import { useUserRole } from '../../hooks/useUserRole';
+import { useChatServices } from '@/hooks/useChatService';
 
 interface ChatInputProps {
   userRole: UserRole;
@@ -25,7 +27,11 @@ interface ChatInputProps {
   onToggleGiftPanel: () => void;
   showTipPanel?: boolean;
   onToggleTipPanel?: () => void;
-  onVideoCallStart?: () => void; // ✅ NUEVO
+  onVideoCallStart?: () => void;
+  // ✨ NUEVO: Props opcionales para servicios mock
+  conversationId?: string;
+  recipientId?: string;
+  enableMockSync?: boolean;
 }
 
 export const ChatInput = ({
@@ -40,22 +46,48 @@ export const ChatInput = ({
   onToggleGiftPanel,
   showTipPanel,
   onToggleTipPanel,
-  onVideoCallStart, // ✅ NUEVO
+  onVideoCallStart,
+  conversationId,
+  recipientId,
+  enableMockSync = false,
 }: ChatInputProps) => {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showCameraCapture, setShowCameraCapture] = useState(false);
   const [showVideoRecorder, setShowVideoRecorder] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
-  // ❌ QUITADO: const [showVideoCall, setShowVideoCall] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = () => {
+  // ✨ NUEVO: Servicios mock
+  const { chat: chatService } = useChatServices();
+  const { user } = useUserRole();
+
+  const handleSend = async () => {
     if (message.trim() && !isSending) {
+      // ✅ MANTENER: Tu lógica existente
       onSendMessage(message.trim());
+      
+      // ✨ NUEVO: Sincronización opcional con mock
+      if (enableMockSync && conversationId && user) {
+        try {
+          // ✅ CORREGIDO: Sin propiedad 'read'
+          await chatService.sendMessage({
+            conversationId,
+            senderId: user.id,
+            senderName: user.username,
+            senderAvatar: user.avatar,
+            type: 'text',
+            content: message.trim(),
+            // ❌ QUITADO: read: false (no existe en tu tipo Message)
+          });
+        } catch (error) {
+          console.error('Error enviando a servicio mock:', error);
+        }
+      }
+      
       setMessage('');
     }
   };
@@ -102,7 +134,6 @@ export const ChatInput = ({
     setShowAudioRecorder(false);
   };
 
-  // ✅ NUEVO: Inicia videollamada persistente
   const handleVideoCall = () => {
     if (onVideoCallStart) {
       onVideoCallStart();
@@ -139,7 +170,6 @@ export const ChatInput = ({
                   <Mic className="w-4 h-4" />
                 </button>
 
-                {/* ✅ Videollamada con callback */}
                 <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
                   <Phone className="w-4 h-4" />
                 </button>
@@ -185,7 +215,6 @@ export const ChatInput = ({
                   </>
                 )}
 
-                {/* ✅ Videollamada con callback */}
                 {permissions.canRequestVideocall && (
                   <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
                     <Phone className="w-4 h-4" />
@@ -239,8 +268,6 @@ export const ChatInput = ({
       {showCameraCapture && <CameraCapture onCapture={handleCameraCapture} onClose={() => setShowCameraCapture(false)} />}
       {showVideoRecorder && <VideoRecorder onRecord={handleVideoRecord} onClose={() => setShowVideoRecorder(false)} />}
       {showAudioRecorder && <AudioRecorder onRecord={handleAudioRecord} onClose={() => setShowAudioRecorder(false)} />}
-      
-      {/* ❌ QUITADO: VideoCallModal local */}
     </>
   );
 };

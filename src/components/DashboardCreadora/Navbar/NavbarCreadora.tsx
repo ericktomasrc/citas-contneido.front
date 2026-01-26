@@ -1,3 +1,4 @@
+// src/components/DashboardCreadora/Navbar/NavbarCreadora.tsx
 import { Bell, MessageCircle, User, Menu, LogOut, Settings, DollarSign, Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +19,7 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
   const currentUser = {
     nombre: 'María Rodriguez',
     username: '@maria_lima1',
-    avatar: 'https://i.pravatar.cc/150?img=1',
+    avatar: 'https://i.pravatar.cc/150?img=47', // ⭐ Foto real
     gananciasMes: 2450,
   };
 
@@ -83,7 +84,8 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
+    // ⭐ Agregada sombra sutil en el borde inferior
+    <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-50">
       <div className="h-16 px-4 flex items-center justify-between gap-3">
         {/* Left Section */}
         <div className="flex items-center gap-3">
@@ -95,7 +97,7 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
             <Menu className="w-5 h-5 text-gray-700" />
           </button>
 
-          {/* Logo - MÁS COMPACTO */}
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-gradient-to-br from-pink-500 to-purple-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">C</span>
@@ -105,20 +107,6 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
             </span>
           </div> 
         </div>
-
-        {/* Center - Buscador PEQUEÑO Y DISCRETO */}
-        {/* <div className="flex-1 max-w-md hidden md:block">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar..."
-              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition"
-            />
-          </div>
-        </div> */}
 
         {/* Right Section */}
         <div className="flex items-center gap-1.5">
@@ -149,10 +137,11 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
               onClick={() => setShowProfileDropdown(!showProfileDropdown)}
               className="flex items-center gap-2 hover:bg-gray-100 rounded-full px-1.5 py-1 transition"
             >
+              {/* ⭐ AVATAR CON FOTO REAL */}
               <img
                 src={currentUser.avatar}
                 alt={currentUser.nombre}
-                className="w-8 h-8 rounded-full object-cover ring-2 ring-gray-200"
+                className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
               />
               <span className="text-xs font-medium text-gray-700 hidden sm:block">
                 {currentUser.username}
@@ -164,10 +153,11 @@ export const NavbarCreadora = ({ onToggleSidebar }: NavbarCreadoraProps) => {
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1.5 z-50">
                 <div className="px-3 py-2 border-b border-gray-100">
                   <div className="flex items-center gap-2.5">
+                    {/* ⭐ AVATAR CON FOTO REAL */}
                     <img
                       src={currentUser.avatar}
                       alt={currentUser.nombre}
-                      className="w-9 h-9 rounded-full object-cover ring-2 ring-gray-200"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-gray-900 truncate">

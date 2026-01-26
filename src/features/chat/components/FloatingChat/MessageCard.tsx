@@ -1,17 +1,35 @@
 // src/features/chat/components/FloatingChat/MessageCard.tsx
-// ✅ ACTUALIZADO PARA ACEPTAR userRole
+// ✅ INTEGRADO: Mantiene TODO + agrega reacciones
 
+import { useState } from 'react'; // ✨ NUEVO: Para estado del picker
 import { Message } from '../../types/message.types';
 import { Check, CheckCheck, Image as ImageIcon, Video, Mic, Gift as GiftIcon, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // ✨ NUEVO: AnimatePresence
+// ✨ NUEVO: Imports para reacciones
+import { ReactionPicker } from '../Reactions/ReactionPicker';
+import { MessageReactions } from '../Reactions/MessageReactions'; 
+import { useUserRole } from '../../hooks/useUserRole';
+import { useMessageReactions } from '@/hooks/useMessageReactions';
 
 interface MessageCardProps {
   message: Message;
   isOwn: boolean;
-  userRole?: 'creadora' | 'espectador'; // ⭐ NUEVO - OPCIONAL
+  userRole?: 'creadora' | 'espectador';
 }
 
 export const MessageCard = ({ message, isOwn, userRole = 'espectador' }: MessageCardProps) => {
+  // ✨ NUEVO: Estado y hook para reacciones
+  const { user } = useUserRole();
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const { reactions, toggleReaction } = useMessageReactions(message.id);
+
+  // ✨ NUEVO: Handler para agregar reacción
+  const handleAddReaction = (emoji: string) => {
+    if (user) {
+      toggleReaction(emoji, user.id);
+    }
+  };
+
   const renderMessageContent = () => {
     switch (message.type) {
       case 'text':
@@ -41,6 +59,9 @@ export const MessageCard = ({ message, isOwn, userRole = 'espectador' }: Message
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={`flex gap-2 mb-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
+      // ✨ NUEVO: Eventos para mostrar picker de reacciones
+      onMouseEnter={() => setShowReactionPicker(true)}
+      onMouseLeave={() => setShowReactionPicker(false)}
     >
       {/* Avatar (solo para mensajes del otro usuario) */}
       {!isOwn && (
@@ -51,7 +72,20 @@ export const MessageCard = ({ message, isOwn, userRole = 'espectador' }: Message
         />
       )}
 
-      <div className={`flex flex-col max-w-[75%] ${isOwn ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col max-w-[75%] ${isOwn ? 'items-end' : 'items-start'} relative`}>
+        {/* ✨ NUEVO: Picker de reacciones (aparece en hover) */}
+        <AnimatePresence>
+          {showReactionPicker && message.type !== 'system' && (
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-10">
+              <ReactionPicker
+                onSelectReaction={handleAddReaction}
+                onClose={() => setShowReactionPicker(false)}
+                position="top"
+              />
+            </div>
+          )}
+        </AnimatePresence>
+
         {renderMessageContent()}
         
         {/* Timestamp y estado */}
@@ -62,6 +96,17 @@ export const MessageCard = ({ message, isOwn, userRole = 'espectador' }: Message
           
           {isOwn && <MessageStatus status={message.status} />}
         </div>
+
+        {/* ✨ NUEVO: Mostrar reacciones existentes */}
+        {reactions.length > 0 && (
+          <div className={`mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
+            <MessageReactions
+              reactions={reactions}
+              currentUserId={user?.id || ''}
+              onReactionClick={handleAddReaction}
+            />
+          </div>
+        )}
       </div>
     </motion.div>
   );
