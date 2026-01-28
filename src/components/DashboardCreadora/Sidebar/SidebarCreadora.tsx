@@ -27,8 +27,8 @@ export const SidebarCreadora = ({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const menuItems = [
-    // { id: 'inicio' as TabTypeMenu, icon: Home, label: 'Inicio', badge: null },
-    // { id: 'invitaciones' as TabTypeMenu, icon: Mail, label: 'Invitaciones', badge: null },
+    { id: 'inicio' as TabTypeMenu, icon: Home, label: 'Inicio', badge: null },
+    { id: 'invitaciones' as TabTypeMenu, icon: Mail, label: 'Invitaciones', badge: null },
     { id: 'resumen' as TabTypeMenu, icon: Home, label: 'Home', badge: null },
     { id: 'contenido' as TabTypeMenu, icon: Crown, label: 'Contenido', badge: null },
     { id: 'mensajes' as TabTypeMenu, icon: MessageCircle, label: 'Chat', badge: 12 },

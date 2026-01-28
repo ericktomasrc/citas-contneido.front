@@ -5,7 +5,8 @@ export type TabTypeMenu = 'inicio' | 'invitaciones' | 'resumen' |
   'contenido' | 'packs' | 'envivo' | 'mensajes' | 'donaciones' |
   'configuracion' | 'reportes';
 
-export type SubTabType = 'invitaciones' | 'miactividad' | 'resumen';
+//export type SubTabType = 'invitaciones' | 'miactividad' | 'resumen';
+export type SubTabType = 'invitaciones' | 'resumen';
 
 export const useTabs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,7 +37,10 @@ export const useTabs = () => {
   };
 
   const handleSubTabChange = (tab: string) => {
-    if (tab === 'invitaciones' || tab === 'miactividad' || tab === 'resumen') {
+    // if (tab === 'invitaciones' || tab === 'miactividad' || tab === 'resumen') {
+    //   setActiveSubTab(tab as SubTabType);
+    // }
+     if (tab === 'invitaciones'  || tab === 'resumen') {
       setActiveSubTab(tab as SubTabType);
     }
   };

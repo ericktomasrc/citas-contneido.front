@@ -5,7 +5,8 @@ import {
   Image, Video as VideoIcon, Calendar as CalendarIcon, Clock,
   Edit2, Trash2, Play, Radio, Crown, X, Sparkles, Heart,
   Info, Lock, Globe, Camera, ChevronLeft, ChevronRight, Eye,
-  MessageCircle, Send, ThumbsDown, ThumbsUp
+  MessageCircle, Send, ThumbsDown, ThumbsUp, TrendingUp, Target,
+  Zap, Award, Gift, Upload, Users, Lightbulb, Circle, Square
 } from 'lucide-react';
 import { CalendarioModal, EventoCalendario } from '../../../Modals/CalendarioModal';
 import { useTransmision } from '../../../../contexts/TransmisionContext';
@@ -42,9 +43,13 @@ interface Publicacion {
 
 interface MiActividadTabProps {
   onProgramarEvento?: () => void;
+  onNavigateToContenido?: () => void;
 }
 
-export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) => {
+export const MiActividadTab = ({ 
+  onProgramarEvento,
+  onNavigateToContenido 
+}: MiActividadTabProps = {}) => {
   const { startTransmision, isTransmisionActive } = useTransmision();
   const navigate = useNavigate();
 
@@ -81,12 +86,36 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
   const [precioEntrada, setPrecioEntrada] = useState(15);
   const [descripcionEntrada, setDescripcionEntrada] = useState('');
 
+  // Estados para eliminación
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [publicacionAEliminar, setPublicacionAEliminar] = useState<string | null>(null);
+  const [fotoIndexAEliminar, setFotoIndexAEliminar] = useState<number | null>(null);
+
+  // Estados para modal de crear momento
+  const [showCrearMomentoModal, setShowCrearMomentoModal] = useState(false);
+  const [showCapturarMomentoModal, setShowCapturarMomentoModal] = useState(false);
+  const [showConfigMomentoModal, setShowConfigMomentoModal] = useState(false);
+  const [momentoFile, setMomentoFile] = useState<File | null>(null);
+  const [momentoVisibilidad, setMomentoVisibilidad] = useState<'publico' | 'suscriptores'>('publico');
+  const [momentoPrecio, setMomentoPrecio] = useState(15);
+
+  // NUEVO: Estados para grabar video de momento
+  const [showMomentoVideoRecordModal, setShowMomentoVideoRecordModal] = useState(false);
+  const [isRecordingMomentoVideo, setIsRecordingMomentoVideo] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const momentoVideoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const momentoMediaStreamRef = useRef<MediaStream | null>(null);
+  const momentoFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Usuarios de ejemplo para simular interacciones
+  // Usuarios de ejemplo
   const usuariosEjemplo: Usuario[] = [
     { id: '1', nombre: 'Juan Pérez', username: 'juan-perez-x7m3', avatar: 'https://i.pravatar.cc/150?img=12' },
     { id: '2', nombre: 'Ana García', username: 'ana-garcia-k9p2', avatar: 'https://i.pravatar.cc/150?img=5' },
@@ -264,6 +293,161 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
     setShowVideoRecordModal(false);
   };
 
+  // Handler para crear momento desde galería (FOTOS Y VIDEOS)
+  const handleMomentoDesdeGaleria = () => {
+    momentoFileInputRef.current?.click();
+    setShowCrearMomentoModal(false);
+  };
+
+  // Handler para capturar momento (abre modal de foto/video)
+  const handleAbrirCapturarMomento = () => {
+    setShowCrearMomentoModal(false);
+    setShowCapturarMomentoModal(true);
+  };
+
+  // Handler para tomar FOTO para momento
+  const handleMomentoTomarFoto = async () => {
+    setShowCapturarMomentoModal(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      mediaStreamRef.current = stream;
+      
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      
+      setTimeout(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0);
+        
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `momento-foto-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setMomentoFile(file);
+            setShowConfigMomentoModal(true);
+            
+            stream.getTracks().forEach(track => track.stop());
+          }
+        }, 'image/jpeg');
+      }, 500);
+    } catch (error) {
+      alert('No se pudo acceder a la cámara');
+    }
+  };
+
+  // NUEVO: Handler para abrir modal de grabar video para momento
+  const handleAbrirMomentoVideoRecorder = async () => {
+    setShowCapturarMomentoModal(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      momentoMediaStreamRef.current = stream;
+      setShowMomentoVideoRecordModal(true);
+      setRecordingTime(0);
+      setIsRecordingMomentoVideo(false);
+      recordedChunksRef.current = [];
+
+      setTimeout(() => {
+        if (momentoVideoRef.current) {
+          momentoVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (error) {
+      alert('No se pudo acceder a la cámara/micrófono');
+    }
+  };
+
+  // NUEVO: Handler para iniciar grabación de video momento
+  const handleIniciarGrabacionMomento = () => {
+    if (!momentoMediaStreamRef.current) return;
+
+    recordedChunksRef.current = [];
+    const mediaRecorder = new MediaRecorder(momentoMediaStreamRef.current, {
+      mimeType: 'video/webm;codecs=vp9'
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const file = new File([blob], `momento-video-${Date.now()}.webm`, { type: 'video/webm' });
+      setMomentoFile(file);
+      handleCerrarMomentoVideoRecorder();
+      setShowConfigMomentoModal(true);
+    };
+
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start();
+    setIsRecordingMomentoVideo(true);
+
+    // Iniciar contador de tiempo
+    recordingIntervalRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+  };
+
+  // NUEVO: Handler para detener grabación de video momento
+  const handleDetenerGrabacionMomento = () => {
+    if (mediaRecorderRef.current && isRecordingMomentoVideo) {
+      mediaRecorderRef.current.stop();
+      setIsRecordingMomentoVideo(false);
+      
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
+      }
+    }
+  };
+
+  // NUEVO: Handler para cerrar modal de video momento
+  const handleCerrarMomentoVideoRecorder = () => {
+    if (momentoMediaStreamRef.current) {
+      momentoMediaStreamRef.current.getTracks().forEach(track => track.stop());
+      momentoMediaStreamRef.current = null;
+    }
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    setShowMomentoVideoRecordModal(false);
+    setIsRecordingMomentoVideo(false);
+    setRecordingTime(0);
+  };
+
+  // Formatear tiempo de grabación
+  const formatRecordingTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Handler para archivos de momento desde galería
+  const handleMomentoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setMomentoFile(files[0]);
+      setShowConfigMomentoModal(true);
+    }
+  };
+
+  // Handler publicar momento (SIN PRECIO - solo 24h)
+  const handlePublicarMomento = () => {
+    if (!momentoFile) return;
+    
+    const tipo = momentoFile.type.startsWith('video/') ? 'video' : 'foto';
+    alert(`✨ Momento ${tipo} ${momentoVisibilidad === 'publico' ? 'público' : 'para suscriptores'} creado!`);
+    
+    setShowConfigMomentoModal(false);
+    setMomentoFile(null);
+    setMomentoVisibilidad('publico');
+  };
+
   // Handler abrir imagen en modal
   const handleOpenImageModal = (files: File[], index: number) => {
     setCurrentImageFiles(files);
@@ -357,6 +541,40 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
       }
       return pub;
     }));
+  };
+
+  // Handler eliminación
+  const handleAbrirModalEliminar = (pubId: string, fotoIndex: number | null, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPublicacionAEliminar(pubId);
+    setFotoIndexAEliminar(fotoIndex);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmarEliminar = () => {
+    if (publicacionAEliminar) {
+      if (fotoIndexAEliminar !== null) {
+        setPublicaciones(prev => prev.map(pub => {
+          if (pub.id === publicacionAEliminar && pub.archivos) {
+            const nuevosArchivos = pub.archivos.filter((_, idx) => idx !== fotoIndexAEliminar);
+            if (nuevosArchivos.length === 0) return null;
+            return { ...pub, archivos: nuevosArchivos };
+          }
+          return pub;
+        }).filter(pub => pub !== null) as Publicacion[]);
+      } else {
+        setPublicaciones(prev => prev.filter(p => p.id !== publicacionAEliminar));
+      }
+    }
+    setShowDeleteModal(false);
+    setPublicacionAEliminar(null);
+    setFotoIndexAEliminar(null);
+  };
+
+  const handleCancelarEliminar = () => {
+    setShowDeleteModal(false);
+    setPublicacionAEliminar(null);
+    setFotoIndexAEliminar(null);
   };
 
   const getBadgeEvento = (evento: EventoCalendario) => {
@@ -461,6 +679,294 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
     document.body
   ) : null;
 
+  // Modal crear momento (Paso 1: Elegir fuente)
+  const modalCrearMomento = showCrearMomentoModal ? createPortal(
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full border border-pink-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-400/30">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Crear Momento</h3>
+          </div>
+          <button onClick={() => setShowCrearMomentoModal(false)} className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-amber-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          <button 
+            onClick={handleMomentoDesdeGaleria}
+            className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Upload className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900 mb-0.5">Subir desde Galería</p>
+                <p className="text-xs text-slate-600">Foto o video</p>
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={handleAbrirCapturarMomento}
+            className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900 mb-0.5">Capturar Ahora</p>
+                <p className="text-xs text-slate-600">Tomar foto o grabar video</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="p-5 border-t border-pink-100 bg-pink-50/50">
+          <button onClick={() => setShowCrearMomentoModal(false)} className="w-full px-4 py-2.5 border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition text-sm">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  // Modal capturar momento (Paso 1.5: Elegir foto o video)
+  const modalCapturarMomento = showCapturarMomentoModal ? createPortal(
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full border border-pink-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-400/30">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900">Capturar Momento</h3>
+          </div>
+          <button onClick={() => setShowCapturarMomentoModal(false)} className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-amber-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-3">
+          <button 
+            onClick={handleMomentoTomarFoto}
+            className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Camera className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900 mb-0.5">Tomar Foto</p>
+                <p className="text-xs text-slate-600">Captura una imagen</p>
+              </div>
+            </div>
+          </button>
+
+          <button 
+            onClick={handleAbrirMomentoVideoRecorder}
+            className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <VideoIcon className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900 mb-0.5">Grabar Video</p>
+                <p className="text-xs text-slate-600">Graba un clip corto</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <div className="p-5 border-t border-pink-100 bg-pink-50/50">
+          <button onClick={() => setShowCapturarMomentoModal(false)} className="w-full px-4 py-2.5 border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition text-sm">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  // NUEVO: Modal grabar video para momento
+  const modalMomentoVideoRecord = showMomentoVideoRecordModal ? createPortal(
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-pink-50 to-fuchsia-50 border-b border-pink-200 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-fuchsia-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30">
+              <VideoIcon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Grabar Video</h3>
+              <p className="text-xs text-slate-600">Para tu momento</p>
+            </div>
+          </div>
+          <button 
+            onClick={handleCerrarMomentoVideoRecorder} 
+            className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-pink-100 rounded-lg"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Video Preview */}
+        <div className="relative aspect-[4/3] bg-black">
+          <video 
+            ref={momentoVideoRef} 
+            autoPlay 
+            playsInline 
+            muted
+            className="w-full h-full object-cover" 
+          />
+          
+          {/* Indicador de grabación */}
+          {isRecordingMomentoVideo && (
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full shadow-lg animate-pulse">
+              <div className="w-2.5 h-2.5 bg-white rounded-full" />
+              <span className="text-white text-sm font-bold">{formatRecordingTime(recordingTime)}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Controles */}
+        <div className="p-4 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex gap-3">
+          <button 
+            onClick={handleCerrarMomentoVideoRecorder} 
+            className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs"
+          >
+            Cancelar
+          </button>
+          
+          {!isRecordingMomentoVideo ? (
+            <button 
+              onClick={handleIniciarGrabacionMomento}
+              className="flex-1 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2"
+            >
+              <Circle className="w-3.5 h-3.5 fill-current" />
+              Grabar
+            </button>
+          ) : (
+            <button 
+              onClick={handleDetenerGrabacionMomento}
+              className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              Detener
+            </button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  // Modal configurar momento (Paso 2: Solo visibilidad, SIN PRECIO)
+  const modalConfigMomento = showConfigMomentoModal ? createPortal(
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-pink-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200 px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-400/30">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Configurar Momento</h3>
+              <p className="text-[10px] text-slate-600">Disponible 24 horas</p>
+            </div>
+          </div>
+          <button onClick={() => { setShowConfigMomentoModal(false); setMomentoFile(null); }} className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-amber-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Preview */}
+          {momentoFile && (
+            <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-pink-200 bg-slate-50">
+              {momentoFile.type.startsWith('video/') ? (
+                <video 
+                  src={URL.createObjectURL(momentoFile)} 
+                  className="w-full h-full object-cover"
+                  controls
+                />
+              ) : (
+                <img 
+                  src={URL.createObjectURL(momentoFile)} 
+                  alt="Preview" 
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Opciones de visibilidad (SIN PRECIO) */}
+          <div className="space-y-2.5">
+            <button 
+              onClick={() => setMomentoVisibilidad('publico')}
+              className={`w-full p-3.5 rounded-xl border-2 transition-all text-left ${momentoVisibilidad === 'publico' ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${momentoVisibilidad === 'publico' ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'}`}>
+                  {momentoVisibilidad === 'publico' && <div className="w-2 h-2 bg-white rounded-full" />}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Globe className="w-4 h-4 text-emerald-600" />
+                    <p className="text-sm font-bold text-slate-900">Público</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Todos pueden ver gratis (24h)</p>
+                </div>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => setMomentoVisibilidad('suscriptores')}
+              className={`w-full p-3.5 rounded-xl border-2 transition-all text-left ${momentoVisibilidad === 'suscriptores' ? 'border-pink-400 bg-gradient-to-br from-pink-50 to-fuchsia-50 shadow-md' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${momentoVisibilidad === 'suscriptores' ? 'border-pink-500 bg-pink-500' : 'border-slate-300'}`}>
+                  {momentoVisibilidad === 'suscriptores' && <div className="w-2 h-2 bg-white rounded-full" />}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <Crown className="w-4 h-4 text-pink-600" />
+                    <p className="text-sm font-bold text-slate-900">Solo Suscriptores</p>
+                  </div>
+                  <p className="text-xs text-slate-600">Solo tus suscriptores (24h)</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-pink-100 bg-pink-50/50 flex gap-3">
+          <button 
+            onClick={() => { setShowConfigMomentoModal(false); setMomentoFile(null); }} 
+            className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs"
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={handlePublicarMomento}
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs"
+          >
+            Publicar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   // Componente reutilizable para lista de usuarios
   const ListaUsuarios = ({ usuarios, titulo }: { usuarios: Usuario[], titulo: string }) => (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
@@ -504,70 +1010,202 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
     </div>
   );
 
-  // 1. ACTUALIZA LOS ESTADOS para manejar eliminación de foto individual
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [publicacionAEliminar, setPublicacionAEliminar] = useState<string | null>(null);
-  const [fotoIndexAEliminar, setFotoIndexAEliminar] = useState<number | null>(null); // NUEVO
-
-  // 2. ACTUALIZA LAS FUNCIONES DE ELIMINACIÓN
-  const handleAbrirModalEliminar = (pubId: string, fotoIndex: number | null, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPublicacionAEliminar(pubId);
-    setFotoIndexAEliminar(fotoIndex); // null = eliminar toda la publicación, número = eliminar solo esa foto
-    setShowDeleteModal(true);
-  };
-
-  const handleConfirmarEliminar = () => {
-    if (publicacionAEliminar) {
-      if (fotoIndexAEliminar !== null) {
-        // ELIMINAR SOLO UNA FOTO
-        setPublicaciones(prev => prev.map(pub => {
-          if (pub.id === publicacionAEliminar && pub.archivos) {
-            const nuevosArchivos = pub.archivos.filter((_, idx) => idx !== fotoIndexAEliminar);
-
-            // Si era la última foto, elimina toda la publicación
-            if (nuevosArchivos.length === 0) {
-              return null;
-            }
-
-            return {
-              ...pub,
-              archivos: nuevosArchivos
-            };
-          }
-          return pub;
-        }).filter(pub => pub !== null) as Publicacion[]);
-      } else {
-        // ELIMINAR TODA LA PUBLICACIÓN
-        setPublicaciones(prev => prev.filter(p => p.id !== publicacionAEliminar));
-      }
-    }
-    setShowDeleteModal(false);
-    setPublicacionAEliminar(null);
-    setFotoIndexAEliminar(null);
-  };
-
-  const handleCancelarEliminar = () => {
-    setShowDeleteModal(false);
-    setPublicacionAEliminar(null);
-    setFotoIndexAEliminar(null);
-  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/10 to-purple-50/10">
 
-      {/* LAYOUT PRINCIPAL */}
-      <div className="max-w-7xl mx-auto px-4 py-2 grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* Input oculto para momentos desde galería */}
+      <input 
+        ref={momentoFileInputRef} 
+        type="file" 
+        accept="image/*,video/*" 
+        onChange={handleMomentoFileSelect} 
+        className="hidden" 
+      />
 
-        {/* COLUMNA IZQUIERDA (8 cols) */}
-        <div className="lg:col-span-8 space-y-3">
+      {/* LAYOUT PRINCIPAL - 3 COLUMNAS */}
+      <div className="max-w-[1600px] mx-auto px-4 pt-1 pb-4 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          {/* ✨ COMPOSER PREMIUM LIMPIO - REQ 1: BORDE DE COLOR */}
-          <div className="bg-white rounded-2xl p-3 shadow-sm hover:shadow-md transition-shadow">
+        {/* ========== COLUMNA IZQUIERDA ========== */}
+        <div className="lg:col-span-3 space-y-5">
 
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="inline-flex bg-slate-50 rounded-xl p-1">
-                <button onClick={() => setVisibilidad('publico')} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${visibilidad === 'publico' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          {/* ✨ MOMENTOS - CON SCROLL VISIBLE */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-xl hover:border-pink-200/70 transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
+                  <Sparkles className="w-4.5 h-4.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Momentos</h3>
+              </div>
+              <span className="text-xs text-slate-500 font-medium">24h</span>
+            </div>
+
+            {/* SCROLL VISIBLE - overflow-x-auto con scrollbar personalizado */}
+            <div className="flex gap-3 overflow-x-auto pb-3 momentos-scroll">
+              <style>{`
+                .momentos-scroll::-webkit-scrollbar {
+                  height: 6px;
+                }
+                .momentos-scroll::-webkit-scrollbar-track {
+                  background: #f1f5f9;
+                  border-radius: 10px;
+                }
+                .momentos-scroll::-webkit-scrollbar-thumb {
+                  background: linear-gradient(to right, #ec4899, #a855f7);
+                  border-radius: 10px;
+                }
+                .momentos-scroll::-webkit-scrollbar-thumb:hover {
+                  background: linear-gradient(to right, #db2777, #9333ea);
+                }
+              `}</style>
+              
+              <button 
+                onClick={() => setShowCrearMomentoModal(true)}
+                className="flex-shrink-0 relative group"
+              >
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-100 via-purple-100 to-fuchsia-100 border-2 border-dashed border-pink-300 flex items-center justify-center hover:border-pink-400 hover:scale-105 hover:shadow-lg transition-all duration-300">
+                  <Camera className="w-6 h-6 text-pink-600" />
+                </div>
+                <p className="text-[10px] text-center mt-1.5 font-semibold text-slate-700">Crear</p>
+              </button>
+
+              {/* Momentos públicos - borde verde */}
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-emerald-400/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=41" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-green-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">22h</p>
+                </div>
+              </button>
+
+              {/* Momentos suscriptores - borde rosa */}
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-fuchsia-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-pink-500/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=42" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-600 to-purple-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">21h</p>
+                </div>
+              </button>
+
+              {/* Más momentos con scroll... */}
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-emerald-400/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=43" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-green-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">19h</p>
+                </div>
+              </button>
+
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-fuchsia-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-pink-500/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=44" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-600 to-purple-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">18h</p>
+                </div>
+              </button>
+
+              {/* Más momentos para demostrar scroll */}
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-emerald-400/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=45" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-green-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">15h</p>
+                </div>
+              </button>
+
+              <button className="flex-shrink-0 relative group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-pink-500 via-purple-600 to-fuchsia-500 p-[2.5px] hover:scale-105 transition-all duration-300 shadow-md shadow-pink-500/30">
+                  <div className="w-full h-full rounded-2xl bg-white overflow-hidden">
+                    <img src="https://i.pravatar.cc/150?img=46" className="w-full h-full object-cover" alt="" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gradient-to-r from-pink-600 to-purple-600 px-2 py-0.5 rounded-full shadow-lg">
+                  <p className="text-[9px] text-white font-bold">12h</p>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* ⏰ CONTENIDO PROGRAMADO */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-xl hover:border-pink-200/70 transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                  <Clock className="w-4.5 h-4.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Programados</h3>
+              </div>
+              <button 
+                onClick={() => onNavigateToContenido?.()}
+                className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300"
+              >
+                <span className="text-white text-xl font-bold leading-none">+</span>
+              </button>
+            </div>
+
+            <div className="space-y-2.5 max-h-72 overflow-y-auto">
+              <div className="p-3 rounded-xl border border-pink-200 hover:border-pink-300 hover:bg-pink-50/50 transition-all">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+                    <Image className="w-4.5 h-4.5 text-pink-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">Foto entrenamiento</p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      <span>Hoy 21:00</span>
+                      <span>•</span>
+                      <Crown className="w-3 h-3 text-pink-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl border border-pink-200 hover:border-pink-300 hover:bg-pink-50/50 transition-all">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+                    <VideoIcon className="w-4.5 h-4.5 text-pink-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-slate-900 truncate">Video rutina</p>
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                      <Clock className="w-3 h-3" />
+                      <span>Mañana 18:00</span>
+                      <span>•</span>
+                      <Globe className="w-3 h-3 text-emerald-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ========== COLUMNA CENTRO ========== */}
+        <div className="lg:col-span-6 space-y-5">
+
+          {/* ✨ COMPOSER PREMIUM */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-lg hover:border-pink-200/70 transition-all duration-300">
+
+            <div className="flex items-center justify-between mb-3">
+              <div className="inline-flex bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl p-1 shadow-sm">
+                <button onClick={() => setVisibilidad('publico')} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${visibilidad === 'publico' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
                   <Globe className="w-3.5 h-3.5" />Público
                 </button>
                 <button onClick={() => setVisibilidad('suscriptores')} className={`px-3 py-2 rounded-lg text-xs font-bold transition-all duration-300 flex items-center gap-1.5 ${visibilidad === 'suscriptores' ? 'bg-white text-pink-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -576,15 +1214,14 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
               </div>
             </div>
 
-            <div className="flex gap-2.5">
+            <div className="flex gap-3">
               <img
                 src="https://i.pravatar.cc/150?img=47"
                 alt="Avatar"
-                className="w-9 h-9 rounded-full shadow-sm flex-shrink-0 object-cover"
+                className="w-10 h-10 rounded-full shadow-md flex-shrink-0 object-cover border-2 border-white ring-2 ring-pink-100"
               />
 
               <div className="flex-1 relative">
-                {/* REQ 1: BORDE SEGÚN TIPO DE CONTENIDO */}
                 <input
                   type="text"
                   value={nuevoPost}
@@ -592,28 +1229,26 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
                   placeholder={visibilidad === 'publico'
                     ? '¿Qué quieres compartir con todos?'
                     : '✨ Contenido VIP exclusivo para tus suscriptores...'}
-                  className={`w-full pl-4 pr-32 py-2.5 rounded-full text-sm focus:outline-none focus:ring-0
-                  ${visibilidad === 'publico'
-                      ? 'bg-emerald-50/30 border border-emerald-200 focus:border-emerald-300 focus:bg-emerald-50/50'
-                      : 'bg-pink-50/30 border border-pink-200 focus:border-pink-300 focus:bg-pink-50/50'
+                  className={`w-full pl-4 pr-28 py-2.5 rounded-full text-sm focus:outline-none focus:ring-2 transition-all ${visibilidad === 'publico'
+                      ? 'bg-emerald-50/50 border-2 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-200'
+                      : 'bg-pink-50/50 border-2 border-pink-200 focus:border-pink-400 focus:ring-pink-200'
                     }`}
                   maxLength={500}
                 />
 
-                {/* REQ 3: ICONOS LUCIDE REACT */}
-                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <label className="cursor-pointer">
                     <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={handleFileSelect} className="hidden" />
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-all" title="Subir foto/video">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-pink-100 text-slate-600 hover:text-pink-600 transition-all" title="Subir foto/video">
                       <Image className="w-4.5 h-4.5" />
                     </div>
                   </label>
 
-                  <button onClick={handleAbrirCamera} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-all" title="Tomar foto">
+                  <button onClick={handleAbrirCamera} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-pink-100 text-slate-600 hover:text-pink-600 transition-all" title="Tomar foto">
                     <Camera className="w-4.5 h-4.5" />
                   </button>
 
-                  <button onClick={handleAbrirVideoRecorder} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-all" title="Grabar video">
+                  <button onClick={handleAbrirVideoRecorder} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-pink-100 text-slate-600 hover:text-pink-600 transition-all" title="Grabar video">
                     <VideoIcon className="w-4.5 h-4.5" />
                   </button>
                 </div>
@@ -622,96 +1257,99 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
               <button
                 onClick={handlePublicar}
                 disabled={!nuevoPost.trim()}
-                className={`px-4 py-2.5 rounded-full font-semibold text-sm transition-all shadow-sm flex-shrink-0 ${!nuevoPost.trim() ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : visibilidad === 'publico' ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white' : 'bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white'}`}
+                className={`px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-md flex-shrink-0 hover:scale-105 ${!nuevoPost.trim() 
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                  : visibilidad === 'publico' 
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-emerald-500/30' 
+                    : 'bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white shadow-pink-500/30'
+                }`}
               >
                 Publicar
               </button>
             </div>
 
             {nuevoPost.length > 0 && (
-              <div className="mt-2 text-right"><span className="text-[10px] text-slate-400">{nuevoPost.length}/500</span></div>
+              <div className="mt-3 text-right"><span className="text-[11px] text-slate-400">{nuevoPost.length}/500</span></div>
             )}
           </div>
 
-          {/* ✨ PUBLICACIONES - REQ 2: BADGE ARRIBA A LA DERECHA */}
-          <div className="space-y-3">
+          {/* ✨ PUBLICACIONES */}
+          <div className="space-y-5">
             {publicaciones.length === 0 ? (
-              <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
-                <div className="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl flex items-center justify-center mx-auto mb-3"><Sparkles className="w-7 h-7 text-slate-400" /></div>
-                <h3 className="text-sm font-bold text-slate-800 mb-1">¡Tu comunidad te espera!</h3>
-                <p className="text-xs text-slate-600">Comparte tu primer contenido</p>
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-dashed border-pink-200 p-20 text-center hover:border-pink-300 transition-all">
+                <div className="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-lg">
+                  <Sparkles className="w-10 h-10 text-pink-500" />
+                </div>
+                <h3 className="text-base font-bold text-slate-800 mb-2">¡Tu comunidad te espera!</h3>
+                <p className="text-sm text-slate-600">Comparte tu primer contenido</p>
               </div>
             ) : (
               publicaciones.map(pub => (
-                <div key={pub.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden relative">
+                <div key={pub.id} className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden relative border border-pink-100/50 hover:border-pink-200/70">
 
-                  {/* REQ 2: BADGE ARRIBA A LA DERECHA EN PUBLICACIONES */}
-                  <div className="absolute top-3 right-3 z-10">
+                  <div className="absolute top-4 right-4 z-10">
                     {pub.visibilidad === 'publico' ? (
-                      <span className="px-3 py-1 bg-green-100 text-green-700 text-[10px] font-bold rounded-full flex items-center gap-1">
-                        <Globe className="w-3 h-3" />
+                      <span className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-700 text-[11px] font-bold rounded-full flex items-center gap-1.5 shadow-sm border border-emerald-200">
+                        <Globe className="w-3.5 h-3.5" />
                         PÚBLICO
                       </span>
                     ) : (
-                      <span className="px-3 py-1 bg-pink-100 text-pink-700 text-[10px] font-bold rounded-full flex items-center gap-1">
-                        <Crown className="w-3 h-3" />
+                      <span className="px-3.5 py-1.5 bg-gradient-to-r from-pink-100 to-fuchsia-100 text-pink-700 text-[11px] font-bold rounded-full flex items-center gap-1.5 shadow-sm border border-pink-200">
+                        <Crown className="w-3.5 h-3.5" />
                         PREMIUM
                       </span>
                     )}
                   </div>
 
-                  <div className="relative p-3">
-                    <div className="flex items-start gap-2 mb-2">
+                  <div className="relative p-6">
+                    <div className="flex items-start gap-3 mb-4">
                       <img
                         src="https://i.pravatar.cc/150?img=47"
                         alt="Avatar"
-                        className="w-8 h-8 rounded-full shadow-sm flex-shrink-0 object-cover"
+                        className="w-11 h-11 rounded-full shadow-md flex-shrink-0 object-cover border-2 border-white ring-2 ring-pink-100"
                       />
                       <div className="flex-1">
-                        <p className="font-bold text-slate-900 text-xs">Tú</p>
-                        <p className="text-[10px] text-slate-500">Hace {Math.floor((Date.now() - pub.fechaPublicacion.getTime()) / 60000)} min</p>
+                        <p className="font-bold text-slate-900 text-sm">Tú</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">Hace {Math.floor((Date.now() - pub.fechaPublicacion.getTime()) / 60000)} min</p>
                       </div>
 
                       {pub.meGusta.length === 0 && (
                         <button
                           onClick={() => simularInteracciones(pub.id)}
-                          className="text-[9px] px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md transition-all"
+                          className="text-[11px] px-3 py-1.5 bg-gradient-to-r from-slate-100 to-slate-200 hover:from-slate-200 hover:to-slate-300 text-slate-700 rounded-lg transition-all shadow-sm font-semibold"
                         >
                           Simular
                         </button>
                       )}
                     </div>
 
-                    <p className="text-xs text-slate-700 mb-2 leading-relaxed">{pub.contenido}</p>
+                    <p className="text-sm text-slate-700 mb-4 leading-relaxed">{pub.contenido}</p>
 
-                    {/* Galería limpia */}
+                    {/* Galería */}
                     {pub.archivos && pub.archivos.length > 0 && (
-                      <div className={`mb-3 ${pub.archivos.length === 1 ? '' : 'grid grid-cols-2 gap-2'}`}>
+                      <div className={`mb-4 ${pub.archivos.length === 1 ? '' : 'grid grid-cols-2 gap-3'}`}>
                         {pub.archivos.map((file, i) => (
                           <div
                             key={i}
                             className={`group/img relative rounded-xl overflow-hidden cursor-pointer 
                     transition-all duration-300
-                    border border-slate-200 hover:border-blue-300
+                    border border-slate-200 hover:border-slate-300 hover:shadow-md
                     ${pub.archivos!.length === 1
                                 ? 'max-h-[600px] flex items-center justify-center bg-slate-50'
                                 : 'aspect-square'
                               }`}
                             onClick={() => handleOpenImageModal(pub.archivos!, i)}
                           >
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-transparent 
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent 
                         opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 z-10" />
 
-                            {/* Botones en hover - MÁS PEQUEÑOS */}
                             <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 
                         transition-all duration-300 z-30">
-                              {/* Botón Ver - MÁS PEQUEÑO */}
-                              <div className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full 
+                              <div className="w-7 h-7 bg-white/95 backdrop-blur-sm rounded-full 
                           flex items-center justify-center shadow-lg">
                                 <Eye className="w-3.5 h-3.5 text-slate-700" />
                               </div>
 
-                              {/* Botón Eliminar - MÁS PEQUEÑO - ELIMINA SOLO ESTA FOTO */}
                               <button
                                 onClick={(e) => handleAbrirModalEliminar(pub.id, i, e)}
                                 className="w-7 h-7 bg-red-500/95 hover:bg-red-600 backdrop-blur-sm 
@@ -730,14 +1368,14 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
                                 className={`${pub.archivos!.length === 1
                                   ? 'max-h-[600px] w-auto mx-auto'
                                   : 'w-full h-full object-cover'
-                                  } transition-transform duration-300 group-hover/img:scale-[1.01]`}
+                                  } transition-transform duration-300 group-hover/img:scale-[1.02]`}
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 
                           flex items-center justify-center">
                                 <div className="text-center">
-                                  <Play className="w-12 h-12 text-white/80 mx-auto mb-2" />
-                                  <p className="text-xs text-white/60 font-semibold">Video</p>
+                                  <Play className="w-16 h-16 text-white/80 mx-auto mb-3" />
+                                  <p className="text-sm text-white/60 font-semibold">Video</p>
                                 </div>
                               </div>
                             )}
@@ -747,42 +1385,42 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
                     )}
 
                     {/* MÉTRICAS */}
-                    <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-3 pt-4 border-t border-pink-100">
                       <button
                         onClick={() => handleAbrirMeGusta(pub)}
-                        className="group/btn flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50 transition-all duration-300"
+                        className="group/btn flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-emerald-50 transition-all duration-300"
                       >
                         <div className="relative">
-                          <ThumbsUp className="w-4 h-4 text-slate-600 group-hover/btn:text-green-600 transition-all" />
+                          <ThumbsUp className="w-4 h-4 text-slate-500 group-hover/btn:text-emerald-600 transition-all" />
                           {pub.meGusta.length > 0 && (
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-sm" />
                           )}
                         </div>
-                        <span className="text-xs font-bold text-slate-700">{pub.meGusta.length}</span>
+                        <span className="text-xs font-semibold text-slate-600 group-hover/btn:text-emerald-700">{pub.meGusta.length}</span>
                       </button>
 
                       <button
                         onClick={() => handleAbrirNoMeGusta(pub)}
-                        className="group/btn flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50 transition-all duration-300"
+                        className="group/btn flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-red-50 transition-all duration-300"
                       >
-                        <ThumbsDown className="w-4 h-4 text-slate-600 group-hover/btn:text-red-600 transition-all" />
-                        <span className="text-xs font-bold text-slate-700">{pub.noMeGusta.length}</span>
+                        <ThumbsDown className="w-4 h-4 text-slate-500 group-hover/btn:text-red-600 transition-all" />
+                        <span className="text-xs font-semibold text-slate-600 group-hover/btn:text-red-700">{pub.noMeGusta.length}</span>
                       </button>
 
                       <button
                         onClick={() => handleAbrirVistos(pub)}
-                        className="group/btn flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50 transition-all duration-300"
+                        className="group/btn flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-blue-50 transition-all duration-300"
                       >
-                        <Eye className="w-4 h-4 text-slate-600 group-hover/btn:text-blue-600 transition-all" />
-                        <span className="text-xs font-bold text-slate-700">{pub.vistas.length}</span>
+                        <Eye className="w-4 h-4 text-slate-500 group-hover/btn:text-blue-600 transition-all" />
+                        <span className="text-xs font-semibold text-slate-600 group-hover/btn:text-blue-700">{pub.vistas.length}</span>
                       </button>
 
                       <button
                         onClick={() => handleAbrirComentarios(pub)}
-                        className="group/btn flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-slate-50 transition-all duration-300"
+                        className="group/btn flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-pink-50 transition-all duration-300"
                       >
-                        <MessageCircle className="w-4 h-4 text-slate-600 group-hover/btn:text-pink-600 transition-all" />
-                        <span className="text-xs font-bold text-slate-700">{pub.comentarios.length}</span>
+                        <MessageCircle className="w-4 h-4 text-slate-500 group-hover/btn:text-pink-600 transition-all" />
+                        <span className="text-xs font-semibold text-slate-600 group-hover/btn:text-pink-700">{pub.comentarios.length}</span>
                       </button>
                     </div>
                   </div>
@@ -792,99 +1430,104 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
           </div>
         </div>
 
-        {/* COLUMNA DERECHA (4 cols) */}
-        <div className="lg:col-span-4 space-y-3">
-
-          <div className="grid grid-cols-2 gap-2">
-            {/* 🔴 BOTÓN EN VIVO */}
+        {/* ========== COLUMNA DERECHA ========== */}
+        <div className="lg:col-span-3 space-y-5">
+          
+          {/* BOTONES */}
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               onClick={handleAbrirModalTransmision}
               disabled={isTransmisionActive}
-              className={`group relative px-3 py-2 rounded-xl font-bold text-xs transition-all duration-300 overflow-hidden shadow-sm ${isTransmisionActive ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:shadow-md hover:scale-105'}`}
+              className={`px-3 py-2.5 rounded-xl font-bold text-xs transition-all ${isTransmisionActive ? 'bg-slate-300 text-slate-500' : 'bg-gradient-to-r from-red-600 to-rose-600 text-white hover:shadow-lg hover:scale-105'}`}
             >
-              {!isTransmisionActive && (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              )}
-              <div className="relative flex items-center justify-center gap-1.5">
-                <Radio className="w-3.5 h-3.5" />
-                <span className="truncate">En Vivo</span>
+              <div className="flex items-center justify-center gap-1.5">
+                <Radio className="w-4 h-4" />
+                <span>En Vivo</span>
               </div>
             </button>
 
             <button
               onClick={() => setShowCalendarioModal(true)}
-              className="group relative px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 rounded-xl font-bold text-xs transition-all duration-300 shadow-sm hover:shadow-md hover:scale-105"
+              className="px-3 py-2.5 bg-white border-2 border-pink-200 hover:border-pink-300 rounded-xl font-bold text-xs transition-all hover:shadow-lg hover:scale-105"
             >
               <div className="flex items-center justify-center gap-1.5 text-slate-700">
-                <CalendarIcon className="w-3.5 h-3.5" />
-                <span className="truncate">Programar</span>
+                <CalendarIcon className="w-4 h-4" />
+                <span>Programar</span>
               </div>
             </button>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-200 bg-slate-50">
-              <h3 className="text-xs font-bold text-slate-900">Sugerencias</h3>
+          {/* 💡 SUGERENCIAS - MÁS ANCHO */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-xl transition-all">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+                <Lightbulb className="w-4.5 h-4.5 text-white" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">Sugerencias</h3>
             </div>
-            <div className="p-3">
-              <div className="text-center py-6">
-                <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-[10px] text-slate-500">Próximamente</p>
+
+            <div className="space-y-3">
+              <div className="p-3 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200/50">
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  <span className="font-bold text-pink-700">💡 </span>
+                  Sube 3 posts esta semana para alcanzar tu meta
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200/50">
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  <span className="font-bold text-fuchsia-700">⏰ </span>
+                  Tu mejor horario: 21:00-23:00
+                </p>
+              </div>
+
+              <div className="p-3 rounded-xl bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-200/50">
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  <span className="font-bold text-purple-700">📝 </span>
+                  Agrega descripciones para más engagement
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-200 bg-slate-50">
-              <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                <CalendarIcon className="w-4 h-4 text-slate-600" />
+          {/* 📅 PRÓXIMOS EVENTOS - MÁS ANCHO */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-100/50 shadow-sm overflow-hidden hover:shadow-xl transition-all">
+            <div className="px-5 py-4 border-b border-pink-100 bg-gradient-to-r from-pink-50/50 to-purple-50/50">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                  <CalendarIcon className="w-4 h-4 text-white" />
+                </div>
                 Próximos Eventos
-                <span className="ml-auto px-2 py-0.5 bg-slate-100 text-slate-700 text-xs rounded-full font-bold">
+                <span className="ml-auto px-2.5 py-1 bg-gradient-to-r from-pink-100 to-purple-100 text-pink-700 text-xs rounded-full font-bold border border-pink-200">
                   {eventos.length}
                 </span>
               </h3>
             </div>
 
-            <div className="p-3 max-h-[400px] overflow-y-auto">
+            <div className="p-4">
               {eventos.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-2">
-                    <CalendarIcon className="w-6 h-6 text-slate-400" />
+                <div className="text-center py-10">
+                  <div className="w-14 h-14 bg-gradient-to-br from-pink-100 to-purple-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <CalendarIcon className="w-7 h-7 text-pink-500" />
                   </div>
-                  <p className="text-xs text-slate-600 font-medium">Sin eventos</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Programa tu primer evento</p>
+                  <p className="text-sm text-slate-600 font-medium">Sin eventos</p>
+                  <p className="text-xs text-slate-400 mt-1">Programa tu primer evento</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {eventos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()).map(evento => {
-                    const esHoy = esEventoHoy(evento.fecha);
-                    return (
-                      <div key={evento.id} className="border border-slate-200 rounded-xl p-2.5 hover:border-slate-300 transition-all bg-white shadow-sm hover:shadow">
-                        <h4 className="font-bold text-xs text-slate-900 mb-1 line-clamp-2">{evento.titulo}</h4>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-600 mb-1.5">
-                          <CalendarIcon className="w-2.5 h-2.5" />
-                          <span>{esHoy ? 'Hoy' : new Date(evento.fecha).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
-                          <span>•</span>
-                          <Clock className="w-2.5 h-2.5" />
-                          <span>{evento.hora}</span>
-                        </div>
-                        <div className="mb-2">{getBadgeEvento(evento)}</div>
-                        <div className="flex gap-1">
-                          {esHoy && (
-                            <button onClick={() => handleIniciarEvento(evento.id)} className="flex-1 px-2 py-1.5 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white rounded-md text-[10px] font-semibold transition shadow-sm flex items-center justify-center gap-1">
-                              <Play className="w-2.5 h-2.5" />Iniciar
-                            </button>
-                          )}
-                          <button className="px-2 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-md text-[10px] transition">
-                            <Edit2 className="w-2.5 h-2.5" />
-                          </button>
-                          <button onClick={() => { if (window.confirm('¿Eliminar?')) handleEliminarEvento(evento.id); }} className="px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-md text-[10px] transition">
-                            <Trash2 className="w-2.5 h-2.5" />
-                          </button>
-                        </div>
+                <div className="space-y-3">
+                  {eventos.map(evento => (
+                    <div key={evento.id} className="border-2 border-pink-100 rounded-xl p-3.5 hover:border-pink-300 hover:shadow-md transition-all">
+                      <h4 className="font-bold text-sm text-slate-900 mb-2">{evento.titulo}</h4>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-600 mb-2.5">
+                        <CalendarIcon className="w-3.5 h-3.5" />
+                        <span>{new Date(evento.fecha).toLocaleDateString()}</span>
+                        <span>•</span>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{evento.hora}</span>
                       </div>
-                    );
-                  })}
+                      <div>{getBadgeEvento(evento)}</div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -894,10 +1537,13 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
 
       {/* MODALES */}
       <CalendarioModal isOpen={showCalendarioModal} onClose={() => setShowCalendarioModal(false)} eventos={eventos} onGuardarEvento={handleGuardarEvento} onEliminarEvento={handleEliminarEvento} />
-
+      
       {modalTransmision}
+      {modalCrearMomento}
+      {modalCapturarMomento}
+      {modalMomentoVideoRecord}
+      {modalConfigMomento}
 
-      {/* MODALES DE DETALLES */}
       {showMeGustaModal && publicacionSeleccionada && createPortal(
         <ListaUsuarios usuarios={publicacionSeleccionada.meGusta} titulo="Me gusta" />,
         document.body
@@ -910,6 +1556,15 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
 
       {showVistosModal && publicacionSeleccionada && createPortal(
         <ListaUsuarios usuarios={publicacionSeleccionada.vistas} titulo="Visto por" />,
+        document.body
+      )}
+
+      {showDeleteModal && createPortal(
+        <ConfirmDeleteModalFotoPublicacion
+          onConfirm={handleConfirmarEliminar}
+          onCancel={handleCancelarEliminar}
+          esEliminacionFoto={fotoIndexAEliminar !== null}
+        />,
         document.body
       )}
 
@@ -1071,9 +1726,9 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
               </div>
             </div>
 
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex gap-2">
-              <button onClick={handleCancelarPreview} className="flex-1 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 font-semibold rounded-xl transition text-xs border border-slate-200">Cancelar</button>
-              <button onClick={handleConfirmarSubida} className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold transition shadow-sm ${visibilidad === 'publico' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white' : 'bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white'}`}>Subir {archivosSeleccionados.length} archivo(s)</button>
+            <div className="p-3 border-t border-slate-200 bg-slate-50 flex gap-2">
+              <button onClick={handleCancelarPreview} className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs">Cancelar</button>
+              <button onClick={handleConfirmarSubida} className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition ${visibilidad === 'publico' ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white' : 'bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white'}`}>Subir {archivosSeleccionados.length} archivo(s)</button>
             </div>
           </div>
         </div>,
@@ -1082,28 +1737,28 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
 
       {/* MODAL TOMAR FOTO */}
       {showCameraModal && createPortal(
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-600 to-fuchsia-600 rounded-lg flex items-center justify-center shadow-lg shadow-pink-500/30">
-                  <Camera className="w-4 h-4 text-white" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-50 to-fuchsia-50 border-b border-pink-200 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30">
+                  <Camera className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-white">Tomar Foto</h3>
+                <h3 className="text-base font-bold text-slate-900">Tomar Foto</h3>
               </div>
-              <button onClick={handleCerrarCamera} className="text-slate-400 hover:text-white transition">
+              <button onClick={handleCerrarCamera} className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-pink-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="aspect-video bg-black">
+            <div className="aspect-[4/3] bg-black">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-slate-700 to-slate-800 flex gap-3">
-              <button onClick={handleCerrarCamera} className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-lg transition text-sm">Cancelar</button>
-              <button onClick={handleCapturarFoto} className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30">
-                <Camera className="w-4 h-4" />Capturar Foto
+            <div className="p-4 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex gap-3">
+              <button onClick={handleCerrarCamera} className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs">Cancelar</button>
+              <button onClick={handleCapturarFoto} className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2">
+                <Camera className="w-3.5 h-3.5" />Capturar Foto
               </button>
             </div>
           </div>
@@ -1113,28 +1768,28 @@ export const MiActividadTab = ({ onProgramarEvento }: MiActividadTabProps = {}) 
 
       {/* MODAL GRABAR VIDEO */}
       {showVideoRecordModal && createPortal(
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-600 to-fuchsia-600 rounded-lg flex items-center justify-center shadow-lg shadow-pink-500/30">
-                  <VideoIcon className="w-4 h-4 text-white" />
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-50 to-fuchsia-50 border-b border-pink-200 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-pink-600 to-fuchsia-600 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/30">
+                  <VideoIcon className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-white">Grabar Video</h3>
+                <h3 className="text-base font-bold text-slate-900">Grabar Video</h3>
               </div>
-              <button onClick={handleCerrarVideoRecorder} className="text-slate-400 hover:text-white transition">
+              <button onClick={handleCerrarVideoRecorder} className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-pink-100 rounded-lg">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="aspect-video bg-black">
+            <div className="aspect-[4/3] bg-black">
               <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
             </div>
 
-            <div className="p-4 bg-gradient-to-r from-slate-700 to-slate-800 flex gap-3">
-              <button onClick={handleCerrarVideoRecorder} className="flex-1 px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white font-semibold rounded-lg transition text-sm">Cancelar</button>
-              <button onClick={handleGrabarVideo} className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-sm flex items-center justify-center gap-2 shadow-lg shadow-pink-500/30">
-                <VideoIcon className="w-4 h-4" />Grabar Video
+            <div className="p-4 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex gap-3">
+              <button onClick={handleCerrarVideoRecorder} className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs">Cancelar</button>
+              <button onClick={handleGrabarVideo} className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2">
+                <VideoIcon className="w-3.5 h-3.5" />Grabar Video
               </button>
             </div>
           </div>

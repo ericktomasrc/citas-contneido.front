@@ -26,7 +26,8 @@ import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
 import { TabTypeMenu } from './hooks/useTabs';
 
-type SubTabId = 'invitaciones' | 'miactividad' | 'resumen';
+// type SubTabId = 'invitaciones' | 'miactividad' | 'resumen';
+type SubTabId = 'invitaciones' | 'resumen';
 
 export const DashboardCreadoraPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -79,7 +80,7 @@ export const DashboardCreadoraPage = () => {
     setIsVideoCallMinimized(false);
   };
 
-  const showSubTabs = activeTab === 'invitaciones' || activeTab === 'resumen';
+  const showSubTabs = activeTab === 'resumen';
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -123,9 +124,9 @@ export const DashboardCreadoraPage = () => {
                         enabled={activeSubTab === 'invitaciones'}
                       />
                     )}
-                    {activeSubTab === 'miactividad' && (
+                    {/* {activeSubTab === 'miactividad' && (
                       <MiActividadTab onProgramarEvento={handleProgramarEvento} />
-                    )}
+                    )} */}
                     {activeSubTab === 'resumen' && (
                       <ResumenTab
                         nombreUsuario={currentUser.nombre}
@@ -139,13 +140,13 @@ export const DashboardCreadoraPage = () => {
                   <>
                     {activeTab === 'contenido' && <ContenidoPage />}
                     {activeTab === 'packs' && <PacksPage />}
-                    {/* {activeTab === 'inicio' && <MiActividadTab />}
+                    {activeTab === 'inicio' && <MiActividadTab />}
                     {activeTab === 'invitaciones' && (
-                      <div className="text-center py-16">
-                        <h2 className="text-xl font-bold text-slate-800">Invitaciones</h2>
-                        <p className="text-sm text-slate-600 mt-2">Próximamente</p>
-                      </div>
-                    )} */}
+                      <InvitacionesTab
+                        invitacionesIniciales={invitacionesIniciales}
+                        enabled={activeSubTab === 'invitaciones'}
+                      />
+                    )}
                     {activeTab === 'donaciones' && (
                       <div className="text-center py-16">
                         <h2 className="text-xl font-bold text-slate-800">Donaciones</h2>
