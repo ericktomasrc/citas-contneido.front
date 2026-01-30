@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,7 +6,8 @@ import {
   Edit2, Trash2, Play, Radio, Crown, X, Sparkles, Heart,
   Info, Lock, Globe, Camera, ChevronLeft, ChevronRight, Eye,
   MessageCircle, Send, ThumbsDown, ThumbsUp, TrendingUp, Target,
-  Zap, Award, Gift, Upload, Users, Lightbulb, Circle, Square
+  Zap, Award, Gift, Upload, Users, Lightbulb, Circle, Square,
+  MessageSquare, CheckCircle, Timer
 } from 'lucide-react';
 import { CalendarioModal, EventoCalendario } from '../../../Modals/CalendarioModal';
 import { useTransmision } from '../../../../contexts/TransmisionContext';
@@ -24,6 +25,16 @@ interface Comentario {
   usuario: Usuario;
   texto: string;
   fecha: Date;
+}
+
+interface MensajeFan {
+  id: string;
+  usuario: Usuario;
+  mensaje: string;
+  propina?: number;
+  fechaEnvio: Date;
+  estado: 'nuevo' | 'respondido' | 'expirado';
+  tiempoRestante: number; // en segundos
 }
 
 interface Publicacion {
@@ -106,6 +117,61 @@ export const MiActividadTab = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // NUEVO: Estados para Mensajes de Fans
+  const [mensajesFans, setMensajesFans] = useState<MensajeFan[]>([
+    {
+      id: '1',
+      usuario: { id: '1', nombre: 'Juan Pérez', username: 'juan-perez-x7m3', avatar: 'https://i.pravatar.cc/150?img=12' },
+      mensaje: 'Hola hermosa! 💕',
+      fechaEnvio: new Date(),
+      estado: 'nuevo',
+      tiempoRestante: 105
+    },
+    {
+      id: '2',
+      usuario: { id: '2', nombre: 'Ana García', username: 'ana-garcia-k9p2', avatar: 'https://i.pravatar.cc/150?img=5' },
+      mensaje: 'Gracias por tu contenido!',
+      propina: 25,
+      fechaEnvio: new Date(),
+      estado: 'nuevo',
+      tiempoRestante: 270
+    },
+    {
+      id: '3',
+      usuario: { id: '3', nombre: 'Carlos Ruiz', username: 'carlos-ruiz-m4n8', avatar: 'https://i.pravatar.cc/150?img=33' },
+      mensaje: 'Info sobre precios? 💬',
+      fechaEnvio: new Date(),
+      estado: 'nuevo',
+      tiempoRestante: 45
+    },
+    {
+      id: '4',
+      usuario: { id: '4', nombre: 'Pedro López', username: 'pedro-lopez-h2j5', avatar: 'https://i.pravatar.cc/150?img=15' },
+      mensaje: 'Hey! Me encanta tu perfil',
+      fechaEnvio: new Date(Date.now() - 5 * 60 * 1000),
+      estado: 'respondido',
+      tiempoRestante: 0
+    },
+    {
+      id: '5',
+      usuario: { id: '5', nombre: 'María Torres', username: 'maria-torres-q9w2', avatar: 'https://i.pravatar.cc/150?img=9' },
+      mensaje: 'Precio del video exclusivo?',
+      fechaEnvio: new Date(Date.now() - 12 * 60 * 1000),
+      estado: 'respondido',
+      tiempoRestante: 0
+    },
+    {
+      id: '6',
+      usuario: { id: '6', nombre: 'Diego Martín', username: 'diego-martin-p3k7', avatar: 'https://i.pravatar.cc/150?img=53' },
+      mensaje: 'Info?',
+      fechaEnvio: new Date(Date.now() - 30 * 60 * 1000),
+      estado: 'expirado',
+      tiempoRestante: 0
+    }
+  ]);
+  const [burbujaExpandida, setBurbujaExpandida] = useState<string | null>(null);
+  const [respuestaRapida, setRespuestaRapida] = useState('');
 
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -426,6 +492,71 @@ export const MiActividadTab = ({
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // NUEVO: Formatear tiempo restante de burbuja
+  const formatTiempoRestante = (segundos: number) => {
+    const mins = Math.floor(segundos / 60);
+    const secs = segundos % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // NUEVO: Color del timer según tiempo restante
+  const getTimerColor = (segundos: number) => {
+    if (segundos > 60) return 'text-emerald-600';
+    if (segundos > 30) return 'text-amber-600';
+    return 'text-red-500';
+  };
+
+  // NUEVO: Cerrar burbuja expandida (solo cierra, no marca visto)
+  const handleCerrarBurbuja = () => {
+    setBurbujaExpandida(null);
+    setRespuestaRapida('');
+  };
+
+  // NUEVO: Responder mensaje de fan
+  const handleResponderMensajeFan = (mensajeId: string) => {
+    if (!respuestaRapida.trim()) return;
+    
+    setMensajesFans(prev => prev.map(m => 
+      m.id === mensajeId ? { ...m, estado: 'respondido' as const, tiempoRestante: 0 } : m
+    ));
+    
+    alert(`💬 Respuesta enviada al chat privado: "${respuestaRapida}"`);
+    setBurbujaExpandida(null);
+    setRespuestaRapida('');
+  };
+
+  // NUEVO: Ir al chat privado
+  const handleIrAlChatPrivado = (mensajeId: string, username: string) => {
+    setMensajesFans(prev => prev.map(m => 
+      m.id === mensajeId ? { ...m, estado: 'respondido' as const, tiempoRestante: 0 } : m
+    ));
+    setBurbujaExpandida(null);
+    navigate(`/chat/${username}`);
+  };
+
+  // NUEVO: Limpiar mensajes expirados
+  const handleLimpiarExpirados = () => {
+    setMensajesFans(prev => prev.filter(m => m.estado !== 'expirado'));
+  };
+
+  // NUEVO: useEffect para timer de burbujas
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMensajesFans(prev => prev.map(m => {
+        if (m.estado === 'nuevo' && m.tiempoRestante > 0) {
+          const nuevoTiempo = m.tiempoRestante - 1;
+          if (nuevoTiempo <= 0) {
+            return { ...m, tiempoRestante: 0, estado: 'expirado' as const };
+          }
+          return { ...m, tiempoRestante: nuevoTiempo };
+        }
+        return m;
+      }));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Handler para archivos de momento desde galería
   const handleMomentoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1142,6 +1273,144 @@ export const MiActividadTab = ({
             </div>
           </div>
 
+          {/* 💬 MENSAJES DE FANS */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-xl hover:border-pink-200/70 transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center">
+                  <MessageSquare className="w-4.5 h-4.5 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">Mensajes de Fans</h3>
+              </div>
+              <span className="px-2.5 py-1 bg-gradient-to-r from-pink-100 to-rose-100 text-pink-700 text-xs rounded-full font-bold border border-pink-200">
+                {mensajesFans.length}
+              </span>
+            </div>
+
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+              {/* Nuevos */}
+              {mensajesFans.filter(m => m.estado === 'nuevo').length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-xs font-bold text-emerald-700">Nuevos ({mensajesFans.filter(m => m.estado === 'nuevo').length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {mensajesFans.filter(m => m.estado === 'nuevo').map(msg => (
+                      <div 
+                        key={msg.id}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md ${
+                          msg.propina 
+                            ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200 hover:border-amber-300' 
+                            : 'bg-white border-emerald-200 hover:border-emerald-300'
+                        }`}
+                        onClick={() => setBurbujaExpandida(msg.id)}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className={`relative ${msg.propina ? 'ring-2 ring-amber-400 ring-offset-1' : ''} rounded-full`}>
+                            <img src={msg.usuario.avatar} alt="" className="w-9 h-9 rounded-full object-cover" />
+                            {msg.propina && (
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
+                                <Gift className="w-2.5 h-2.5 text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-slate-900 truncate">{msg.usuario.nombre}</p>
+                              {msg.propina && (
+                                <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded">
+                                  S/.{msg.propina}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 truncate mt-0.5">{msg.mensaje}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Timer className={`w-3 h-3 ${getTimerColor(msg.tiempoRestante)}`} />
+                              <span className={`text-[10px] font-semibold ${getTimerColor(msg.tiempoRestante)}`}>
+                                {formatTiempoRestante(msg.tiempoRestante)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Respondidos */}
+              {mensajesFans.filter(m => m.estado === 'respondido').length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 mt-3">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-xs font-bold text-emerald-700">Respondidos ({mensajesFans.filter(m => m.estado === 'respondido').length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {mensajesFans.filter(m => m.estado === 'respondido').slice(0, 3).map(msg => (
+                      <div 
+                        key={msg.id}
+                        className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 transition-all"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <img src={msg.usuario.avatar} alt="" className="w-8 h-8 rounded-full object-cover opacity-80" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-700 truncate">{msg.usuario.nombre}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{msg.mensaje}</p>
+                            <button 
+                              onClick={() => navigate(`/chat/${msg.usuario.username}`)}
+                              className="text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold mt-1 flex items-center gap-1"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              Ver conversación
+                            </button>
+                          </div>
+                          <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expirados */}
+              {mensajesFans.filter(m => m.estado === 'expirado').length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2 mt-3">
+                    <Clock className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs font-bold text-slate-500">Expirados ({mensajesFans.filter(m => m.estado === 'expirado').length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {mensajesFans.filter(m => m.estado === 'expirado').slice(0, 2).map(msg => (
+                      <div 
+                        key={msg.id}
+                        className="p-3 rounded-xl bg-slate-50 border border-slate-200 opacity-60"
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <img src={msg.usuario.avatar} alt="" className="w-8 h-8 rounded-full object-cover grayscale" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-500 truncate">{msg.usuario.nombre}</p>
+                            <p className="text-[11px] text-slate-400 truncate">{msg.mensaje}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              Expiró hace {Math.floor((Date.now() - msg.fechaEnvio.getTime()) / 60000)} min
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={handleLimpiarExpirados}
+                    className="w-full mt-2 text-[11px] text-slate-500 hover:text-red-600 font-medium flex items-center justify-center gap-1 py-2 hover:bg-red-50 rounded-lg transition-all"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Limpiar expirados
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* ⏰ CONTENIDO PROGRAMADO */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-pink-100/50 hover:shadow-xl hover:border-pink-200/70 transition-all duration-300">
             <div className="flex items-center justify-between mb-4">
@@ -1537,6 +1806,214 @@ export const MiActividadTab = ({
 
       {/* MODALES */}
       <CalendarioModal isOpen={showCalendarioModal} onClose={() => setShowCalendarioModal(false)} eventos={eventos} onGuardarEvento={handleGuardarEvento} onEliminarEvento={handleEliminarEvento} />
+
+      {/* 💬 BURBUJAS FLOTANTES HORIZONTALES */}
+      {mensajesFans.filter(m => m.estado === 'nuevo').length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-[100] pointer-events-none">
+          <div className="max-w-[1600px] mx-auto px-4 pb-4">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-pink-200/50 p-4 pointer-events-auto">
+              <div className="flex items-center gap-3 overflow-x-auto pb-2 burbujas-scroll">
+                <style>{`
+                  .burbujas-scroll::-webkit-scrollbar {
+                    height: 4px;
+                  }
+                  .burbujas-scroll::-webkit-scrollbar-track {
+                    background: #fce7f3;
+                    border-radius: 10px;
+                  }
+                  .burbujas-scroll::-webkit-scrollbar-thumb {
+                    background: linear-gradient(to right, #f472b6, #c084fc);
+                    border-radius: 10px;
+                  }
+                `}</style>
+
+                {mensajesFans.filter(m => m.estado === 'nuevo').slice(0, 5).map(msg => (
+                  <div
+                    key={msg.id}
+                    onClick={() => setBurbujaExpandida(msg.id)}
+                    className={`flex-shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 ${
+                      msg.propina 
+                        ? 'hover:shadow-lg hover:shadow-amber-200' 
+                        : 'hover:shadow-lg hover:shadow-pink-200'
+                    }`}
+                  >
+                    <div className={`relative p-3 rounded-2xl min-w-[180px] max-w-[220px] ${
+                      msg.propina 
+                        ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300' 
+                        : 'bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200'
+                    }`}>
+                      {/* Header con avatar y nombre */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`relative ${msg.propina ? 'ring-2 ring-amber-400' : ''} rounded-full`}>
+                          <img src={msg.usuario.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          {msg.propina && (
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center animate-bounce">
+                              <Gift className="w-2.5 h-2.5 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate">{msg.usuario.nombre}</p>
+                          {msg.propina && (
+                            <span className="text-[10px] font-bold text-amber-600">🎁 S/.{msg.propina}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Mensaje */}
+                      <p className="text-xs text-slate-700 line-clamp-2 mb-2">"{msg.mensaje}"</p>
+
+                      {/* Timer */}
+                      <div className="flex items-center justify-between">
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${
+                          msg.tiempoRestante > 60 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : msg.tiempoRestante > 30 
+                              ? 'bg-amber-100 text-amber-700' 
+                              : 'bg-red-100 text-red-600 animate-pulse'
+                        }`}>
+                          <Timer className="w-3 h-3" />
+                          <span className="text-[10px] font-bold">{formatTiempoRestante(msg.tiempoRestante)}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400">Click para ver</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Badge si hay más de 5 */}
+                {mensajesFans.filter(m => m.estado === 'nuevo').length > 5 && (
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                    +{mensajesFans.filter(m => m.estado === 'nuevo').length - 5}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL BURBUJA EXPANDIDA */}
+      {burbujaExpandida && createPortal(
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={handleCerrarBurbuja}>
+          {(() => {
+            const msg = mensajesFans.find(m => m.id === burbujaExpandida);
+            if (!msg) return null;
+            
+            return (
+              <div 
+                className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
+                  msg.propina 
+                    ? 'border-2 border-amber-300' 
+                    : 'border border-pink-200'
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className={`px-5 py-4 flex items-center justify-between ${
+                  msg.propina 
+                    ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200' 
+                    : 'bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-200'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`relative ${msg.propina ? 'ring-2 ring-amber-400 ring-offset-2' : ''} rounded-full`}>
+                      <img src={msg.usuario.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
+                      {msg.propina && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shadow-lg">
+                          <Gift className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{msg.usuario.nombre}</p>
+                      <p className="text-xs text-slate-500">@{msg.usuario.username} • Suscriptor ⭐</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={handleCerrarBurbuja}
+                    className="w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all shadow-sm"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Propina destacada */}
+                {msg.propina && (
+                  <div className="bg-gradient-to-r from-amber-100 to-yellow-100 px-5 py-3 border-b border-amber-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center">
+                        <Gift className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-amber-700 font-medium">¡Te envió una propina!</p>
+                        <p className="text-lg font-bold text-amber-600">S/.{msg.propina}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mensaje */}
+                <div className="bg-white px-5 py-4">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    <p className="text-sm text-slate-700 leading-relaxed">"{msg.mensaje}"</p>
+                  </div>
+                </div>
+
+                {/* Campo de respuesta */}
+                <div className="bg-white px-5 pb-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={respuestaRapida}
+                      onChange={(e) => setRespuestaRapida(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleResponderMensajeFan(msg.id)}
+                      placeholder="Escribe tu respuesta..."
+                      className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition-all"
+                      maxLength={200}
+                    />
+                    <button
+                      onClick={() => handleResponderMensajeFan(msg.id)}
+                      disabled={!respuestaRapida.trim()}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                        respuestaRapida.trim() 
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-md' 
+                          : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Footer con botón ir al chat */}
+                <div className="bg-slate-50 px-5 py-4 border-t border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+                      msg.tiempoRestante > 60 
+                        ? 'bg-emerald-100 text-emerald-700' 
+                        : msg.tiempoRestante > 30 
+                          ? 'bg-amber-100 text-amber-700' 
+                          : 'bg-red-100 text-red-600 animate-pulse'
+                    }`}>
+                      <Timer className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">{formatTiempoRestante(msg.tiempoRestante)}</span>
+                    </div>
+
+                    <button
+                      onClick={() => handleIrAlChatPrivado(msg.id, msg.usuario.username)}
+                      className="px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white text-xs font-semibold rounded-xl transition-all flex items-center gap-2 shadow-md"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      Ir al chat privado
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>,
+        document.body
+      )}
       
       {modalTransmision}
       {modalCrearMomento}
