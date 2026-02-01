@@ -57,9 +57,9 @@ interface MiActividadTabProps {
   onNavigateToContenido?: () => void;
 }
 
-export const MiActividadTab = ({ 
+export const MiActividadTab = ({
   onProgramarEvento,
-  onNavigateToContenido 
+  onNavigateToContenido
 }: MiActividadTabProps = {}) => {
   const { startTransmision, isTransmisionActive } = useTransmision();
   const navigate = useNavigate();
@@ -377,24 +377,24 @@ export const MiActividadTab = ({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       mediaStreamRef.current = stream;
-      
+
       const video = document.createElement('video');
       video.srcObject = stream;
       video.play();
-      
+
       setTimeout(() => {
         const canvas = document.createElement('canvas');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(video, 0, 0);
-        
+
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], `momento-foto-${Date.now()}.jpg`, { type: 'image/jpeg' });
             setMomentoFile(file);
             setShowConfigMomentoModal(true);
-            
+
             stream.getTracks().forEach(track => track.stop());
           }
         }, 'image/jpeg');
@@ -463,7 +463,7 @@ export const MiActividadTab = ({
     if (mediaRecorderRef.current && isRecordingMomentoVideo) {
       mediaRecorderRef.current.stop();
       setIsRecordingMomentoVideo(false);
-      
+
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
         recordingIntervalRef.current = null;
@@ -516,11 +516,11 @@ export const MiActividadTab = ({
   // NUEVO: Responder mensaje de fan
   const handleResponderMensajeFan = (mensajeId: string) => {
     if (!respuestaRapida.trim()) return;
-    
-    setMensajesFans(prev => prev.map(m => 
+
+    setMensajesFans(prev => prev.map(m =>
       m.id === mensajeId ? { ...m, estado: 'respondido' as const, tiempoRestante: 0 } : m
     ));
-    
+
     alert(`💬 Respuesta enviada al chat privado: "${respuestaRapida}"`);
     setBurbujaExpandida(null);
     setRespuestaRapida('');
@@ -528,7 +528,7 @@ export const MiActividadTab = ({
 
   // NUEVO: Ir al chat privado
   const handleIrAlChatPrivado = (mensajeId: string, username: string) => {
-    setMensajesFans(prev => prev.map(m => 
+    setMensajesFans(prev => prev.map(m =>
       m.id === mensajeId ? { ...m, estado: 'respondido' as const, tiempoRestante: 0 } : m
     ));
     setBurbujaExpandida(null);
@@ -570,10 +570,10 @@ export const MiActividadTab = ({
   // Handler publicar momento (SIN PRECIO - solo 24h)
   const handlePublicarMomento = () => {
     if (!momentoFile) return;
-    
+
     const tipo = momentoFile.type.startsWith('video/') ? 'video' : 'foto';
     alert(`✨ Momento ${tipo} ${momentoVisibilidad === 'publico' ? 'público' : 'para suscriptores'} creado!`);
-    
+
     setShowConfigMomentoModal(false);
     setMomentoFile(null);
     setMomentoVisibilidad('publico');
@@ -827,7 +827,7 @@ export const MiActividadTab = ({
         </div>
 
         <div className="p-5 space-y-3">
-          <button 
+          <button
             onClick={handleMomentoDesdeGaleria}
             className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
           >
@@ -842,7 +842,7 @@ export const MiActividadTab = ({
             </div>
           </button>
 
-          <button 
+          <button
             onClick={handleAbrirCapturarMomento}
             className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
           >
@@ -885,7 +885,7 @@ export const MiActividadTab = ({
         </div>
 
         <div className="p-5 space-y-3">
-          <button 
+          <button
             onClick={handleMomentoTomarFoto}
             className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
           >
@@ -900,7 +900,7 @@ export const MiActividadTab = ({
             </div>
           </button>
 
-          <button 
+          <button
             onClick={handleAbrirMomentoVideoRecorder}
             className="w-full p-4 rounded-xl border-2 border-pink-200 hover:border-pink-300 bg-gradient-to-br from-pink-50 to-purple-50 hover:shadow-md transition-all text-left group"
           >
@@ -941,8 +941,8 @@ export const MiActividadTab = ({
               <p className="text-xs text-slate-600">Para tu momento</p>
             </div>
           </div>
-          <button 
-            onClick={handleCerrarMomentoVideoRecorder} 
+          <button
+            onClick={handleCerrarMomentoVideoRecorder}
             className="text-slate-400 hover:text-slate-700 transition p-1 hover:bg-pink-100 rounded-lg"
           >
             <X className="w-5 h-5" />
@@ -951,14 +951,14 @@ export const MiActividadTab = ({
 
         {/* Video Preview */}
         <div className="relative aspect-[4/3] bg-black">
-          <video 
-            ref={momentoVideoRef} 
-            autoPlay 
-            playsInline 
+          <video
+            ref={momentoVideoRef}
+            autoPlay
+            playsInline
             muted
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover"
           />
-          
+
           {/* Indicador de grabación */}
           {isRecordingMomentoVideo && (
             <div className="absolute top-4 left-4 flex items-center gap-2 bg-red-600 px-3 py-1.5 rounded-full shadow-lg animate-pulse">
@@ -970,15 +970,15 @@ export const MiActividadTab = ({
 
         {/* Controles */}
         <div className="p-4 bg-gradient-to-r from-pink-50 to-fuchsia-50 flex gap-3">
-          <button 
-            onClick={handleCerrarMomentoVideoRecorder} 
+          <button
+            onClick={handleCerrarMomentoVideoRecorder}
             className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs"
           >
             Cancelar
           </button>
-          
+
           {!isRecordingMomentoVideo ? (
-            <button 
+            <button
               onClick={handleIniciarGrabacionMomento}
               className="flex-1 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2"
             >
@@ -986,7 +986,7 @@ export const MiActividadTab = ({
               Grabar
             </button>
           ) : (
-            <button 
+            <button
               onClick={handleDetenerGrabacionMomento}
               className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs flex items-center justify-center gap-2"
             >
@@ -1024,15 +1024,15 @@ export const MiActividadTab = ({
           {momentoFile && (
             <div className="relative w-full aspect-square rounded-xl overflow-hidden border-2 border-pink-200 bg-slate-50">
               {momentoFile.type.startsWith('video/') ? (
-                <video 
-                  src={URL.createObjectURL(momentoFile)} 
+                <video
+                  src={URL.createObjectURL(momentoFile)}
                   className="w-full h-full object-cover"
                   controls
                 />
               ) : (
-                <img 
-                  src={URL.createObjectURL(momentoFile)} 
-                  alt="Preview" 
+                <img
+                  src={URL.createObjectURL(momentoFile)}
+                  alt="Preview"
                   className="w-full h-full object-cover"
                 />
               )}
@@ -1041,7 +1041,7 @@ export const MiActividadTab = ({
 
           {/* Opciones de visibilidad (SIN PRECIO) */}
           <div className="space-y-2.5">
-            <button 
+            <button
               onClick={() => setMomentoVisibilidad('publico')}
               className={`w-full p-3.5 rounded-xl border-2 transition-all text-left ${momentoVisibilidad === 'publico' ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-green-50 shadow-md' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
             >
@@ -1059,7 +1059,7 @@ export const MiActividadTab = ({
               </div>
             </button>
 
-            <button 
+            <button
               onClick={() => setMomentoVisibilidad('suscriptores')}
               className={`w-full p-3.5 rounded-xl border-2 transition-all text-left ${momentoVisibilidad === 'suscriptores' ? 'border-pink-400 bg-gradient-to-br from-pink-50 to-fuchsia-50 shadow-md' : 'border-slate-200 hover:border-slate-300 bg-white'}`}
             >
@@ -1080,13 +1080,13 @@ export const MiActividadTab = ({
         </div>
 
         <div className="p-4 border-t border-pink-100 bg-pink-50/50 flex gap-3">
-          <button 
-            onClick={() => { setShowConfigMomentoModal(false); setMomentoFile(null); }} 
+          <button
+            onClick={() => { setShowConfigMomentoModal(false); setMomentoFile(null); }}
             className="flex-1 px-3 py-2 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg transition text-xs"
           >
             Cancelar
           </button>
-          <button 
+          <button
             onClick={handlePublicarMomento}
             className="flex-1 px-3 py-2 bg-gradient-to-r from-pink-500 to-fuchsia-600 hover:from-pink-600 hover:to-fuchsia-700 text-white font-semibold rounded-lg transition text-xs"
           >
@@ -1146,12 +1146,12 @@ export const MiActividadTab = ({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-pink-50/10 to-purple-50/10">
 
       {/* Input oculto para momentos desde galería */}
-      <input 
-        ref={momentoFileInputRef} 
-        type="file" 
-        accept="image/*,video/*" 
-        onChange={handleMomentoFileSelect} 
-        className="hidden" 
+      <input
+        ref={momentoFileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={handleMomentoFileSelect}
+        className="hidden"
       />
 
       {/* LAYOUT PRINCIPAL - 3 COLUMNAS */}
@@ -1190,8 +1190,8 @@ export const MiActividadTab = ({
                   background: linear-gradient(to right, #db2777, #9333ea);
                 }
               `}</style>
-              
-              <button 
+
+              <button
                 onClick={() => setShowCrearMomentoModal(true)}
                 className="flex-shrink-0 relative group"
               >
@@ -1297,13 +1297,12 @@ export const MiActividadTab = ({
                   </div>
                   <div className="space-y-2">
                     {mensajesFans.filter(m => m.estado === 'nuevo').map(msg => (
-                      <div 
+                      <div
                         key={msg.id}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md ${
-                          msg.propina 
-                            ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200 hover:border-amber-300' 
+                        className={`p-3 rounded-xl border transition-all cursor-pointer hover:shadow-md ${msg.propina
+                            ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200 hover:border-amber-300'
                             : 'bg-white border-emerald-200 hover:border-emerald-300'
-                        }`}
+                          }`}
                         onClick={() => setBurbujaExpandida(msg.id)}
                       >
                         <div className="flex items-start gap-2.5">
@@ -1348,7 +1347,7 @@ export const MiActividadTab = ({
                   </div>
                   <div className="space-y-2">
                     {mensajesFans.filter(m => m.estado === 'respondido').slice(0, 3).map(msg => (
-                      <div 
+                      <div
                         key={msg.id}
                         className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100 transition-all"
                       >
@@ -1357,7 +1356,7 @@ export const MiActividadTab = ({
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-slate-700 truncate">{msg.usuario.nombre}</p>
                             <p className="text-[11px] text-slate-500 truncate">{msg.mensaje}</p>
-                            <button 
+                            <button
                               onClick={() => navigate(`/chat/${msg.usuario.username}`)}
                               className="text-[10px] text-emerald-600 hover:text-emerald-700 font-semibold mt-1 flex items-center gap-1"
                             >
@@ -1382,7 +1381,7 @@ export const MiActividadTab = ({
                   </div>
                   <div className="space-y-2">
                     {mensajesFans.filter(m => m.estado === 'expirado').slice(0, 2).map(msg => (
-                      <div 
+                      <div
                         key={msg.id}
                         className="p-3 rounded-xl bg-slate-50 border border-slate-200 opacity-60"
                       >
@@ -1399,7 +1398,7 @@ export const MiActividadTab = ({
                       </div>
                     ))}
                   </div>
-                  <button 
+                  <button
                     onClick={handleLimpiarExpirados}
                     className="w-full mt-2 text-[11px] text-slate-500 hover:text-red-600 font-medium flex items-center justify-center gap-1 py-2 hover:bg-red-50 rounded-lg transition-all"
                   >
@@ -1420,7 +1419,7 @@ export const MiActividadTab = ({
                 </div>
                 <h3 className="text-sm font-bold text-slate-900">Programados</h3>
               </div>
-              <button 
+              <button
                 onClick={() => onNavigateToContenido?.()}
                 className="w-8 h-8 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 flex items-center justify-center shadow-md hover:shadow-lg hover:scale-110 transition-all duration-300"
               >
@@ -1499,8 +1498,8 @@ export const MiActividadTab = ({
                     ? '¿Qué quieres compartir con todos?'
                     : '✨ Contenido VIP exclusivo para tus suscriptores...'}
                   className={`w-full pl-4 pr-28 py-2.5 rounded-full text-sm focus:outline-none focus:ring-2 transition-all ${visibilidad === 'publico'
-                      ? 'bg-emerald-50/50 border-2 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-200'
-                      : 'bg-pink-50/50 border-2 border-pink-200 focus:border-pink-400 focus:ring-pink-200'
+                    ? 'bg-emerald-50/50 border-2 border-emerald-200 focus:border-emerald-400 focus:ring-emerald-200'
+                    : 'bg-pink-50/50 border-2 border-pink-200 focus:border-pink-400 focus:ring-pink-200'
                     }`}
                   maxLength={500}
                 />
@@ -1526,12 +1525,12 @@ export const MiActividadTab = ({
               <button
                 onClick={handlePublicar}
                 disabled={!nuevoPost.trim()}
-                className={`px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-md flex-shrink-0 hover:scale-105 ${!nuevoPost.trim() 
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
-                  : visibilidad === 'publico' 
-                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-emerald-500/30' 
+                className={`px-5 py-2.5 rounded-full font-bold text-xs transition-all shadow-md flex-shrink-0 hover:scale-105 ${!nuevoPost.trim()
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : visibilidad === 'publico'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600 text-white shadow-emerald-500/30'
                     : 'bg-gradient-to-r from-pink-600 to-fuchsia-600 hover:from-pink-700 hover:to-fuchsia-700 text-white shadow-pink-500/30'
-                }`}
+                  }`}
               >
                 Publicar
               </button>
@@ -1701,7 +1700,7 @@ export const MiActividadTab = ({
 
         {/* ========== COLUMNA DERECHA ========== */}
         <div className="lg:col-span-3 space-y-5">
-          
+
           {/* BOTONES */}
           <div className="grid grid-cols-2 gap-2.5">
             <button
@@ -1831,17 +1830,15 @@ export const MiActividadTab = ({
                   <div
                     key={msg.id}
                     onClick={() => setBurbujaExpandida(msg.id)}
-                    className={`flex-shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 ${
-                      msg.propina 
-                        ? 'hover:shadow-lg hover:shadow-amber-200' 
+                    className={`flex-shrink-0 cursor-pointer transition-all duration-300 hover:scale-105 ${msg.propina
+                        ? 'hover:shadow-lg hover:shadow-amber-200'
                         : 'hover:shadow-lg hover:shadow-pink-200'
-                    }`}
+                      }`}
                   >
-                    <div className={`relative p-3 rounded-2xl min-w-[180px] max-w-[220px] ${
-                      msg.propina 
-                        ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300' 
+                    <div className={`relative p-3 rounded-2xl min-w-[180px] max-w-[220px] ${msg.propina
+                        ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-300'
                         : 'bg-gradient-to-br from-pink-50 to-rose-50 border border-pink-200'
-                    }`}>
+                      }`}>
                       {/* Header con avatar y nombre */}
                       <div className="flex items-center gap-2 mb-2">
                         <div className={`relative ${msg.propina ? 'ring-2 ring-amber-400' : ''} rounded-full`}>
@@ -1865,13 +1862,12 @@ export const MiActividadTab = ({
 
                       {/* Timer */}
                       <div className="flex items-center justify-between">
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${
-                          msg.tiempoRestante > 60 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : msg.tiempoRestante > 30 
-                              ? 'bg-amber-100 text-amber-700' 
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${msg.tiempoRestante > 60
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : msg.tiempoRestante > 30
+                              ? 'bg-amber-100 text-amber-700'
                               : 'bg-red-100 text-red-600 animate-pulse'
-                        }`}>
+                          }`}>
                           <Timer className="w-3 h-3" />
                           <span className="text-[10px] font-bold">{formatTiempoRestante(msg.tiempoRestante)}</span>
                         </div>
@@ -1899,22 +1895,20 @@ export const MiActividadTab = ({
           {(() => {
             const msg = mensajesFans.find(m => m.id === burbujaExpandida);
             if (!msg) return null;
-            
+
             return (
-              <div 
-                className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${
-                  msg.propina 
-                    ? 'border-2 border-amber-300' 
+              <div
+                className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden ${msg.propina
+                    ? 'border-2 border-amber-300'
                     : 'border border-pink-200'
-                }`}
+                  }`}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
-                <div className={`px-5 py-4 flex items-center justify-between ${
-                  msg.propina 
-                    ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200' 
+                <div className={`px-5 py-4 flex items-center justify-between ${msg.propina
+                    ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-200'
                     : 'bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-200'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-3">
                     <div className={`relative ${msg.propina ? 'ring-2 ring-amber-400 ring-offset-2' : ''} rounded-full`}>
                       <img src={msg.usuario.avatar} alt="" className="w-12 h-12 rounded-full object-cover" />
@@ -1929,7 +1923,7 @@ export const MiActividadTab = ({
                       <p className="text-xs text-slate-500">@{msg.usuario.username} • Suscriptor ⭐</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={handleCerrarBurbuja}
                     className="w-8 h-8 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all shadow-sm"
                   >
@@ -1974,11 +1968,10 @@ export const MiActividadTab = ({
                     <button
                       onClick={() => handleResponderMensajeFan(msg.id)}
                       disabled={!respuestaRapida.trim()}
-                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                        respuestaRapida.trim() 
-                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-md' 
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${respuestaRapida.trim()
+                          ? 'bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white shadow-md'
                           : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                      }`}
+                        }`}
                     >
                       <Send className="w-4 h-4" />
                     </button>
@@ -1988,13 +1981,12 @@ export const MiActividadTab = ({
                 {/* Footer con botón ir al chat */}
                 <div className="bg-slate-50 px-5 py-4 border-t border-slate-200">
                   <div className="flex items-center justify-between">
-                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
-                      msg.tiempoRestante > 60 
-                        ? 'bg-emerald-100 text-emerald-700' 
-                        : msg.tiempoRestante > 30 
-                          ? 'bg-amber-100 text-amber-700' 
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${msg.tiempoRestante > 60
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : msg.tiempoRestante > 30
+                          ? 'bg-amber-100 text-amber-700'
                           : 'bg-red-100 text-red-600 animate-pulse'
-                    }`}>
+                      }`}>
                       <Timer className="w-3.5 h-3.5" />
                       <span className="text-xs font-bold">{formatTiempoRestante(msg.tiempoRestante)}</span>
                     </div>
@@ -2014,7 +2006,7 @@ export const MiActividadTab = ({
         </div>,
         document.body
       )}
-      
+
       {modalTransmision}
       {modalCrearMomento}
       {modalCapturarMomento}
