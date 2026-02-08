@@ -1,6 +1,7 @@
 // src/features/chat/components/Reports/GiftsReportModal.tsx
-// ✅ Modal de regalos - Bonito, premium, suave, elegante
+// ✅ CORREGIDO: Usa React Portal para overlay en toda la pantalla
 
+import { createPortal } from 'react-dom';
 import { X, Gift, TrendingUp, Award } from 'lucide-react';
 
 interface GiftsReportModalProps {
@@ -8,7 +9,6 @@ interface GiftsReportModalProps {
 }
 
 export const GiftsReportModal = ({ onClose }: GiftsReportModalProps) => {
-  // Mock data
   const giftsData = {
     total: 1250,
     count: 24,
@@ -25,85 +25,75 @@ export const GiftsReportModal = ({ onClose }: GiftsReportModalProps) => {
     ],
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-3"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-pink-50 to-rose-50 px-6 py-4 border-b border-pink-100">
+        <div className="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl flex items-center justify-center">
-                <Gift className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg flex items-center justify-center">
+                <Gift className="w-4 h-4 text-white" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Mis Regalos</h3>
-                <p className="text-sm text-slate-500">Resumen de ingresos</p>
+                <h3 className="text-sm font-semibold text-slate-800">Mis Regalos</h3>
+                <p className="text-[10px] text-slate-400">Resumen de ingresos</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-white/50 flex items-center justify-center transition"
+              className="w-6 h-6 rounded-md hover:bg-slate-200/60 flex items-center justify-center transition"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-4 h-4 text-slate-500" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-3 space-y-3 max-h-[320px] overflow-y-auto">
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100">
-              <p className="text-sm text-violet-600 font-medium mb-1">Total Acumulado</p>
-              <p className="text-2xl font-bold text-violet-700">S/. {giftsData.total}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <p className="text-[10px] text-slate-500 font-medium mb-0.5">Total Acumulado</p>
+              <p className="text-lg font-bold text-slate-700">S/. {giftsData.total}</p>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100">
-              <p className="text-sm text-emerald-600 font-medium mb-1">Regalos Recibidos</p>
-              <p className="text-2xl font-bold text-emerald-700">{giftsData.count}</p>
+            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <p className="text-[10px] text-slate-500 font-medium mb-0.5">Recibidos</p>
+              <p className="text-lg font-bold text-slate-700">{giftsData.count}</p>
             </div>
           </div>
 
           {/* Top Gift */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
-            <div className="flex items-center gap-2 mb-3">
-              <Award className="w-5 h-5 text-amber-600" />
-              <h4 className="text-sm font-semibold text-amber-800">Mejor Regalo</h4>
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-2.5 border border-amber-100">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Award className="w-3.5 h-3.5 text-amber-500" strokeWidth={2} />
+              <h4 className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide">Mejor Regalo</h4>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{giftsData.topGift.emoji}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">{giftsData.topGift.emoji}</span>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-800">
-                  {giftsData.topGift.gift}
-                </p>
-                <p className="text-xs text-slate-500">
-                  De {giftsData.topGift.sender}
-                </p>
+                <p className="text-xs font-semibold text-slate-700">{giftsData.topGift.gift}</p>
+                <p className="text-[10px] text-slate-400">De {giftsData.topGift.sender}</p>
               </div>
-              <span className="text-lg font-bold text-amber-700">
-                S/. {giftsData.topGift.amount}
-              </span>
+              <span className="text-sm font-bold text-amber-600">S/. {giftsData.topGift.amount}</span>
             </div>
           </div>
 
           {/* Recent Gifts */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3">Regalos Recientes</h4>
-            <div className="space-y-2">
+            <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Recientes</h4>
+            <div className="space-y-1.5">
               {giftsData.recentGifts.map((gift) => (
-                <div
-                  key={gift.id}
-                  className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition"
-                >
-                  <span className="text-2xl">{gift.emoji}</span>
+                <div key={gift.id} className="flex items-center gap-2 py-1.5 px-2.5 bg-slate-50/80 rounded-lg">
+                  <span className="text-base">{gift.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-800 truncate">
-                      {gift.sender}
-                    </p>
-                    <p className="text-xs text-slate-500">{gift.time}</p>
+                    <p className="text-xs font-medium text-slate-700 truncate">{gift.sender}</p>
+                    <p className="text-[10px] text-slate-400">{gift.time}</p>
                   </div>
-                  <span className="text-sm font-semibold text-violet-600">
-                    +S/. {gift.amount}
-                  </span>
+                  <span className="text-xs font-semibold text-rose-500">+S/. {gift.amount}</span>
                 </div>
               ))}
             </div>
@@ -111,15 +101,17 @@ export const GiftsReportModal = ({ onClose }: GiftsReportModalProps) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
+        <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-100">
           <button
-            className="w-full py-3 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white rounded-xl font-semibold text-sm shadow-md transition-all flex items-center justify-center gap-2"
+            className="w-full py-2 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white rounded-lg font-medium text-xs shadow-sm transition flex items-center justify-center gap-1.5"
           >
-            <TrendingUp className="w-4 h-4" />
+            <TrendingUp className="w-3.5 h-3.5" strokeWidth={2} />
             Reclamar S/. {giftsData.total}
           </button>
         </div>
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

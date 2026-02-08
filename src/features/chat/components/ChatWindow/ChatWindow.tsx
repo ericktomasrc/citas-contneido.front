@@ -1,5 +1,5 @@
 // src/features/chat/components/ChatWindow/ChatWindow.tsx
-// ✅ MEJORADO: Propaga callback de videollamada
+// ✅ MEJORADO: Headers compactos, elementos más pequeños
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -17,13 +17,13 @@ import { Conversation, ChatSettings } from '../../types/chat.types';
 interface ChatWindowProps {
   conversation: Conversation;
   recipientSettings?: ChatSettings;
-  onVideoCallStart?: () => void; // ✅ NUEVO
+  onVideoCallStart?: () => void;
 }
 
 export const ChatWindow = ({ 
   conversation, 
   recipientSettings,
-  onVideoCallStart // ✅ NUEVO
+  onVideoCallStart
 }: ChatWindowProps) => {
   const { role, user: currentUser } = useUserRole();
   const [showGiftPanel, setShowGiftPanel] = useState(false);
@@ -58,15 +58,14 @@ export const ChatWindow = ({
 
   return (
     <div className="h-full flex flex-col bg-slate-50">
-      {/* Header */}
+      {/* Header compacto h-12 */}
       <ChatHeaderWhatsApp
         participant={{
           ...conversation.participant,
           badge: conversation.participant.badge
             ? {
                 ...conversation.participant.badge,
-                // Cast or map level to BadgeLevel if needed
-                level: conversation.participant.badge.level as any, // Replace 'any' with 'BadgeLevel' if imported
+                level: conversation.participant.badge.level as any,
               }
             : undefined,
         }}
@@ -143,11 +142,11 @@ export const ChatWindow = ({
             setShowTipPanel(!showTipPanel);
             setShowGiftPanel(false);
           }}
-          onVideoCallStart={onVideoCallStart} // ✅ PASAR CALLBACK
+          onVideoCallStart={onVideoCallStart}
         />
       </div>
 
-      {/* Panel de configuración (modal) */}
+      {/* Panel de configuración (modal con z-index alto) */}
       {showSettingsPanel && (
         <QuickSettingsPanel
           onClose={() => setShowSettingsPanel(false)}

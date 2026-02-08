@@ -1,5 +1,5 @@
 // src/features/chat/components/ConversationSidebar/ConversationSidebar.tsx
-// ✅ Header con altura fija h-16 para alineación perfecta
+// ✅ MEJORADO: Header h-12 compacto, elementos más pequeños
 
 import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
@@ -34,16 +34,16 @@ export const ConversationSidebar = ({
 
   return (
     <div className="h-full flex flex-col bg-white">
-      {/* ✅ Header con altura fija h-16 (64px) igual que el header de botones */}
-      <div className="flex-shrink-0 h-16 px-4 border-b border-slate-100 flex items-center">
+      {/* ✅ Header compacto h-12 */}
+      <div className="flex-shrink-0 h-12 px-3 border-b border-slate-100 flex items-center">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" strokeWidth={2} />
           <input 
             type="text" 
             value={searchQuery} 
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar conversación..."
-            className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent transition-all"
+            className="w-full pl-8 pr-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400 transition"
           />
         </div>
       </div>
@@ -51,16 +51,16 @@ export const ConversationSidebar = ({
       {/* Lista de conversaciones */}
       <div className="flex-1 overflow-y-auto">
         {filteredConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-              <Search className="w-8 h-8 text-slate-400" />
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2">
+              <Search className="w-5 h-5 text-slate-400" />
             </div>
-            <p className="text-sm text-slate-600 font-medium">
+            <p className="text-xs text-slate-500 font-medium">
               {searchQuery ? 'No se encontraron conversaciones' : 'No tienes conversaciones'}
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-slate-50">
             {filteredConversations.map((conversation) => (
               <ConversationItem 
                 key={conversation.id} 
@@ -99,44 +99,46 @@ const ConversationItem = ({ conversation, isSelected, onClick }: ConversationIte
   return (
     <button 
       onClick={onClick}
-      className={`w-full p-3 flex items-start gap-3 hover:bg-slate-50 transition-all ${
-        isSelected ? 'bg-violet-50 hover:bg-violet-50' : ''
+      className={`w-full p-2.5 flex items-start gap-2.5 hover:bg-slate-50 transition-all ${
+        isSelected ? 'bg-slate-100 hover:bg-slate-100' : ''
       }`}
     >
+      {/* Avatar */}
       <div className="relative flex-shrink-0">
         <img 
           src={participant.avatar} 
           alt={participant.nombre}
-          className="w-11 h-11 rounded-full object-cover" 
+          className="w-9 h-9 rounded-full object-cover" 
         />
         {participant.estado === 'online' && (
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
+          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
         )}
         {unreadCount > 0 && (
-          <div className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-violet-600 text-white text-xs font-bold rounded-full px-1">
+          <div className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center bg-rose-500 text-white text-[10px] font-bold rounded-full px-1">
             {unreadCount > 99 ? '99+' : unreadCount}
           </div>
         )}
       </div>
 
+      {/* Info */}
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center justify-between mb-0.5">
-          <h3 className={`text-sm font-semibold truncate ${
-            isSelected ? 'text-violet-700' : 'text-slate-800'
+          <h3 className={`text-xs font-semibold truncate ${
+            isSelected ? 'text-slate-800' : 'text-slate-700'
           }`}>
             {participant.nombre}
           </h3>
-          <span className="text-xs text-slate-400 ml-2 flex-shrink-0">
+          <span className="text-[10px] text-slate-400 ml-1.5 flex-shrink-0">
             {lastMessage && formatTime(lastMessage.timestamp)}
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           {participant.badge && (
-            <span className="text-xs flex-shrink-0">{participant.badge.icon}</span>
+            <span className="text-[10px] flex-shrink-0">{participant.badge.icon}</span>
           )}
-          <p className={`text-xs truncate flex-1 ${
-            unreadCount > 0 ? 'text-slate-700 font-medium' : 'text-slate-500'
+          <p className={`text-[11px] truncate flex-1 ${
+            unreadCount > 0 ? 'text-slate-600 font-medium' : 'text-slate-400'
           }`}>
             {lastMessage?.content || 'Sin mensajes'}
           </p>

@@ -1,5 +1,6 @@
 import { InvitacionCard } from './InvitacionCard';
 import { Invitacion } from '../types/invitaciones.types';
+import { Loader2 } from 'lucide-react';
 
 interface InvitacionesGridProps {
   invitaciones: Invitacion[];
@@ -23,7 +24,7 @@ export const InvitacionesGrid = ({
   return (
     <>
       {/* Grid de Invitaciones */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5">
         {invitaciones.map((invitacion) => (
           <InvitacionCard
             key={invitacion.id}
@@ -35,12 +36,12 @@ export const InvitacionesGrid = ({
         ))}
       </div>
 
-      {/* Loading indicator */}
+      {/* Loading indicator - Elegant style */}
       {isLoading && (
-        <div className="text-center py-8 mt-6">
-          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <div className="w-5 h-5 border-3 border-pink-500 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm font-medium text-slate-600">Cargando más invitaciones...</span>
+        <div className="flex justify-center py-10 mt-4">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl border border-stone-200/60 shadow-sm">
+            <Loader2 className="w-5 h-5 text-rose-400 animate-spin" />
+            <span className="text-sm font-medium text-stone-600">Cargando invitaciones...</span>
           </div>
         </div>
       )}
@@ -48,14 +49,19 @@ export const InvitacionesGrid = ({
       {/* Observer target */}
       <div 
         ref={observerTarget} 
-        className="h-20 flex items-center justify-center mt-4"
+        className="h-16 flex items-center justify-center mt-6"
       >
         {!isLoading && hasMore && invitaciones.length > 0 && (
-          <p className="text-xs text-slate-400">Cargando más contenido automáticamente...</p>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse" />
+            <p className="text-xs text-stone-400 font-medium">Desplázate para ver más</p>
+          </div>
         )}
         
         {!hasMore && invitaciones.length > 0 && (
-          <p className="text-xs text-slate-500">Has llegado al final de las invitaciones</p>
+          <p className="text-xs text-stone-400 font-medium">
+            Has visto todas las invitaciones
+          </p>
         )}
       </div>
     </>

@@ -1,5 +1,5 @@
 // src/features/chat/components/FloatingChat/ChatInput.tsx
-// ✅ CORREGIDO: Sin propiedad 'read' (compatible con tu tipo Message)
+// ✅ MEJORADO: Compacto, botones más pequeños
 
 import { useState, useRef } from 'react';
 import { Send, Paperclip, Gift, DollarSign, Smile, Camera, Video, Mic, Phone } from 'lucide-react';
@@ -9,7 +9,6 @@ import { VideoRecorder } from '../Capture/VideoRecorder';
 import { AudioRecorder } from '../Capture/AudioRecorder';
 import { UserRole } from '../../types/user.types';
 import { ChatPermissions } from '../../types/chat.types';
-// ✨ NUEVO: Servicios mock (opcional) 
 import { useUserRole } from '../../hooks/useUserRole';
 import { useChatServices } from '@/hooks/useChatService';
 
@@ -28,7 +27,6 @@ interface ChatInputProps {
   showTipPanel?: boolean;
   onToggleTipPanel?: () => void;
   onVideoCallStart?: () => void;
-  // ✨ NUEVO: Props opcionales para servicios mock
   conversationId?: string;
   recipientId?: string;
   enableMockSync?: boolean;
@@ -48,7 +46,6 @@ export const ChatInput = ({
   onToggleTipPanel,
   onVideoCallStart,
   conversationId,
-  recipientId,
   enableMockSync = false,
 }: ChatInputProps) => {
   const [message, setMessage] = useState('');
@@ -61,19 +58,15 @@ export const ChatInput = ({
   const videoInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // ✨ NUEVO: Servicios mock
   const { chat: chatService } = useChatServices();
   const { user } = useUserRole();
 
   const handleSend = async () => {
     if (message.trim() && !isSending) {
-      // ✅ MANTENER: Tu lógica existente
       onSendMessage(message.trim());
       
-      // ✨ NUEVO: Sincronización opcional con mock
       if (enableMockSync && conversationId && user) {
         try {
-          // ✅ CORREGIDO: Sin propiedad 'read'
           await chatService.sendMessage({
             conversationId,
             senderId: user.id,
@@ -81,7 +74,6 @@ export const ChatInput = ({
             senderAvatar: user.avatar,
             type: 'text',
             content: message.trim(),
-            // ❌ QUITADO: read: false (no existe en tu tipo Message)
           });
         } catch (error) {
           console.error('Error enviando a servicio mock:', error);
@@ -140,39 +132,60 @@ export const ChatInput = ({
     }
   };
 
+  // Botón compacto reutilizable
+  const ActionButton = ({ 
+    onClick, 
+    active = false, 
+    title, 
+    children 
+  }: { 
+    onClick: () => void; 
+    active?: boolean; 
+    title: string; 
+    children: React.ReactNode;
+  }) => (
+    <button
+      onClick={onClick}
+      className={`w-6 h-6 rounded flex items-center justify-center transition ${
+        active 
+          ? 'bg-slate-200 text-slate-700' 
+          : 'hover:bg-slate-100 text-slate-500 hover:text-slate-700'
+      }`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+
   return (
     <>
-      <div className="p-3 bg-white border-t border-slate-200">
+      <div className="p-2.5 bg-white border-t border-slate-200">
         <div className="flex items-end gap-2">
           {/* Botones izquierda */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             {/* CREADORA */}
             {userRole === 'creadora' && (
               <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600"
-                  title="Subir imagen"
-                >
-                  <Paperclip className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={() => fileInputRef.current?.click()} title="Subir imagen">
+                  <Paperclip className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
 
-                <button onClick={() => setShowCameraCapture(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Tomar foto">
-                  <Camera className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={() => setShowCameraCapture(true)} title="Tomar foto">
+                  <Camera className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
 
-                <button onClick={() => setShowVideoRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar video">
-                  <Video className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={() => setShowVideoRecorder(true)} title="Grabar video">
+                  <Video className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
 
-                <button onClick={() => setShowAudioRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar audio">
-                  <Mic className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={() => setShowAudioRecorder(true)} title="Grabar audio">
+                  <Mic className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
 
-                <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
-                  <Phone className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={handleVideoCall} title="Videollamada">
+                  <Phone className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
               </>
             )}
 
@@ -181,60 +194,60 @@ export const ChatInput = ({
               <>
                 {permissions.canSendImages && (
                   <>
-                    <button onClick={() => fileInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir imagen">
-                      <Paperclip className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => fileInputRef.current?.click()} title="Subir imagen">
+                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                     <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                    <button onClick={() => setShowCameraCapture(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Tomar foto">
-                      <Camera className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => setShowCameraCapture(true)} title="Tomar foto">
+                      <Camera className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                   </>
                 )}
 
                 {permissions.canSendVideos && (
                   <>
-                    <button onClick={() => videoInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir video">
-                      <Paperclip className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => videoInputRef.current?.click()} title="Subir video">
+                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                     <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-                    <button onClick={() => setShowVideoRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar video">
-                      <Video className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => setShowVideoRecorder(true)} title="Grabar video">
+                      <Video className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                   </>
                 )}
 
                 {permissions.canSendAudio && (
                   <>
-                    <button onClick={() => audioInputRef.current?.click()} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Subir audio">
-                      <Paperclip className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => audioInputRef.current?.click()} title="Subir audio">
+                      <Paperclip className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                     <input ref={audioInputRef} type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" />
-                    <button onClick={() => setShowAudioRecorder(true)} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Grabar audio">
-                      <Mic className="w-4 h-4" />
-                    </button>
+                    <ActionButton onClick={() => setShowAudioRecorder(true)} title="Grabar audio">
+                      <Mic className="w-3.5 h-3.5" strokeWidth={2} />
+                    </ActionButton>
                   </>
                 )}
 
                 {permissions.canRequestVideocall && (
-                  <button onClick={handleVideoCall} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center transition text-slate-600" title="Videollamada">
-                    <Phone className="w-4 h-4" />
-                  </button>
+                  <ActionButton onClick={handleVideoCall} title="Videollamada">
+                    <Phone className="w-3.5 h-3.5" strokeWidth={2} />
+                  </ActionButton>
                 )}
 
-                <button onClick={onToggleGiftPanel} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showGiftPanel ? 'bg-pink-100 text-pink-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Enviar regalo">
-                  <Gift className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={onToggleGiftPanel} active={showGiftPanel} title="Enviar regalo">
+                  <Gift className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
 
-                <button onClick={onToggleTipPanel} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showTipPanel ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Enviar propina">
-                  <DollarSign className="w-4 h-4" />
-                </button>
+                <ActionButton onClick={onToggleTipPanel!} active={showTipPanel} title="Enviar propina">
+                  <DollarSign className="w-3.5 h-3.5" strokeWidth={2} />
+                </ActionButton>
               </>
             )}
 
             {/* Emoji picker */}
-            <button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition ${showEmojiPicker ? 'bg-violet-100 text-violet-600' : 'hover:bg-slate-100 text-slate-600'}`} title="Emojis">
-              <Smile className="w-4 h-4" />
-            </button>
+            <ActionButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} active={showEmojiPicker} title="Emojis">
+              <Smile className="w-3.5 h-3.5" strokeWidth={2} />
+            </ActionButton>
           </div>
 
           {/* Input */}
@@ -245,14 +258,18 @@ export const ChatInput = ({
               onKeyPress={handleKeyPress}
               placeholder="Escribe un mensaje..."
               rows={1}
-              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
-              style={{ minHeight: '40px', maxHeight: '120px' }}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs resize-none focus:outline-none focus:ring-1 focus:ring-slate-400 placeholder:text-slate-400"
+              style={{ minHeight: '32px', maxHeight: '80px' }}
             />
           </div>
 
           {/* Botón enviar */}
-          <button onClick={handleSend} disabled={!message.trim() || isSending} className="w-10 h-10 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-xl flex items-center justify-center transition shadow-md disabled:shadow-none">
-            <Send className="w-4 h-4" />
+          <button 
+            onClick={handleSend} 
+            disabled={!message.trim() || isSending} 
+            className="w-8 h-8 bg-slate-700 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-lg flex items-center justify-center transition shadow-sm disabled:shadow-none"
+          >
+            <Send className="w-3.5 h-3.5" strokeWidth={2} />
           </button>
         </div>
       </div>

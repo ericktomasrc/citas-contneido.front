@@ -1,5 +1,5 @@
 // src/pages/DashboardCreadora/DashboardCreadoraPage.tsx
-// ✅ MEJORADO: Reducido espacio entre navbar y contenido
+// ✅ MEJORADO: Ajustado para navbar h-14 y sidebar w-16 más compactos
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -26,14 +26,13 @@ import { subTabsConfig } from './config/subtabs.config';
 import { invitacionesIniciales } from './data/invitaciones.data';
 import { TabTypeMenu } from './hooks/useTabs';
 
-// type SubTabId = 'invitaciones' | 'miactividad' | 'resumen';
 type SubTabId = 'invitaciones' | 'resumen';
 
 export const DashboardCreadoraPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) || 'invitaciones';
+  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) ;
   const [activeTab, setActiveTab] = useState<TabTypeMenu>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('invitaciones');
 
@@ -54,7 +53,7 @@ export const DashboardCreadoraPage = () => {
   const currentUser = {
     nombre: 'María Rodriguez',
     username: '@maria_lima3',
-    avatar: 'https://i.pravatar.cc/150?img=47', // ⭐ Foto real
+    avatar: 'https://i.pravatar.cc/150?img=47',
     gananciasMes: 2450,
   };
 
@@ -94,17 +93,17 @@ export const DashboardCreadoraPage = () => {
         isVideoCallActive={isVideoCallActive && !isVideoCallMinimized}
       />
 
-      {/* ⭐ REDUCIDO ESPACIO: top-16 sin padding extra */}
+      {/* ✅ AJUSTADO: top-14 (navbar h-14) y lg:left-16 (sidebar w-16) */}
       <main className={`
-        fixed top-16 left-0 right-0 bottom-0 overflow-hidden flex flex-col
+        fixed top-14 left-0 right-0 bottom-0 overflow-hidden flex flex-col
         transition-all duration-300
-        ${isVideoCallActive && !isVideoCallMinimized ? '' : 'lg:left-20'}
+        ${isVideoCallActive && !isVideoCallMinimized ? '' : 'lg:left-16'}
       `}>
         {activeTab === 'mensajes' ? (
           <MessagesContent onVideoCallStart={handleVideoCallStart} />
         ) : (
           <>
-            {/* Header */}
+            {/* Header de SubTabs más compacto */}
             {showSubTabs && (
               <SubTabsHeader
                 tabs={subTabsConfig}
@@ -113,20 +112,11 @@ export const DashboardCreadoraPage = () => {
               />
             )}
 
-            {/* ⭐ Contenido SIN padding-top extra */}
+            {/* ✅ Contenido con padding reducido */}
             <div className="flex-1 overflow-y-auto bg-slate-50">
-              <div className="p-4"> {/* Reducido de p-6 a p-4 */}
+              <div className="p-3 md:p-4"> {/* Reducido: p-3 en móvil, p-4 en desktop */}
                 {showSubTabs && (
-                  <>
-                    {activeSubTab === 'invitaciones' && (
-                      <InvitacionesTab
-                        invitacionesIniciales={invitacionesIniciales}
-                        enabled={activeSubTab === 'invitaciones'}
-                      />
-                    )}
-                    {/* {activeSubTab === 'miactividad' && (
-                      <MiActividadTab onProgramarEvento={handleProgramarEvento} />
-                    )} */}
+                  <> 
                     {activeSubTab === 'resumen' && (
                       <ResumenTab
                         nombreUsuario={currentUser.nombre}
@@ -148,21 +138,21 @@ export const DashboardCreadoraPage = () => {
                       />
                     )}
                     {activeTab === 'donaciones' && (
-                      <div className="text-center py-16">
-                        <h2 className="text-xl font-bold text-slate-800">Donaciones</h2>
-                        <p className="text-sm text-slate-600 mt-2">Próximamente</p>
+                      <div className="text-center py-12">
+                        <h2 className="text-lg font-semibold text-slate-800">Donaciones</h2>
+                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
                       </div>
                     )}
                     {activeTab === 'configuracion' && (
-                      <div className="text-center py-16">
-                        <h2 className="text-xl font-bold text-slate-800">Configuración</h2>
-                        <p className="text-sm text-slate-600 mt-2">Próximamente</p>
+                      <div className="text-center py-12">
+                        <h2 className="text-lg font-semibold text-slate-800">Configuración</h2>
+                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
                       </div>
                     )}
                     {activeTab === 'reportes' && (
-                      <div className="text-center py-16">
-                        <h2 className="text-xl font-bold text-slate-800">Reportes y Estadísticas</h2>
-                        <p className="text-sm text-slate-600 mt-2">Próximamente</p>
+                      <div className="text-center py-12">
+                        <h2 className="text-lg font-semibold text-slate-800">Reportes y Estadísticas</h2>
+                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
                       </div>
                     )}
                   </>

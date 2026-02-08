@@ -1,5 +1,5 @@
 // src/pages/Messages/MessagesContent.tsx
-// ✅ ChatWindow sin border-top para pegarlo al header de botones
+// ✅ MEJORADO: Elementos más compactos y pequeños
 
 import { useState } from 'react';
 import { Gift, DollarSign } from 'lucide-react';
@@ -73,8 +73,8 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
 
   return (
     <div className="h-full flex overflow-hidden bg-slate-50">
-      {/* Sidebar izquierdo */}
-      <div className="w-96 flex-shrink-0 border-r border-slate-200 bg-white">
+      {/* ✅ Sidebar más estrecho: w-80 en lugar de w-96 */}
+      <div className="w-80 flex-shrink-0 border-r border-slate-200 bg-white">
         <ConversationSidebar
           conversations={mockConversations}
           selectedConversationId={selectedConversationId}
@@ -84,24 +84,24 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
 
       {/* Área principal derecha */}
       <div className="flex-1 flex flex-col bg-slate-50">
-        {/* ✅ Header único con botones (h-16) */}
-        <div className="flex-shrink-0 bg-white border-b border-slate-200">
-          <div className="h-16 px-6 flex items-center gap-3">
+        {/* ✅ Header compacto h-12 */}
+        <div className="flex-shrink-0 bg-white border-b border-slate-100">
+          <div className="h-12 px-3 flex items-center gap-1.5">
             {role === 'creadora' ? (
               <>
                 <button
                   onClick={() => setShowGiftsReport(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-xl text-sm font-medium text-pink-700 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-lg text-xs font-medium text-pink-700 transition-all"
                 >
-                  <Gift className="w-4 h-4" />
+                  <Gift className="w-3.5 h-3.5" strokeWidth={1.75} />
                   Mis Regalos
                 </button>
                 
                 <button
                   onClick={() => setShowTipsReport(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-xl text-sm font-medium text-emerald-700 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-700 transition-all"
                 >
-                  <DollarSign className="w-4 h-4" />
+                  <DollarSign className="w-3.5 h-3.5" strokeWidth={1.75} />
                   Mis Propinas
                 </button>
               </>
@@ -109,17 +109,17 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
               <>
                 <button
                   onClick={() => setShowSentGifts(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-xl text-sm font-medium text-violet-700 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-lg text-xs font-medium text-violet-700 transition-all"
                 >
-                  <Gift className="w-4 h-4" />
+                  <Gift className="w-3.5 h-3.5" strokeWidth={1.75} />
                   Regalos Enviados
                 </button>
                 
                 <button
                   onClick={() => setShowSentTips(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-xl text-sm font-medium text-blue-700 transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 transition-all"
                 >
-                  <DollarSign className="w-4 h-4" />
+                  <DollarSign className="w-3.5 h-3.5" strokeWidth={1.75} />
                   Propinas Enviadas
                 </button>
               </>
@@ -127,7 +127,7 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
           </div>
         </div>
 
-        {/* Contenido: ChatWindow o placeholder (SIN espacio extra) */}
+        {/* Contenido: ChatWindow o placeholder */}
         <div className="flex-1 overflow-hidden">
           {selectedConversation ? (
             <ChatWindow 
@@ -138,11 +138,12 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-4xl">💬</span>
+                {/* ✅ Icono más pequeño */}
+                <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">💬</span>
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Selecciona una conversación</h3>
-                <p className="text-sm text-slate-500">Elige un chat para comenzar a conversar</p>
+                <h3 className="text-sm font-semibold text-slate-700 mb-1">Selecciona una conversación</h3>
+                <p className="text-xs text-slate-400">Elige un chat para comenzar</p>
               </div>
             </div>
           )}

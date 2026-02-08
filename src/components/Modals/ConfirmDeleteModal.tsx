@@ -1,60 +1,55 @@
-// En ConfirmDeleteModal.tsx
 import { Trash2, X } from 'lucide-react';
 
 interface ConfirmDeleteModalFotoPublicacionProps {
   onConfirm: () => void;
   onCancel: () => void;
-  esEliminacionFoto?: boolean; // NUEVO parámetro
+  esEliminacionFoto?: boolean;
 }
 
-export const ConfirmDeleteModalFotoPublicacion = ({ 
-  onConfirm, 
+export const ConfirmDeleteModalFotoPublicacion = ({
+  onConfirm,
   onCancel,
-  esEliminacionFoto = false 
+  esEliminacionFoto = false
 }: ConfirmDeleteModalFotoPublicacionProps) => {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-full flex items-center justify-center">
-              <Trash2 className="w-6 h-6 text-red-600" />
+    <div className="fixed inset-0 bg-black/25 flex items-center justify-center z-[10000] p-4">
+      <div className="bg-white rounded-xl shadow-xl max-w-xs w-full p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-rose-50 rounded-lg flex items-center justify-center">
+              <Trash2 className="w-4 h-4 text-rose-400" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-[13px] font-bold text-slate-600">
               {esEliminacionFoto ? 'Eliminar Foto' : 'Eliminar Publicación'}
             </h3>
           </div>
-          <button
-            onClick={onCancel}
-            className="text-gray-400 hover:text-gray-600 transition"
-          >
-            <X className="w-5 h-5" />
+          <button onClick={onCancel} className="text-slate-400 hover:text-slate-500 transition">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="mb-6">
-          <p className="text-gray-600 mb-4">
-            {esEliminacionFoto 
-              ? '¿Estás seguro de que deseas eliminar esta foto?'
-              : '¿Estás seguro de que deseas eliminar esta publicación?'}
+        <p className="text-[11px] text-slate-500 mb-3">
+          {esEliminacionFoto
+            ? '¿Estás seguro de que deseas eliminar esta foto?'
+            : '¿Estás seguro de que deseas eliminar esta publicación?'}
+        </p>
+
+        <div className="bg-amber-50/50 border border-amber-100/50 rounded-lg px-3 py-2 mb-4">
+          <p className="text-[10px] text-amber-600">
+            <span className="font-semibold">Advertencia:</span> Esta acción no se puede deshacer.
           </p>
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-sm text-amber-800">
-              <strong>Advertencia:</strong> Esta acción no se puede deshacer.
-            </p>
-          </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+            className="flex-1 px-3 py-2.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-lg text-[11px] font-semibold hover:bg-slate-100 transition"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-lg font-semibold hover:from-red-700 hover:to-pink-700 transition shadow-lg"
+            className="flex-1 px-3 py-2.5 bg-rose-400/90 text-white rounded-lg text-[11px] font-semibold hover:bg-rose-500/90 transition shadow-sm shadow-rose-100"
           >
             Sí, Eliminar
           </button>

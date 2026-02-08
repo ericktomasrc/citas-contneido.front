@@ -1,5 +1,5 @@
 import { Calendar, MapPin, Eye, X, Check } from 'lucide-react';
-import { Invitacion } from '../../types/invitaciones.types';
+import { Invitacion } from '../types/invitaciones.types';
 
 interface InvitacionCardProps {
   invitacion: Invitacion;
@@ -21,31 +21,27 @@ export const InvitacionCard = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border-2 border-slate-200 hover:border-pink-300 transition-all overflow-hidden group shadow-sm hover:shadow-md">
+    <div className="group bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-out border border-zinc-100 hover:border-violet-200/60 hover:shadow-lg hover:shadow-violet-500/10 hover:-translate-y-1">
       {/* Avatar */}
       <div 
-        className="relative aspect-[3/4] bg-slate-100 cursor-pointer"
+        className="relative aspect-[3/4] bg-zinc-50 cursor-pointer overflow-hidden"
         onClick={() => onVerPerfil(invitacion)}
       >
         <img
           src={invitacion.avatar}
           alt={invitacion.nombre}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
         
         {/* Fecha de invitación */}
         {invitacion.fechaInvitacion && (
-          <div className="absolute top-2 left-2 px-2 py-1 bg-white/95 backdrop-blur-sm text-[10px] font-semibold text-slate-700 rounded-lg flex items-center gap-1 shadow-sm">
-            <Calendar className="w-3 h-3 text-pink-500" />
-            {formatFecha(invitacion.fechaInvitacion)}
-          </div>
-        )}
-        
-        {/* Badge de Live */}
-        {invitacion.isLive && (
-          <div className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1 shadow-lg animate-pulse">
-            <div className="w-1.5 h-1.5 bg-white rounded-full" />
-            EN VIVO
+          <div className="absolute top-3 left-3 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md transition-all duration-300 group-hover:bg-white group-hover:shadow-sm">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-zinc-400 transition-colors duration-300 group-hover:text-violet-400" />
+              <span className="text-[10px] font-medium text-zinc-500">
+                {formatFecha(invitacion.fechaInvitacion)}
+              </span>
+            </div>
           </div>
         )}
 
@@ -54,44 +50,41 @@ export const InvitacionCard = ({
 
         {/* Info sobre la foto */}
         <div className="absolute bottom-0 left-0 right-0 p-3">
-          <h3 className="text-white font-bold text-lg mb-0.5">
-            {invitacion.nombre}, {invitacion.edad}
+          <h3 className="text-white font-semibold text-base mb-0.5">
+            {invitacion.nombre}, <span className="font-normal opacity-90">{invitacion.edad}</span>
           </h3>
-          <div className="flex items-center gap-1.5 text-white/90 text-xs">
+          <div className="flex items-center gap-1 text-white/70 text-[11px]">
             <MapPin className="w-3 h-3" />
             <span>{invitacion.distancia.toFixed(1)} km</span>
-            <span>•</span>
+            <span className="opacity-50">•</span>
             <span>{invitacion.ubicacion}</span>
           </div>
         </div>
       </div>
 
-      {/* Botones de Acción */}
-      <div className="p-3 space-y-2">
-        {/* Botón Ver Perfil */}
-        <button
-          onClick={() => onVerPerfil(invitacion)}
-          className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
-        >
-          <Eye className="w-4 h-4" />
-          Ver Perfil
-        </button>
-        
-        {/* Botones Aceptar/Rechazar */}
-        <div className="flex gap-2">
+      {/* Botones de Acción - 3 en una línea */}
+      <div className="p-2.5">
+        <div className="flex gap-1.5">
           <button
             onClick={() => onRechazar(invitacion.id)}
-            className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2"
+            className="flex-1 px-2 py-2 bg-zinc-50 hover:bg-zinc-100 text-zinc-500 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98]"
           >
-            <X className="w-4 h-4" />
-            Rechazar
+            <X className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Rechazar</span>
+          </button>
+          <button
+            onClick={() => onVerPerfil(invitacion)}
+            className="flex-1 px-2 py-2 bg-zinc-50 hover:bg-zinc-100 text-zinc-500 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Perfil</span>
           </button>
           <button
             onClick={() => onAceptar(invitacion.id)}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+            className="flex-1 px-2 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 hover:scale-[1.02] active:scale-[0.98] hover:shadow-sm hover:shadow-violet-200"
           >
-            <Check className="w-4 h-4" />
-            Aceptar
+            <Check className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Aceptar</span>
           </button>
         </div>
       </div>

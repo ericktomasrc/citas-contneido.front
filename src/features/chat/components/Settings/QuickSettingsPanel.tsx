@@ -1,6 +1,8 @@
 // src/features/chat/components/Settings/QuickSettingsPanel.tsx
+// ✅ CORREGIDO: Usa React Portal para overlay en toda la pantalla
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, Shield, Image, Video, Mic, Phone, DollarSign, X } from 'lucide-react';
 import { ChatSettings, defaultChatSettings } from '../../types/chat.types';
 
@@ -36,52 +38,54 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    // TODO: Guardar en backend
     await new Promise(resolve => setTimeout(resolve, 1000));
     console.log('💾 Configuración guardada:', settings);
     setIsSaving(false);
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-3"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full max-h-[85vh] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-100 to-pink-100 rounded-xl flex items-center justify-center">
-              <Settings className="w-5 h-5 text-violet-600" />
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-gray-50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-gradient-to-br from-slate-600 to-slate-700 rounded-lg flex items-center justify-center">
+              <Settings className="w-4 h-4 text-white" strokeWidth={2} />
             </div>
             <div>
-              <h2 className="font-bold text-slate-800">Configuración de Chat</h2>
-              <p className="text-xs text-slate-500">Controla cómo interactúan contigo</p>
+              <h2 className="text-sm font-semibold text-slate-800">Configuración de Chat</h2>
+              <p className="text-[10px] text-slate-400">Controla cómo interactúan contigo</p>
             </div>
           </div>
           
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition"
+            className="w-6 h-6 rounded-md hover:bg-slate-200/60 flex items-center justify-center transition"
           >
-            <X className="w-5 h-5 text-slate-600" />
+            <X className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
         {/* Contenido scrollable */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
           {/* Permisos de Media */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Image className="w-4 h-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-700 text-sm">Permisos de Envío</h3>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Image className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+              <h3 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Permisos de Envío</h3>
             </div>
             
-            <div className="space-y-3 pl-6">
+            <div className="space-y-2 ml-5">
               <ToggleSwitch
                 label="Permitir que envíen fotos"
                 description="Los suscriptores podrán enviarte imágenes"
                 enabled={settings.subscriberCanSendImages}
                 onChange={() => handleToggle('subscriberCanSendImages')}
-                icon={<Image className="w-4 h-4" />}
+                icon={<Image className="w-3.5 h-3.5" />}
               />
               
               <ToggleSwitch
@@ -89,7 +93,7 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                 description="Los suscriptores podrán enviarte videos"
                 enabled={settings.subscriberCanSendVideos}
                 onChange={() => handleToggle('subscriberCanSendVideos')}
-                icon={<Video className="w-4 h-4" />}
+                icon={<Video className="w-3.5 h-3.5" />}
               />
               
               <ToggleSwitch
@@ -97,53 +101,51 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                 description="Los suscriptores podrán enviarte notas de voz"
                 enabled={settings.subscriberCanSendAudio}
                 onChange={() => handleToggle('subscriberCanSendAudio')}
-                icon={<Mic className="w-4 h-4" />}
+                icon={<Mic className="w-3.5 h-3.5" />}
               />
             </div>
           </section>
 
           {/* Palabras Bloqueadas */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-700 text-sm">Palabras Bloqueadas</h3>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Shield className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+              <h3 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Palabras Bloqueadas</h3>
             </div>
             
-            <div className="pl-6">
-              {/* Tags de palabras */}
+            <div className="ml-5">
               {settings.blockedWords.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {settings.blockedWords.map((word, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 text-red-600 rounded-lg text-xs font-medium"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-600 rounded text-[10px] font-medium"
                     >
                       {word}
                       <button
                         onClick={() => handleRemoveWord(word)}
                         className="hover:bg-red-100 rounded-full p-0.5 transition"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-2.5 h-2.5" />
                       </button>
                     </span>
                   ))}
                 </div>
               )}
               
-              {/* Input para agregar */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <input
                   type="text"
                   value={newWord}
                   onChange={(e) => setNewWord(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleAddWord()}
                   placeholder="Agregar palabra..."
-                  className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="flex-1 px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
                 <button
                   onClick={handleAddWord}
                   disabled={!newWord.trim()}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-lg text-sm font-semibold transition"
+                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 disabled:bg-slate-300 text-white rounded-lg text-xs font-medium transition"
                 >
                   Agregar
                 </button>
@@ -151,34 +153,34 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
               
               <ToggleSwitch
                 label="Bloqueo automático"
-                description="Los mensajes con palabras bloqueadas se eliminarán automáticamente"
+                description="Los mensajes con palabras bloqueadas se eliminarán"
                 enabled={settings.autoBlockEnabled}
                 onChange={() => handleToggle('autoBlockEnabled')}
-                className="mt-3"
+                className="mt-2"
               />
             </div>
           </section>
 
           {/* Videollamadas */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <Phone className="w-4 h-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-700 text-sm">Videollamadas</h3>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <Phone className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+              <h3 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Videollamadas</h3>
             </div>
             
-            <div className="pl-6 space-y-4">
+            <div className="ml-5 space-y-2">
               <ToggleSwitch
                 label="Habilitar videollamadas"
                 description="Permite que los suscriptores soliciten videollamadas"
                 enabled={settings.videocallsEnabled}
                 onChange={() => handleToggle('videocallsEnabled')}
-                icon={<Phone className="w-4 h-4" />}
+                icon={<Phone className="w-3.5 h-3.5" />}
               />
               
               {settings.videocallsEnabled && (
-                <div className="space-y-4 pl-6">
+                <div className="space-y-2 ml-5 pt-1">
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-2 block">
+                    <label className="text-[10px] font-medium text-slate-500 mb-1 block">
                       Precio por minuto (S/.)
                     </label>
                     <input
@@ -189,11 +191,11 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                         videocallPrice: Number(e.target.value)
                       }))}
                       min="1"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
                     />
                   </div>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <ToggleSwitch
                       label="Permitir audio"
                       enabled={settings.videocallSettings.audioEnabled}
@@ -222,7 +224,7 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                   </div>
                   
                   <div>
-                    <label className="text-xs font-medium text-slate-600 mb-2 block">
+                    <label className="text-[10px] font-medium text-slate-500 mb-1 block">
                       Duración máxima (minutos)
                     </label>
                     <input
@@ -237,7 +239,7 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                       }))}
                       min="5"
                       max="60"
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
                     />
                   </div>
                 </div>
@@ -247,12 +249,12 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
 
           {/* Propinas */}
           <section>
-            <div className="flex items-center gap-2 mb-4">
-              <DollarSign className="w-4 h-4 text-slate-600" />
-              <h3 className="font-semibold text-slate-700 text-sm">Propinas</h3>
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <DollarSign className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+              <h3 className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide">Propinas</h3>
             </div>
             
-            <div className="pl-6 space-y-3">
+            <div className="ml-5 space-y-2">
               <ToggleSwitch
                 label="Permitir propinas anónimas"
                 description="Los suscriptores pueden enviar propinas sin mostrar su nombre"
@@ -261,7 +263,7 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
               />
               
               <div>
-                <label className="text-xs font-medium text-slate-600 mb-2 block">
+                <label className="text-[10px] font-medium text-slate-500 mb-1 block">
                   Monto mínimo de propina (S/.)
                 </label>
                 <input
@@ -272,25 +274,25 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
                     minTipAmount: Number(e.target.value)
                   }))}
                   min="1"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-slate-400"
                 />
               </div>
             </div>
           </section>
         </div>
 
-        {/* Footer con botones */}
-        <div className="px-6 py-4 border-t border-slate-200 flex gap-3">
+        {/* Footer */}
+        <div className="px-3 py-2.5 border-t border-slate-100 flex gap-2 bg-slate-50">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition"
+            className="flex-1 px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg font-medium text-xs transition"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-xl font-semibold text-sm transition shadow-md hover:shadow-lg disabled:shadow-none"
+            className="flex-1 px-3 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:from-slate-300 disabled:to-slate-300 text-white rounded-lg font-medium text-xs transition shadow-sm"
           >
             {isSaving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
@@ -298,9 +300,11 @@ export const QuickSettingsPanel = ({ onClose }: QuickSettingsPanelProps) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
-// Componente Toggle Switch Reutilizable
+// Componente Toggle Switch Compacto
 interface ToggleSwitchProps {
   label: string;
   enabled: boolean;
@@ -321,21 +325,21 @@ const ToggleSwitch = ({
   className = ''
 }: ToggleSwitchProps) => {
   return (
-    <div className={`flex items-start gap-3 ${className}`}>
+    <div className={`flex items-start gap-2 ${className}`}>
       {icon && (
-        <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-600 flex-shrink-0">
+        <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center text-slate-500 flex-shrink-0 mt-0.5">
           {icon}
         </div>
       )}
       
       <div className="flex-1 min-w-0">
         <label className="flex items-center justify-between cursor-pointer">
-          <div className="flex-1 min-w-0 mr-3">
-            <span className={`font-medium text-slate-700 block ${size === 'sm' ? 'text-xs' : 'text-sm'}`}>
+          <div className="flex-1 min-w-0 mr-2">
+            <span className={`font-medium text-slate-700 block ${size === 'sm' ? 'text-[10px]' : 'text-xs'}`}>
               {label}
             </span>
             {description && (
-              <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{description}</p>
             )}
           </div>
           
@@ -343,13 +347,13 @@ const ToggleSwitch = ({
             type="button"
             onClick={onChange}
             className={`relative inline-flex items-center rounded-full transition flex-shrink-0 ${
-              size === 'sm' ? 'h-5 w-9' : 'h-6 w-11'
-            } ${enabled ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-slate-300'}`}
+              size === 'sm' ? 'h-4 w-7' : 'h-5 w-9'
+            } ${enabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
           >
             <span
-              className={`inline-block transform rounded-full bg-white transition ${
-                size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'
-              } ${enabled ? (size === 'sm' ? 'translate-x-5' : 'translate-x-6') : 'translate-x-1'}`}
+              className={`inline-block transform rounded-full bg-white shadow transition ${
+                size === 'sm' ? 'h-2.5 w-2.5' : 'h-3.5 w-3.5'
+              } ${enabled ? (size === 'sm' ? 'translate-x-4' : 'translate-x-5') : 'translate-x-0.5'}`}
             />
           </button>
         </label>

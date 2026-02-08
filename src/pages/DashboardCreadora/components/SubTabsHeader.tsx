@@ -4,6 +4,7 @@ export interface SubTab {
   id: string;
   label: string;
   icon: LucideIcon;
+  count?: number;
 }
 
 interface SubTabsHeaderProps {
@@ -14,8 +15,8 @@ interface SubTabsHeaderProps {
 
 export const SubTabsHeader = ({ tabs, activeTab, onTabChange }: SubTabsHeaderProps) => {
   return (
-    <div className="flex-shrink-0 bg-white border-b border-slate-200">
-      <div className="flex border-b border-slate-200 px-6 overflow-x-auto">
+    <div className="flex-shrink-0 bg-white border-b border-stone-200/60">
+      <div className="flex px-4 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -25,19 +26,36 @@ export const SubTabsHeader = ({ tabs, activeTab, onTabChange }: SubTabsHeaderPro
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`
-                relative flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors whitespace-nowrap
+                relative flex items-center gap-2 px-5 py-4 text-sm font-medium transition-all duration-200 whitespace-nowrap
                 ${isActive 
-                  ? 'text-pink-600' 
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'text-rose-600' 
+                  : 'text-stone-500 hover:text-stone-700'
                 }
               `}
             >
-              <Icon className="w-4 h-4" />
-              {tab.label}
+              <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-rose-500' : ''}`} />
+              <span>{tab.label}</span>
               
-              {isActive && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600" />
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className={`
+                  ml-1.5 px-2 py-0.5 text-[10px] font-semibold rounded-full transition-colors
+                  ${isActive 
+                    ? 'bg-rose-100 text-rose-600' 
+                    : 'bg-stone-100 text-stone-500'
+                  }
+                `}>
+                  {tab.count}
+                </span>
               )}
+              
+              {/* Active indicator - elegant gold/rose gradient line */}
+              <div className={`
+                absolute bottom-0 left-2 right-2 h-0.5 rounded-full transition-all duration-300
+                ${isActive 
+                  ? 'bg-gradient-to-r from-rose-400 to-amber-400 opacity-100' 
+                  : 'opacity-0'
+                }
+              `} />
             </button>
           );
         })}

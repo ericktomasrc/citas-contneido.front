@@ -1,6 +1,7 @@
 // src/features/chat/components/Reports/SentTipsModal.tsx
-// ✅ Modal para ESPECTADOR - Propinas enviadas
+// ✅ CORREGIDO: Usa React Portal para overlay en toda la pantalla
 
+import { createPortal } from 'react-dom';
 import { X, DollarSign } from 'lucide-react';
 
 interface SentTipsModalProps {
@@ -8,7 +9,6 @@ interface SentTipsModalProps {
 }
 
 export const SentTipsModal = ({ onClose }: SentTipsModalProps) => {
-  // Mock data
   const sentTips = {
     total: 520,
     count: 15,
@@ -24,52 +24,55 @@ export const SentTipsModal = ({ onClose }: SentTipsModalProps) => {
     ],
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-3"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4 border-b border-emerald-100">
+        <div className="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-slate-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+                <DollarSign className="w-4 h-4 text-white" strokeWidth={2} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-800">Propinas Enviadas</h3>
-                <p className="text-sm text-slate-500">Tu historial</p>
+                <h3 className="text-sm font-semibold text-slate-800">Propinas Enviadas</h3>
+                <p className="text-[10px] text-slate-400">Tu historial</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg hover:bg-white/50 flex items-center justify-center transition"
+              className="w-6 h-6 rounded-md hover:bg-slate-200/60 flex items-center justify-center transition"
             >
-              <X className="w-5 h-5 text-slate-600" />
+              <X className="w-4 h-4 text-slate-500" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 max-h-[500px] overflow-y-auto">
+        <div className="p-3 space-y-3 max-h-[320px] overflow-y-auto">
           {/* Stats */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-100">
-              <p className="text-sm text-violet-600 font-medium mb-1">Total Enviado</p>
-              <p className="text-2xl font-bold text-violet-700">S/. {sentTips.total}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <p className="text-[10px] text-slate-500 font-medium mb-0.5">Total Enviado</p>
+              <p className="text-lg font-bold text-slate-700">S/. {sentTips.total}</p>
             </div>
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-100">
-              <p className="text-sm text-emerald-600 font-medium mb-1">Propinas Enviadas</p>
-              <p className="text-2xl font-bold text-emerald-700">{sentTips.count}</p>
+            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+              <p className="text-[10px] text-slate-500 font-medium mb-0.5">Propinas</p>
+              <p className="text-lg font-bold text-slate-700">{sentTips.count}</p>
             </div>
           </div>
 
           {/* Top Recipients */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3">Principales Destinatarias</h4>
-            <div className="space-y-2">
+            <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Principales</h4>
+            <div className="space-y-1.5">
               {sentTips.recipients.map((recipient, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                  <p className="text-sm font-medium text-slate-800">{recipient.name}</p>
-                  <span className="text-sm font-semibold text-emerald-600">S/. {recipient.amount}</span>
+                <div key={index} className="flex items-center justify-between py-1.5 px-2.5 bg-slate-50/80 rounded-lg">
+                  <p className="text-xs font-medium text-slate-700">{recipient.name}</p>
+                  <span className="text-xs font-semibold text-emerald-600">S/. {recipient.amount}</span>
                 </div>
               ))}
             </div>
@@ -77,18 +80,18 @@ export const SentTipsModal = ({ onClose }: SentTipsModalProps) => {
 
           {/* Recent Tips */}
           <div>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3">Propinas Recientes</h4>
-            <div className="space-y-2">
+            <h4 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Recientes</h4>
+            <div className="space-y-1.5">
               {sentTips.recent.map((tip) => (
-                <div key={tip.id} className="p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-sm font-medium text-slate-800">{tip.recipient}</p>
-                    <span className="text-sm font-semibold text-emerald-600">S/. {tip.amount}</span>
+                <div key={tip.id} className="py-1.5 px-2.5 bg-slate-50/80 rounded-lg">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <p className="text-xs font-medium text-slate-700">{tip.recipient}</p>
+                    <span className="text-xs font-semibold text-emerald-600">S/. {tip.amount}</span>
                   </div>
                   {tip.message && (
-                    <p className="text-xs text-slate-500 italic">"{tip.message}"</p>
+                    <p className="text-[10px] text-slate-400 italic">"{tip.message}"</p>
                   )}
-                  <p className="text-xs text-slate-400 mt-1">{tip.time}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{tip.time}</p>
                 </div>
               ))}
             </div>
@@ -96,10 +99,10 @@ export const SentTipsModal = ({ onClose }: SentTipsModalProps) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200">
+        <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-100">
           <button
             onClick={onClose}
-            className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-semibold text-sm transition"
+            className="w-full py-2 bg-slate-200 hover:bg-slate-300 text-slate-600 rounded-lg font-medium text-xs transition"
           >
             Cerrar
           </button>
@@ -107,4 +110,6 @@ export const SentTipsModal = ({ onClose }: SentTipsModalProps) => {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

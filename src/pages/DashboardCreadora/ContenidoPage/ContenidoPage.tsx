@@ -1,5 +1,8 @@
+// src/pages/DashboardCreadora/ContenidoPage/ContenidoPage.tsx
+// ✅ MEJORADO: Elementos más pequeños, colores ORIGINALES mantenidos
+
 import { useState } from 'react';
-import { Image, Video, Package, Camera, AlertCircle, Info, AlertTriangle, Sparkles } from 'lucide-react';
+import { Image, Video, Package, Camera, Sparkles } from 'lucide-react';
 import { CONTENIDO_CONFIG } from '../../../components/Common/config/config';
 import { TabContenido } from '../../../components/DashboardCreadora/Tabs/Contenido/TabContenido';
 import { TabPacks } from '../../../components/DashboardCreadora/Tabs/Contenido/TabPacks';
@@ -9,7 +12,6 @@ type TipoTab = 'fotos' | 'videos' | 'packs';
 export const ContenidoPage = () => {
   const [tabActivo, setTabActivo] = useState<TipoTab>('fotos');
 
-  // Mock data del usuario
   const currentUser = {
     nombre: 'María García',
     avatar: 'https://i.pravatar.cc/150?img=5',
@@ -23,38 +25,38 @@ export const ContenidoPage = () => {
 
   return (
     <>
-      {/* Header con Avatar + Info + Tabs */}
-      <div className="bg-white border-b border-gray-200 -mx-6 -mt-6 mb-6">
-        {/* DIV 1: Avatar + Nombre */}
-        <div className="border-b border-gray-100 py-3 px-6">
+      {/* Header compacto */}
+      <div className="bg-white border-b border-gray-200 -mx-3 -mt-3 mb-4 md:-mx-4 md:-mt-4">
+        {/* Avatar + Nombre */}
+        <div className="border-b border-gray-100 py-2.5 px-3 md:px-4">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center gap-3">
-              {/* Foto de perfil circular */}
-              <div className="relative group">
-                <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md">
+            <div className="flex items-center gap-2.5">
+              {/* Avatar compacto */}
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
                   <img
                     src={currentUser.avatar}
                     alt="Foto de perfil"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <button className="absolute bottom-0 right-0 w-6 h-6 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center shadow-md hover:from-pink-600 hover:to-rose-600 transition-all">
-                  <Camera className="w-3 h-3 text-white" />
+                <button className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center shadow-sm hover:from-pink-600 hover:to-rose-600 transition-all">
+                  <Camera className="w-2.5 h-2.5 text-white" strokeWidth={2} />
                 </button>
               </div>
 
-              <div>
-                <h1 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                   {currentUser.nombre}
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
-                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-500 text-white text-[9px] font-bold rounded-full">
+                    <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     Verificado
                   </span>
                 </h1>
-                <p className="text-xs text-rose-600 font-semibold flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
+                <p className="text-[10px] text-rose-600 font-semibold flex items-center gap-1 mt-0.5">
+                  <Sparkles className="w-3 h-3" strokeWidth={2} />
                   Sube tu contenido inicial para empezar a recibir suscriptores
                 </p>
               </div>
@@ -62,8 +64,8 @@ export const ContenidoPage = () => {
           </div>
         </div>
 
-        {/* DIV 2: Tabs de navegación */}
-        <div className="px-6">
+        {/* Tabs de navegación compactos */}
+        <div className="px-3 md:px-4">
           <div className="max-w-7xl mx-auto">
             <div className="flex overflow-x-auto scrollbar-hide gap-0.5">
               {tabs.map((tab) => {
@@ -74,12 +76,15 @@ export const ContenidoPage = () => {
                   <button
                     key={tab.id}
                     onClick={() => setTabActivo(tab.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 border-b-2 transition-all whitespace-nowrap text-xs ${isActive
+                    className={`
+                      flex items-center gap-1 px-2.5 py-2 border-b-2 transition-all whitespace-nowrap text-[11px] font-medium
+                      ${isActive
                         ? 'border-pink-500 text-pink-600 font-semibold'
                         : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                      }`}
+                      }
+                    `}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3.5 h-3.5" strokeWidth={isActive ? 2 : 1.75} />
                     {tab.label}
                   </button>
                 );
@@ -89,7 +94,7 @@ export const ContenidoPage = () => {
         </div>
       </div>
 
-      {/* Contenido del Tab - CENTRADO */}
+      {/* Contenido del Tab */}
       <div className="max-w-7xl mx-auto">
         <div style={{ display: tabActivo === 'fotos' ? 'block' : 'none' }}>
           <TabContenido

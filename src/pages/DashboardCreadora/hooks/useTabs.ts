@@ -11,8 +11,8 @@ export type SubTabType = 'invitaciones' | 'resumen';
 export const useTabs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) || 'invitaciones';
-  const subTabFromUrl = (searchParams.get('subtab') as SubTabType) || 'invitaciones';
+  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) ;
+  const subTabFromUrl = (searchParams.get('subtab') as SubTabType) ;
 
   const [activeTab, setActiveTab] = useState<TabTypeMenu>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabType>(subTabFromUrl);
@@ -20,7 +20,7 @@ export const useTabs = () => {
   useEffect(() => {
     const params: Record<string, string> = { tab: activeTab };
 
-    if (activeTab === 'resumen' || activeTab === 'invitaciones') {
+    if (activeTab === 'resumen' ) {
       params.subtab = activeSubTab;
     }
 
@@ -40,7 +40,7 @@ export const useTabs = () => {
     // if (tab === 'invitaciones' || tab === 'miactividad' || tab === 'resumen') {
     //   setActiveSubTab(tab as SubTabType);
     // }
-     if (tab === 'invitaciones'  || tab === 'resumen') {
+     if ( tab === 'resumen') {
       setActiveSubTab(tab as SubTabType);
     }
   };
