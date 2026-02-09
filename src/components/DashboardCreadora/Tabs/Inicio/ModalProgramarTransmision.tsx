@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, X, Clock, ArrowRight, ArrowLeft, Check, ChevronLeft, ChevronRight, AlertCircle, TrendingUp, Search } from 'lucide-react';
+import { Toast } from '../../Modal/Toast';
+import { useToast } from '../../hooks/useToast';
 
 interface Reto {
     id: string;
@@ -46,10 +48,11 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
         ideaSeleccionada: ''
     });
     const [mesActual, setMesActual] = useState(new Date());
-    const [showErrorToast, setShowErrorToast] = useState(false);
     const [busquedaIdea, setBusquedaIdea] = useState('');
     const [filtroOrigen, setFiltroOrigen] = useState<'todos' | 'suscriptor' | 'creadora'>('todos');
     const [ordenamiento, setOrdenamiento] = useState<'votos' | 'reciente'>('votos');
+
+    const { showToast, toastMessage, toastType, toast, closeToast } = useToast();
 
     const hoy = useMemo(() => {
         const date = new Date();
@@ -90,12 +93,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
         return dias[fecha.getDay()] + ' ' + fecha.getDate() + ' ' + nombresMeses[fecha.getMonth()];
     };
 
-    const mostrarError = () => {
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-    };
-
-    // Función para destacar texto buscado
     const highlightText = (text: string, search: string) => {
         if (!search.trim()) return text;
 
@@ -140,16 +137,13 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
         return horas;
     }, [nuevaProg.fecha, hoy]);
 
-    // Filtrado inteligente de ideas
     const ideasFiltradas = useMemo(() => {
         let ideas = ideasLive.filter(i => i.estado === 'activo');
 
-        // Filtro por origen
         if (filtroOrigen !== 'todos') {
             ideas = ideas.filter(i => i.creadoPor === filtroOrigen);
         }
 
-        // Búsqueda por palabras
         if (busquedaIdea.trim()) {
             const terminos = busquedaIdea.toLowerCase().split(' ');
             ideas = ideas.filter(i =>
@@ -159,7 +153,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
             );
         }
 
-        // Ordenamiento
         if (ordenamiento === 'votos') {
             ideas.sort((a, b) => b.votos - a.votos);
         } else {
@@ -188,7 +181,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
             precio: 15,
             ideaSeleccionada: ''
         });
-        setShowErrorToast(false);
         setBusquedaIdea('');
         setFiltroOrigen('todos');
         setOrdenamiento('votos');
@@ -217,24 +209,22 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
 
     return createPortal(
         <div
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/20 flex items-center justify-center p-4"
             style={{ zIndex: 99999 }}
             onClick={resetModal}
         >
+              <Toast 
+        message={toastMessage}
+        type={toastType}
+        show={showToast}
+        onClose={closeToast}
+        position="top"
+        duration={3000}
+    />
             <div
                 className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
                 onClick={e => e.stopPropagation()}
-            >
-                {showErrorToast && (
-                    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100000] animate-in slide-in-from-top">
-                        <div className="bg-gradient-to-r from-red-500 to-rose-500 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3">
-                            <AlertCircle className="w-5 h-5" />
-                            <p className="text-[12px] font-semibold">⚠️ No puedes elegir una hora pasada</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Header Premium */}
+            > 
                 <div className="px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -254,7 +244,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                         </button>
                     </div>
 
-                    {/* Progress Bar */}
                     <div className="flex gap-1">
                         {[1, 2, 3, 4].map((num) => (
                             <div
@@ -266,9 +255,7 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                     </div>
                 </div>
 
-                {/* Body */}
                 <div className="p-5" style={{ minHeight: '380px' }}>
-                    {/* PASO 1: Título CON BÚSQUEDA Y FILTROS */}
                     {paso === 1 && (
                         <div className="space-y-4">
                             <div className="text-center mb-4">
@@ -288,7 +275,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                                         </span>
                                     </div>
 
-                                    {/* BUSCADOR */}
                                     <div className="relative mb-3">
                                         <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
@@ -308,7 +294,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                                         )}
                                     </div>
 
-                                    {/* FILTROS RÁPIDOS */}
                                     <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1">
                                         <button
                                             onClick={() => setFiltroOrigen('todos')}
@@ -345,7 +330,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                                         </button>
                                     </div>
 
-                                    {/* LISTA DE IDEAS */}
                                     <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 
                                         [&::-webkit-scrollbar]:w-1.5
                                         [&::-webkit-scrollbar-track]:bg-slate-100
@@ -417,7 +401,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                         </div>
                     )}
 
-                    {/* PASO 2: Fecha */}
                     {paso === 2 && (
                         <div className="space-y-4">
                             <div className="text-center mb-3">
@@ -489,7 +472,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                         </div>
                     )}
 
-                    {/* PASO 3: Hora */}
                     {paso === 3 && (
                         <div className="space-y-4">
                             <div className="text-center mb-3">
@@ -514,7 +496,7 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                                             const [horaInput, minutoInput] = horaSeleccionada.split(':').map(Number);
 
                                             if (horaInput < horaActual || (horaInput === horaActual && minutoInput <= minutoActual)) {
-                                                mostrarError();
+                                                toast('No puedes elegir una hora pasada', 'error');
                                                 return;
                                             }
                                         }
@@ -551,7 +533,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                         </div>
                     )}
 
-                    {/* PASO 4: Tipo */}
                     {paso === 4 && (
                         <div className="space-y-4">
                             <div className="text-center mb-3">
@@ -650,7 +631,6 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                     )}
                 </div>
 
-                {/* Footer con Gradiente */}
                 <div className="px-5 py-3 bg-slate-50 flex justify-between">
                     <button
                         onClick={anteriorPaso}

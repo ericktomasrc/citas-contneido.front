@@ -91,7 +91,7 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
   const handleEliminarReto = (retoId: string) => setRetos(prev => prev.filter(r => r.id !== retoId));
   const handleCrearIdeaLive = () => { if (!nuevaIdeaLive.trim()) return; setIdeasLive(prev => [{ id: Date.now().toString(), descripcion: nuevaIdeaLive, votos: 0, estado: 'activo', creadoPor: 'creadora', fechaCreacion: new Date() }, ...prev]); setNuevaIdeaLive(''); };
   const handleEliminarIdeaLive = (ideaId: string) => setIdeasLive(prev => prev.filter(i => i.id !== ideaId));
-  
+
   const handleCrearProgramacion = (nuevaProg: { titulo: string; fecha: Date | null; hora: string; tipo: 'gratis' | 'suscriptores' | 'ppv'; precio: number; ideaSeleccionada: string }) => {
     if (!nuevaProg.titulo.trim() || !nuevaProg.fecha || !nuevaProg.hora) return;
     const prog: Programacion = {
@@ -148,31 +148,451 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
       </div>
 
       {/* PANEL EN VIVO */}
-      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8999] ' + (panelProgramacionAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}><div className="h-full flex flex-col"><div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between"><h3 className="text-base font-bold text-slate-700 flex items-center gap-2"><Radio className="w-5 h-5 text-red-500" />EN VIVO</h3><button onClick={() => setPanelProgramacionAbierto(false)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all text-slate-500"><X className="w-4 h-4" /></button></div><div className="flex-1 overflow-y-auto p-4"><div className="flex items-center justify-between mb-3"><h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2"><CalendarIcon className="w-4 h-4 text-red-500" />Gestión de transmisiones</h4><button onClick={() => setPanelProgramacionAbierto(false)} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"><X className="w-3.5 h-3.5" /></button></div>
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <button
-            onClick={() => setShowModalProgramacion(true)}
-            className="px-2.5 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg text-[10px] font-bold hover:from-red-600 hover:to-rose-700 transition-all flex flex-col items-center justify-center gap-1 shadow-sm"
-          >
-            <CalendarIcon className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Programar transmisión</span>
-          </button>
-          <button
-            onClick={() => setShowTipoTransmisionModal(true)}
-            disabled={isTransmisionActive}
-            className={'px-2.5 py-2 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition-all shadow-sm ' + (isTransmisionActive ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700')}
-          >
-            <Radio className="w-3.5 h-3.5" />
-            <span className="text-[9px]">Iniciar Transmisión</span>
-          </button>
+      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8999] ' + (panelProgramacionAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
+        <div className="h-full flex flex-col">
+          {/* Header sin botón X */}
+          <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
+            <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
+              <Radio className="w-5 h-5 text-red-500" />
+              EN VIVO
+            </h3>
+          </div>
+
+          {/* Contenido scrolleable */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* Título con botón X - PREMIUM */}
+            <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-red-50/40 to-rose-50/40 rounded-xl border border-red-100/50">
+              <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4 text-red-500" />
+                Gestión de transmisiones
+              </h4>
+              <button
+                onClick={() => setPanelProgramacionAbierto(false)}
+                className="w-6 h-6 rounded-lg bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all text-white shadow-sm flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                onClick={() => setShowModalProgramacion(true)}
+                className="px-2.5 py-2 bg-gradient-to-r from-red-500 to-rose-600 text-white rounded-lg text-[10px] font-bold hover:from-red-600 hover:to-rose-700 transition-all flex flex-col items-center justify-center gap-1 shadow-sm"
+              >
+                <CalendarIcon className="w-3.5 h-3.5" />
+                <span className="text-[9px]">Programar transmisión</span>
+              </button>
+              <button
+                onClick={() => setShowTipoTransmisionModal(true)}
+                disabled={isTransmisionActive}
+                className={'px-2.5 py-2 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition-all shadow-sm ' + (isTransmisionActive ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700')}
+              >
+                <Radio className="w-3.5 h-3.5" />
+                <span className="text-[9px]">Iniciar Transmisión</span>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-slate-500 font-semibold mb-3">
+              📅 Próximas transmisiones ({programaciones.length})
+            </p>
+
+            {/* Lista con scroll independiente */}
+            <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+              {programaciones.length === 0 ? (
+                <p className="text-[10px] text-slate-400 text-center py-4">
+                  No hay transmisiones programadas
+                </p>
+              ) : (
+                programaciones.map(prog => (
+                  <div key={prog.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-300 transition-all group">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-[11px] font-semibold text-slate-700">{prog.titulo}</p>
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                          <Clock className="w-3 h-3" />
+                          {formatFecha(prog.fecha)} - {prog.hora}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={'text-[8px] px-2 py-1 rounded-full font-bold ' +
+                          (prog.tipo === 'gratis' ? 'bg-emerald-50 text-emerald-600' :
+                            prog.tipo === 'suscriptores' ? 'bg-fuchsia-50 text-fuchsia-600' :
+                              'bg-amber-50 text-amber-600')}>
+                          {prog.tipo === 'gratis' ? 'PÚBLICO' : prog.tipo === 'suscriptores' ? 'SUBS' : 'PPV'}
+                        </span>
+                        <button
+                          onClick={() => handleEliminarProgramacion(prog.id)}
+                          className="w-6 h-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
-        <p className="text-[10px] text-slate-500 font-semibold mb-3">📅 Próximas transmisiones ({programaciones.length})</p><div className="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto">{programaciones.length === 0 ? <p className="text-[10px] text-slate-400 text-center py-4">No hay transmisiones programadas</p> : programaciones.map(prog => (<div key={prog.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-300 transition-all group"><div className="flex items-start justify-between"><div className="flex-1"><p className="text-[11px] font-semibold text-slate-700">{prog.titulo}</p><p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3" />{formatFecha(prog.fecha)} - {prog.hora}</p></div><div className="flex items-center gap-1"><span className={'text-[8px] px-2 py-1 rounded-full font-bold ' + (prog.tipo === 'gratis' ? 'bg-emerald-50 text-emerald-600' : prog.tipo === 'suscriptores' ? 'bg-fuchsia-50 text-fuchsia-600' : 'bg-amber-50 text-amber-600')}>{prog.tipo === 'gratis' ? 'PÚBLICO' : prog.tipo === 'suscriptores' ? 'SUBS' : 'PPV'}</span><button onClick={() => handleEliminarProgramacion(prog.id)} className="w-6 h-6 rounded-full bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><Trash className="w-3 h-3" /></button></div></div></div>))}</div><button onClick={() => setPanelProgramacionAbierto(false)} className="w-full mt-4 px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-semibold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"><X className="w-3.5 h-3.5" />Cerrar panel</button></div></div></div>
+      </div>
 
       {/* PANEL CONTENIDO SUGERIDO */}
-      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8998] ' + (panelRetosAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}><div className="h-full flex flex-col"><div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between"><h3 className="text-base font-bold text-slate-700 flex items-center gap-2"><Lightbulb className="w-5 h-5 text-rose-400" />Contenido Sugerido</h3><button onClick={() => setPanelRetosAbierto(false)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all text-slate-500"><X className="w-4 h-4" /></button></div><div className="flex-1 overflow-y-auto p-4"><div className="flex items-center justify-between mb-3"><h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2"><Lightbulb className="w-4 h-4 text-rose-400" />Configuración de sugerencias para contenido</h4><button onClick={() => setPanelRetosAbierto(false)} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"><X className="w-3.5 h-3.5" /></button></div><div className="mb-4"><p className="text-[10px] text-slate-500 mb-2 font-medium">¿Quién sugiere el contenido?</p><div className="grid grid-cols-3 gap-2"><button onClick={() => setModoRetos('creadora')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoRetos === 'creadora' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><User className="w-4 h-4" />Yo</button><button onClick={() => setModoRetos('suscriptores')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoRetos === 'suscriptores' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><Users className="w-4 h-4" />Subs</button><button onClick={() => setModoRetos('mixto')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoRetos === 'mixto' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><Shuffle className="w-4 h-4" />Mixto</button></div></div>{(modoRetos === 'creadora' || modoRetos === 'mixto') && (<div className="flex gap-2 mb-4"><input type="text" placeholder="Escribe una sugerencia..." value={nuevoReto} onChange={e => setNuevoReto(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleCrearReto()} className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:border-rose-300" /><button onClick={handleCrearReto} disabled={!nuevoReto.trim()} className="px-4 py-2.5 bg-rose-400 text-white rounded-lg disabled:bg-slate-300 hover:bg-rose-500 transition-all"><Plus className="w-4 h-4" /></button></div>)}<p className="text-[9px] text-slate-400 mb-3 italic">{modoRetos === 'creadora' ? '👆 Tú propones ideas, tus suscriptores votan' : modoRetos === 'suscriptores' ? '👥 Tus suscriptores proponen y votan las ideas' : '🤝 Ambos pueden proponer, todos votan'}</p><h4 className="text-[11px] font-bold text-slate-700 mb-3 flex items-center gap-2"><Vote className="w-4 h-4 text-rose-400" />Ideas de la comunidad</h4><div className="space-y-2"><p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between"><span>💡 Ideas activas ({retosActuales.length})</span><span className="text-rose-400">Por votos</span></p>{retosActuales.length === 0 ? <p className="text-[10px] text-slate-400 text-center py-4">No hay sugerencias activas</p> : retosActuales.map((reto, index) => (<div key={reto.id} className={'p-3 rounded-xl border transition-all group ' + (index === 0 ? 'bg-gradient-to-r from-rose-50/80 to-pink-50/80 border-rose-200' : 'bg-white border-slate-100 hover:border-rose-200')}><div className="flex items-start gap-2"><div className="flex-1"><div className="flex items-center gap-2">{index === 0 && <span className="text-[9px] px-2 py-0.5 bg-rose-400 text-white rounded-full font-bold">🔥 TOP</span>}{reto.creadoPor === 'suscriptor' && reto.creador && <span className="text-[9px] text-slate-400">por {reto.creador.nombre}</span>}</div><p className="text-[11px] text-slate-700 mt-1">{reto.descripcion}</p><span className="text-[10px] text-rose-500 font-semibold flex items-center gap-1 mt-1"><Vote className="w-3.5 h-3.5" />{reto.votos} votos</span></div><div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all"><button onClick={() => handleCompletarReto(reto.id)} className="w-7 h-7 rounded-full bg-emerald-50 text-emerald-500 hover:bg-emerald-100 flex items-center justify-center" title="Hecho"><Check className="w-3.5 h-3.5" /></button><button onClick={() => handleEliminarReto(reto.id)} className="w-7 h-7 rounded-full bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center" title="Eliminar"><Trash className="w-3.5 h-3.5" /></button></div></div></div>))}{retosCompletados.length > 0 && (<><p className="text-[10px] text-emerald-600 font-semibold mt-4">✓ Completados ({retosCompletados.length})</p>{retosCompletados.slice(0, 3).map(reto => (<div key={reto.id} className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-100"><p className="text-[10px] text-slate-500 line-through">{reto.descripcion}</p></div>))}</>)}</div><p className="text-[9px] text-slate-400 mt-4 text-center bg-slate-50 p-2.5 rounded-lg">💡 Los votos son solo una guía. Tú decides qué contenido crear.</p><button onClick={() => setPanelRetosAbierto(false)} className="w-full mt-4 px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-semibold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"><X className="w-3.5 h-3.5" />Cerrar panel</button></div></div></div>
+      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8998] ' + (panelRetosAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
+        <div className="h-full flex flex-col">
+          {/* Header sin botón X */}
+          <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
+            <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-rose-400" />
+              Contenido Sugerido
+            </h3>
+          </div>
 
-      {/* PANEL IDEAS PARA LIVE */}
-      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8997] ' + (panelIdeasLiveAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}><div className="h-full flex flex-col"><div className="p-4 bg-white border-b border-slate-100 flex items-center justify-between"><h3 className="text-base font-bold text-slate-700 flex items-center gap-2"><Radio className="w-5 h-5 text-amber-500" />Ideas para Live</h3><button onClick={() => setPanelIdeasLiveAbierto(false)} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all text-slate-500"><X className="w-4 h-4" /></button></div><div className="flex-1 overflow-y-auto p-4"><div className="flex items-center justify-between mb-3"><h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2"><Radio className="w-4 h-4 text-amber-500" />Configuración de ideas para lives</h4><button onClick={() => setPanelIdeasLiveAbierto(false)} className="w-6 h-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"><X className="w-3.5 h-3.5" /></button></div><div className="mb-4"><p className="text-[10px] text-slate-500 mb-2 font-medium">¿Quién sugiere ideas para live?</p><div className="grid grid-cols-3 gap-2"><button onClick={() => setModoIdeasLive('creadora')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoIdeasLive === 'creadora' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><User className="w-4 h-4" />Yo</button><button onClick={() => setModoIdeasLive('suscriptores')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoIdeasLive === 'suscriptores' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><Users className="w-4 h-4" />Subs</button><button onClick={() => setModoIdeasLive('mixto')} className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' + (modoIdeasLive === 'mixto' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}><Shuffle className="w-4 h-4" />Mixto</button></div></div>{(modoIdeasLive === 'creadora' || modoIdeasLive === 'mixto') && (<div className="flex gap-2 mb-4"><input type="text" placeholder="Escribe una idea para live..." value={nuevaIdeaLive} onChange={e => setNuevaIdeaLive(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleCrearIdeaLive()} className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] focus:outline-none focus:border-amber-300" /><button onClick={handleCrearIdeaLive} disabled={!nuevaIdeaLive.trim()} className="px-4 py-2.5 bg-amber-400 text-white rounded-lg disabled:bg-slate-300 hover:bg-amber-500 transition-all"><Plus className="w-4 h-4" /></button></div>)}<p className="text-[9px] text-slate-400 mb-3 italic">{modoIdeasLive === 'creadora' ? '👆 Tú propones ideas, tus suscriptores votan' : modoIdeasLive === 'suscriptores' ? '👥 Tus suscriptores proponen y votan' : '🤝 Ambos pueden proponer, todos votan'}</p><h4 className="text-[11px] font-bold text-slate-700 mb-3 flex items-center gap-2"><Vote className="w-4 h-4 text-amber-500" />Ideas de la comunidad</h4><div className="space-y-2"><p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between"><span>🎯 Ideas activas ({ideasLive.filter(i => i.estado === 'activo').length})</span><span className="text-amber-500">Por votos</span></p>{ideasLive.filter(i => i.estado === 'activo').length === 0 ? <p className="text-[10px] text-slate-400 text-center py-4">No hay ideas para live aún</p> : ideasLive.filter(i => i.estado === 'activo').sort((a, b) => b.votos - a.votos).map((idea, index) => (<div key={idea.id} className={'p-3 rounded-xl border transition-all group ' + (index === 0 ? 'bg-gradient-to-r from-amber-50/80 to-orange-50/80 border-amber-200' : 'bg-white border-slate-100 hover:border-amber-200')}><div className="flex items-start gap-2"><div className="flex-1"><div className="flex items-center gap-2">{index === 0 && <span className="text-[9px] px-2 py-0.5 bg-amber-400 text-white rounded-full font-bold">🔥 TOP</span>}{idea.creadoPor === 'suscriptor' && idea.creador && <span className="text-[9px] text-slate-400">por {idea.creador.nombre}</span>}</div><p className="text-[11px] text-slate-700 mt-1">{idea.descripcion}</p><span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1"><Vote className="w-3.5 h-3.5" />{idea.votos} votos</span></div><button onClick={() => handleEliminarIdeaLive(idea.id)} className="w-7 h-7 rounded-full bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" title="Eliminar"><Trash className="w-3.5 h-3.5" /></button></div></div>))}</div><p className="text-[9px] text-slate-400 mt-4 text-center bg-slate-50 p-2.5 rounded-lg">🎯 Las ideas más votadas te guían para tu próximo live.</p><button onClick={() => setPanelIdeasLiveAbierto(false)} className="w-full mt-4 px-4 py-2.5 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-semibold hover:bg-slate-200 transition-all flex items-center justify-center gap-2"><X className="w-3.5 h-3.5" />Cerrar panel</button></div></div></div>
+          {/* Contenido scrolleable */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* Título con botón X - PREMIUM */}
+            <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-rose-50/40 to-pink-50/40 rounded-xl border border-rose-100/50">
+              <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-rose-400" />
+                Configuración de sugerencias
+              </h4>
+              <button
+                onClick={() => setPanelRetosAbierto(false)}
+                className="w-6 h-6 rounded-lg bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all text-white shadow-sm flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Modo de sugerencias CON BOTÓN DE NOTIFICACIÓN */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-slate-500 font-medium">¿Quién sugiere el contenido?</p>
+
+                {/* BOTÓN DINÁMICO SEGÚN MODO */}
+                <button
+                  onClick={() => {
+                    // Aquí envías la notificación a los suscriptores
+                    if (modoRetos === 'creadora') {
+                      console.log('Notificar: Solicitar votación');
+                    } else if (modoRetos === 'suscriptores') {
+                      console.log('Notificar: Solicitar ideas');
+                    } else {
+                      console.log('Notificar: Abrir participación');
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white rounded-lg text-[8px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                >
+                  {modoRetos === 'creadora' && (
+                    <>
+                      <Vote className="w-3 h-3" />
+                      Solicitar votación
+                    </>
+                  )}
+                  {modoRetos === 'suscriptores' && (
+                    <>
+                      <Lightbulb className="w-3 h-3" />
+                      Solicitar ideas
+                    </>
+                  )}
+                  {modoRetos === 'mixto' && (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      Abrir participación
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setModoRetos('creadora')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoRetos === 'creadora' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <User className="w-4 h-4" />
+                  Yo
+                </button>
+                <button
+                  onClick={() => setModoRetos('suscriptores')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoRetos === 'suscriptores' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <Users className="w-4 h-4" />
+                  Subs
+                </button>
+                <button
+                  onClick={() => setModoRetos('mixto')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoRetos === 'mixto' ? 'bg-rose-50 text-rose-600 border-2 border-rose-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <Shuffle className="w-4 h-4" />
+                  Mixto
+                </button>
+              </div>
+            </div>
+
+            {/* Input para crear reto - MÁS COMPACTO */}
+            {(modoRetos === 'creadora' || modoRetos === 'mixto') && (
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="Escribe una sugerencia..."
+                  value={nuevoReto}
+                  onChange={e => setNuevoReto(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleCrearReto()}
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:border-rose-300 focus:ring-1 focus:ring-rose-200"
+                />
+                <button
+                  onClick={handleCrearReto}
+                  disabled={!nuevoReto.trim()}
+                  className="w-8 h-8 bg-rose-400 text-white rounded-lg disabled:bg-slate-300 hover:bg-rose-500 transition-all flex items-center justify-center flex-shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <p className="text-[9px] text-slate-400 mb-3 italic">
+              {modoRetos === 'creadora' ? '👆 Tú propones ideas, tus suscriptores votan' :
+                modoRetos === 'suscriptores' ? '👥 Tus suscriptores proponen y votan las ideas' :
+                  '🤝 Ambos pueden proponer, todos votan'}
+            </p>
+
+            <h4 className="text-[11px] font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <Vote className="w-4 h-4 text-rose-400" />
+              Ideas de la comunidad
+            </h4>
+
+            {/* Lista con scroll independiente */}
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between">
+                <span>💡 Ideas activas ({retosActuales.length})</span>
+                <span className="text-rose-400">Por votos</span>
+              </p>
+
+              <div className="max-h-[calc(100vh-480px)] overflow-y-auto pr-1 space-y-2">
+                {retosActuales.length === 0 ? (
+                  <p className="text-[10px] text-slate-400 text-center py-4">No hay sugerencias activas</p>
+                ) : (
+                  retosActuales.map((reto, index) => (
+                    <div
+                      key={reto.id}
+                      className={'p-3 rounded-xl border transition-all group ' +
+                        (index === 0 ? 'bg-gradient-to-r from-rose-50/80 to-pink-50/80 border-rose-200' : 'bg-white border-slate-100 hover:border-rose-200')}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <span className="text-[9px] px-2 py-0.5 bg-rose-400 text-white rounded-full font-bold">🔥 TOP</span>}
+                            {reto.creadoPor === 'suscriptor' && reto.creador && (
+                              <span className="text-[9px] text-slate-400">por {reto.creador.nombre}</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-700 mt-1">{reto.descripcion}</p>
+                          <span className="text-[10px] text-rose-500 font-semibold flex items-center gap-1 mt-1">
+                            <Vote className="w-3.5 h-3.5" />
+                            {reto.votos} votos
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleEliminarReto(reto.id)}
+                          className="w-7 h-7 rounded-full bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <p className="text-[9px] text-slate-400 mt-4 text-center bg-slate-50 p-2.5 rounded-lg">
+              💡 Los votos son solo una guía. Tú decides qué contenido crear.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* PANEL IDEAS PARA LIVE - MISMO PATRÓN */}
+      <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8997] ' + (panelIdeasLiveAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
+        <div className="h-full flex flex-col">
+          {/* Header sin botón X */}
+          <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
+            <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
+              <Radio className="w-5 h-5 text-amber-500" />
+              Ideas para Live
+            </h3>
+          </div>
+
+          {/* Contenido scrolleable */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* Título con botón X - PREMIUM */}
+            <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-amber-50/40 to-orange-50/40 rounded-xl border border-amber-100/50">
+              <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
+                <Radio className="w-4 h-4 text-amber-500" />
+                Configuración de ideas
+              </h4>
+              <button
+                onClick={() => setPanelIdeasLiveAbierto(false)}
+                className="w-6 h-6 rounded-lg bg-red-500 hover:bg-red-600 flex items-center justify-center transition-all text-white shadow-sm flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Modo de ideas CON BOTÓN DE NOTIFICACIÓN */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-slate-500 font-medium">¿Quién sugiere ideas para live?</p>
+
+                {/* BOTÓN DINÁMICO SEGÚN MODO */}
+                <button
+                  onClick={() => {
+                    // Aquí envías la notificación a los suscriptores
+                    if (modoIdeasLive === 'creadora') {
+                      console.log('Notificar: Solicitar votación de ideas live');
+                    } else if (modoIdeasLive === 'suscriptores') {
+                      console.log('Notificar: Solicitar ideas para live');
+                    } else {
+                      console.log('Notificar: Abrir participación para live');
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-lg text-[8px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                >
+                  {modoIdeasLive === 'creadora' && (
+                    <>
+                      <Vote className="w-3 h-3" />
+                      Solicitar votación
+                    </>
+                  )}
+                  {modoIdeasLive === 'suscriptores' && (
+                    <>
+                      <Lightbulb className="w-3 h-3" />
+                      Solicitar ideas
+                    </>
+                  )}
+                  {modoIdeasLive === 'mixto' && (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      Abrir participación
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setModoIdeasLive('creadora')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoIdeasLive === 'creadora' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <User className="w-4 h-4" />
+                  Yo
+                </button>
+                <button
+                  onClick={() => setModoIdeasLive('suscriptores')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoIdeasLive === 'suscriptores' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <Users className="w-4 h-4" />
+                  Subs
+                </button>
+                <button
+                  onClick={() => setModoIdeasLive('mixto')}
+                  className={'px-3 py-2.5 rounded-lg text-[9px] font-semibold flex flex-col items-center gap-1 transition-all ' +
+                    (modoIdeasLive === 'mixto' ? 'bg-amber-50 text-amber-600 border-2 border-amber-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200')}
+                >
+                  <Shuffle className="w-4 h-4" />
+                  Mixto
+                </button>
+              </div>
+            </div>
+
+            {/* Input para crear idea - MÁS COMPACTO */}
+            {(modoIdeasLive === 'creadora' || modoIdeasLive === 'mixto') && (
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="Escribe una idea para live..."
+                  value={nuevaIdeaLive}
+                  onChange={e => setNuevaIdeaLive(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleCrearIdeaLive()}
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[10px] focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200"
+                />
+                <button
+                  onClick={handleCrearIdeaLive}
+                  disabled={!nuevaIdeaLive.trim()}
+                  className="w-8 h-8 bg-amber-400 text-white rounded-lg disabled:bg-slate-300 hover:bg-amber-500 transition-all flex items-center justify-center flex-shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <p className="text-[9px] text-slate-400 mb-3 italic">
+              {modoIdeasLive === 'creadora' ? '👆 Tú propones ideas, tus suscriptores votan' :
+                modoIdeasLive === 'suscriptores' ? '👥 Tus suscriptores proponen y votan' :
+                  '🤝 Ambos pueden proponer, todos votan'}
+            </p>
+
+            <h4 className="text-[11px] font-bold text-slate-700 mb-3 flex items-center gap-2">
+              <Vote className="w-4 h-4 text-amber-500" />
+              Ideas de la comunidad
+            </h4>
+
+            {/* Lista con scroll independiente */}
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between">
+                <span>🎯 Ideas activas ({ideasLive.filter(i => i.estado === 'activo').length})</span>
+                <span className="text-amber-500">Por votos</span>
+              </p>
+
+              <div className="max-h-[calc(100vh-450px)] overflow-y-auto pr-1 space-y-2">
+                {ideasLive.filter(i => i.estado === 'activo').length === 0 ? (
+                  <p className="text-[10px] text-slate-400 text-center py-4">No hay ideas para live aún</p>
+                ) : (
+                  ideasLive.filter(i => i.estado === 'activo').sort((a, b) => b.votos - a.votos).map((idea, index) => (
+                    <div
+                      key={idea.id}
+                      className={'p-3 rounded-xl border transition-all group ' +
+                        (index === 0 ? 'bg-gradient-to-r from-amber-50/80 to-orange-50/80 border-amber-200' : 'bg-white border-slate-100 hover:border-amber-200')}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <span className="text-[9px] px-2 py-0.5 bg-amber-400 text-white rounded-full font-bold">🔥 TOP</span>}
+                            {idea.creadoPor === 'suscriptor' && idea.creador && (
+                              <span className="text-[9px] text-slate-400">por {idea.creador.nombre}</span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-700 mt-1">{idea.descripcion}</p>
+                          <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1 mt-1">
+                            <Vote className="w-3.5 h-3.5" />
+                            {idea.votos} votos
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleEliminarIdeaLive(idea.id)}
+                          className="w-7 h-7 rounded-full bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+                          title="Eliminar"
+                        >
+                          <Trash className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <p className="text-[9px] text-slate-400 mt-4 text-center bg-slate-50 p-2.5 rounded-lg">
+              🎯 Las ideas más votadas te guían para tu próximo live.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <CalendarioModal isOpen={showCalendarioModal} onClose={() => setShowCalendarioModal(false)} eventos={eventos} onGuardarEvento={handleGuardarEvento} onEliminarEvento={(id) => setEventos(prev => prev.filter(e => e.id !== id))} />
 
