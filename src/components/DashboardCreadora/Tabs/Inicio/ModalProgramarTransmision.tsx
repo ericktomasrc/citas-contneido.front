@@ -209,36 +209,37 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
 
     return createPortal(
         <div
-            className="fixed inset-0 bg-black/20 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 flex items-center justify-center p-4"
             style={{ zIndex: 99999 }}
             onClick={resetModal}
         >
-              <Toast 
-        message={toastMessage}
-        type={toastType}
-        show={showToast}
-        onClose={closeToast}
-        position="top"
-        duration={3000}
-    />
+            <Toast
+                message={toastMessage}
+                type={toastType}
+                show={showToast}
+                onClose={closeToast}
+                position="top"
+                duration={3000}
+            />
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-rose-100"
                 onClick={e => e.stopPropagation()}
-            > 
-                <div className="px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500">
+            >
+                {/* ✅ HEADER VIP PREMIUM */}
+                <div className="px-5 py-3 bg-gradient-to-r from-rose-50 via-pink-50 to-violet-50 border-b border-rose-100 rounded-t-2xl">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                            <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg flex items-center justify-center shadow-md">
                                 <CalendarIcon className="w-4 h-4 text-white" />
                             </div>
                             <div>
-                                <h3 className="text-sm font-bold text-white">Nueva Transmisión</h3>
-                                <p className="text-[9px] text-white/80">Paso {paso} de 4</p>
+                                <h3 className="text-sm font-bold text-gray-800">Nueva Transmisión</h3>
+                                <p className="text-[9px] text-gray-500">Paso {paso} de 4</p>
                             </div>
                         </div>
                         <button
                             onClick={resetModal}
-                            className="w-7 h-7 rounded-lg hover:bg-white/20 transition-all flex items-center justify-center text-white backdrop-blur-sm"
+                            className="w-7 h-7 rounded-lg hover:bg-rose-50 transition-all flex items-center justify-center text-gray-400 hover:text-rose-600"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -249,7 +250,7 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                             <div
                                 key={num}
                                 className={'h-1 rounded-full flex-1 transition-all ' +
-                                    (num <= paso ? 'bg-white' : 'bg-white/30')}
+                                    (num <= paso ? 'bg-gradient-to-r from-rose-400 to-pink-500' : 'bg-rose-100')}
                             />
                         ))}
                     </div>
@@ -631,14 +632,15 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                     )}
                 </div>
 
-                <div className="px-5 py-3 bg-slate-50 flex justify-between">
+                {/* ✅ FOOTER VIP PREMIUM */}
+                <div className="px-5 py-3 bg-gradient-to-r from-rose-50/30 via-pink-50/30 to-violet-50/30 flex justify-between border-t border-rose-100">
                     <button
                         onClick={anteriorPaso}
                         disabled={paso === 1}
                         className={'px-4 py-2 text-[11px] font-semibold rounded-lg transition-all flex items-center gap-1.5 ' +
                             (paso === 1
                                 ? 'text-slate-400 cursor-not-allowed'
-                                : 'text-slate-600 hover:bg-slate-200')}
+                                : 'text-slate-600 hover:bg-rose-50')}
                     >
                         <ArrowLeft className="w-3.5 h-3.5" />
                         Atrás
@@ -650,8 +652,8 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                             disabled={!puedeAvanzar()}
                             className={'px-5 py-2 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm ' +
                                 (!puedeAvanzar()
-                                    ? 'bg-slate-300 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600')}
+                                    ? 'bg-rose-300 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600')}
                         >
                             Siguiente
                             <ArrowRight className="w-3.5 h-3.5" />
@@ -659,7 +661,7 @@ export const ModalProgramarTransmision: React.FC<ModalProgramarTransmisionProps>
                     ) : (
                         <button
                             onClick={handleCrear}
-                            className="px-5 py-2 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
+                            className="px-5 py-2 bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600 text-white text-[11px] font-bold rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
                         >
                             <Check className="w-3.5 h-3.5" />
                             Crear Evento

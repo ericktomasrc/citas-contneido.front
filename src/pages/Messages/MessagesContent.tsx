@@ -1,8 +1,8 @@
 // src/pages/Messages/MessagesContent.tsx
-// ✅ MEJORADO: Elementos más compactos y pequeños
+// ✅ VIP PREMIUM: Diseño elegante y sofisticado
 
 import { useState } from 'react';
-import { Gift, DollarSign } from 'lucide-react';
+import { Gift, DollarSign, Sparkles } from 'lucide-react';
 import { ConversationSidebar } from '@/features/chat/components/ConversationSidebar/ConversationSidebar';
 import { ChatWindow } from '@/features/chat/components/ChatWindow/ChatWindow';
 import { GiftsReportModal } from '@/features/chat/components/Reports/GiftsReportModal';
@@ -72,9 +72,9 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
   const selectedConversation = mockConversations.find(c => c.id === selectedConversationId);
 
   return (
-    <div className="h-full flex overflow-hidden bg-slate-50">
-      {/* ✅ Sidebar más estrecho: w-80 en lugar de w-96 */}
-      <div className="w-80 flex-shrink-0 border-r border-slate-200 bg-white">
+    <div className="h-full flex overflow-hidden bg-gradient-to-br from-slate-50 via-rose-50/10 to-violet-50/10">
+      {/* ✅ Sidebar Premium con borde elegante */}
+      <div className="w-80 flex-shrink-0 border-r border-rose-100/50 bg-white/95 backdrop-blur-sm">
         <ConversationSidebar
           conversations={mockConversations}
           selectedConversationId={selectedConversationId}
@@ -82,68 +82,117 @@ export const MessagesContent = ({ onVideoCallStart }: MessagesContentProps) => {
         />
       </div>
 
-      {/* Área principal derecha */}
-      <div className="flex-1 flex flex-col bg-slate-50">
-        {/* ✅ Header compacto h-12 */}
-        <div className="flex-shrink-0 bg-white border-b border-slate-100">
-          <div className="h-12 px-3 flex items-center gap-1.5">
+      {/* ✅ Área principal VIP Premium */}
+      <div className="flex-1 flex flex-col">
+        {/* ✅ Header Premium con gradiente sutil */}
+        <div className="flex-shrink-0 bg-gradient-to-r from-white via-rose-50/20 to-violet-50/20 border-b border-rose-100/50 backdrop-blur-sm">
+          <div className="h-14 px-4 flex items-center gap-2">
             {role === 'creadora' ? (
               <>
                 <button
                   onClick={() => setShowGiftsReport(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100 border border-pink-200 rounded-lg text-xs font-medium text-pink-700 transition-all"
+                  className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-50 via-pink-50 to-violet-50 hover:from-rose-100 hover:via-pink-100 hover:to-violet-100 border border-rose-200/60 rounded-xl text-xs font-semibold text-rose-700 transition-all shadow-sm hover:shadow-md overflow-hidden"
                 >
-                  <Gift className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Mis Regalos
+                  <div className="absolute inset-0 bg-gradient-to-r from-rose-400/0 via-pink-400/5 to-violet-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-sm">
+                    <Gift className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                  </div>
+                  <span className="relative">Mis Regalos</span>
+                  <Sparkles className="relative w-3 h-3 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
                 
                 <button
                   onClick={() => setShowTipsReport(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200 rounded-lg text-xs font-medium text-emerald-700 transition-all"
+                  className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-50 via-pink-50 to-violet-50 hover:from-rose-100 hover:via-pink-100 hover:to-violet-100 border border-rose-200/60 rounded-xl text-xs font-semibold text-rose-700 transition-all shadow-sm hover:shadow-md overflow-hidden"
                 >
-                  <DollarSign className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Mis Propinas
+                  <div className="absolute inset-0 bg-gradient-to-r from-rose-400/0 via-pink-400/5 to-violet-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center shadow-sm">
+                    <DollarSign className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                  </div>
+                  <span className="relative">Mis Propinas</span>
+                  <Sparkles className="relative w-3 h-3 text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </>
             ) : (
               <>
                 <button
                   onClick={() => setShowSentGifts(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-50 to-purple-50 hover:from-violet-100 hover:to-purple-100 border border-violet-200 rounded-lg text-xs font-medium text-violet-700 transition-all"
+                  className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 via-purple-50 to-pink-50 hover:from-violet-100 hover:via-purple-100 hover:to-pink-100 border border-violet-200/60 rounded-xl text-xs font-semibold text-violet-700 transition-all shadow-sm hover:shadow-md overflow-hidden"
                 >
-                  <Gift className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Regalos Enviados
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-purple-400/5 to-pink-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-sm">
+                    <Gift className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                  </div>
+                  <span className="relative">Regalos Enviados</span>
+                  <Sparkles className="relative w-3 h-3 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
                 
                 <button
                   onClick={() => setShowSentTips(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 transition-all"
+                  className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-50 via-purple-50 to-pink-50 hover:from-violet-100 hover:via-purple-100 hover:to-pink-100 border border-violet-200/60 rounded-xl text-xs font-semibold text-violet-700 transition-all shadow-sm hover:shadow-md overflow-hidden"
                 >
-                  <DollarSign className="w-3.5 h-3.5" strokeWidth={1.75} />
-                  Propinas Enviadas
+                  <div className="absolute inset-0 bg-gradient-to-r from-violet-400/0 via-purple-400/5 to-pink-400/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative w-7 h-7 rounded-lg bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center shadow-sm">
+                    <DollarSign className="w-3.5 h-3.5 text-white" strokeWidth={2} />
+                  </div>
+                  <span className="relative">Propinas Enviadas</span>
+                  <Sparkles className="relative w-3 h-3 text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </>
             )}
           </div>
         </div>
 
-        {/* Contenido: ChatWindow o placeholder */}
-        <div className="flex-1 overflow-hidden">
+        {/* ✅ Contenido con fondo elegante */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Fondo decorativo sutil */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white via-rose-50/5 to-violet-50/5 pointer-events-none" />
+          
           {selectedConversation ? (
-            <ChatWindow 
-              conversation={selectedConversation} 
-              recipientSettings={defaultChatSettings}
-              onVideoCallStart={onVideoCallStart}
-            />
+            <div className="relative h-full">
+              <ChatWindow 
+                conversation={selectedConversation} 
+                recipientSettings={defaultChatSettings}
+                onVideoCallStart={onVideoCallStart}
+              />
+            </div>
           ) : (
-            <div className="h-full flex items-center justify-center">
+            <div className="relative h-full flex items-center justify-center">
               <div className="text-center">
-                {/* ✅ Icono más pequeño */}
-                <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl">💬</span>
+                {/* ✅ Placeholder Premium elegante */}
+                <div className="relative mb-6">
+                  {/* Círculo exterior decorativo */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-rose-100 via-pink-100 to-violet-100 rounded-full blur-2xl opacity-30 scale-110" />
+                  
+                  {/* Círculo principal */}
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-rose-50 via-pink-50 to-violet-50 rounded-full flex items-center justify-center mx-auto border-2 border-rose-200/50 shadow-lg">
+                    <div className="w-20 h-20 bg-gradient-to-br from-white to-rose-50/50 rounded-full flex items-center justify-center">
+                      <span className="text-4xl">💬</span>
+                    </div>
+                  </div>
+                  
+                  {/* Sparkles decorativos */}
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-rose-400 to-pink-500 rounded-full flex items-center justify-center shadow-md">
+                    <Sparkles className="w-3 h-3 text-white" />
+                  </div>
+                  <div className="absolute -bottom-1 -left-2 w-5 h-5 bg-gradient-to-br from-violet-400 to-purple-500 rounded-full flex items-center justify-center shadow-md">
+                    <Sparkles className="w-2.5 h-2.5 text-white" />
+                  </div>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-700 mb-1">Selecciona una conversación</h3>
-                <p className="text-xs text-slate-400">Elige un chat para comenzar</p>
+                
+                <h3 className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-pink-600 to-violet-600 mb-2">
+                  Selecciona una conversación
+                </h3>
+                <p className="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
+                  Elige un chat para comenzar a conversar con tu comunidad VIP
+                </p>
+                
+                {/* Indicador decorativo */}
+                <div className="flex items-center justify-center gap-1.5 mt-6">
+                  <div className="w-2 h-2 rounded-full bg-rose-300 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-pink-300 animate-pulse" style={{ animationDelay: '0.2s' }} />
+                  <div className="w-2 h-2 rounded-full bg-violet-300 animate-pulse" style={{ animationDelay: '0.4s' }} />
+                </div>
               </div>
             </div>
           )}

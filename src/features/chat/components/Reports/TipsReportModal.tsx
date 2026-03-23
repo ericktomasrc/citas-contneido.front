@@ -1,8 +1,8 @@
 // src/features/chat/components/Reports/TipsReportModal.tsx
-// ✅ CORREGIDO: Usa React Portal para overlay en toda la pantalla
+// ✅ VIP PREMIUM - Rosa/Violeta
 
 import { createPortal } from 'react-dom';
-import { X, DollarSign, TrendingUp, Crown } from 'lucide-react';
+import { X, DollarSign, Crown } from 'lucide-react';
 
 interface TipsReportModalProps {
   onClose: () => void;
@@ -25,15 +25,15 @@ export const TipsReportModal = ({ onClose }: TipsReportModalProps) => {
 
   const modalContent = (
     <div 
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999] p-3"
+      className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 flex items-center justify-center p-3"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-slate-50 to-gray-50 px-4 py-3 border-b border-slate-100">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xs overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-rose-100">
+        {/* ✅ Header VIP Premium */}
+        <div className="bg-gradient-to-r from-rose-50 via-pink-50 to-violet-50 px-4 py-3 border-b border-rose-100 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-rose-400 to-pink-500 rounded-lg flex items-center justify-center shadow-md">
                 <DollarSign className="w-4 h-4 text-white" strokeWidth={2} />
               </div>
               <div>
@@ -43,9 +43,9 @@ export const TipsReportModal = ({ onClose }: TipsReportModalProps) => {
             </div>
             <button
               onClick={onClose}
-              className="w-6 h-6 rounded-md hover:bg-slate-200/60 flex items-center justify-center transition"
+              className="w-6 h-6 rounded-md hover:bg-rose-50 flex items-center justify-center transition text-gray-400 hover:text-rose-600"
             >
-              <X className="w-4 h-4 text-slate-500" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -54,11 +54,11 @@ export const TipsReportModal = ({ onClose }: TipsReportModalProps) => {
         <div className="p-3 space-y-3 max-h-[320px] overflow-y-auto">
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+            <div className="bg-rose-50/50 rounded-lg p-2.5 border border-rose-100">
               <p className="text-[10px] text-slate-500 font-medium mb-0.5">Total Acumulado</p>
               <p className="text-lg font-bold text-slate-700">S/. {tipsData.total}</p>
             </div>
-            <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-100">
+            <div className="bg-rose-50/50 rounded-lg p-2.5 border border-rose-100">
               <p className="text-[10px] text-slate-500 font-medium mb-0.5">Recibidas</p>
               <p className="text-lg font-bold text-slate-700">{tipsData.count}</p>
             </div>
@@ -87,7 +87,7 @@ export const TipsReportModal = ({ onClose }: TipsReportModalProps) => {
                 <div key={tip.id} className="py-1.5 px-2.5 bg-slate-50/80 rounded-lg">
                   <div className="flex items-center justify-between mb-0.5">
                     <p className="text-xs font-medium text-slate-700">{tip.sender}</p>
-                    <span className="text-xs font-semibold text-emerald-600">+S/. {tip.amount}</span>
+                    <span className="text-xs font-semibold text-rose-500">+S/. {tip.amount}</span>
                   </div>
                   {tip.message && (
                     <p className="text-[10px] text-slate-400 italic">"{tip.message}"</p>
@@ -97,16 +97,6 @@ export const TipsReportModal = ({ onClose }: TipsReportModalProps) => {
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-3 py-2.5 bg-slate-50 border-t border-slate-100">
-          <button
-            className="w-full py-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-lg font-medium text-xs shadow-sm transition flex items-center justify-center gap-1.5"
-          >
-            <TrendingUp className="w-3.5 h-3.5" strokeWidth={2} />
-            Reclamar S/. {tipsData.total}
-          </button>
         </div>
       </div>
     </div>

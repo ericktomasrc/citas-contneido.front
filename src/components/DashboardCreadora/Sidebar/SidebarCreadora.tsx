@@ -1,7 +1,7 @@
 // src/components/DashboardCreadora/Sidebar/SidebarCreadora.tsx
 // ✅ MEJORADO: Auto-hide durante videollamada + Iconos más compactos
 
-import { Home, Crown, MessageCircle, Mail, Settings, TrendingUp, LogOut, BarChart, BarChart2 } from 'lucide-react';
+import { Home, Crown, MessageCircle, Mail, Settings, TrendingUp, LogOut, BarChart, BarChart2, Package } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '@features/auth/api/authApi';
 import { useState } from 'react';
@@ -30,6 +30,7 @@ export const SidebarCreadora = ({
     { id: 'inicio' as TabTypeMenu, icon: Home, label: 'Inicio', badge: null },
     { id: 'invitaciones' as TabTypeMenu, icon: Mail, label: 'Invitaciones', badge: null },
     { id: 'contenido' as TabTypeMenu, icon: Crown, label: 'Contenido', badge: null },
+    { id: 'packs' as TabTypeMenu, icon: Package, label: 'packs', badge: null },
     { id: 'mensajes' as TabTypeMenu, icon: MessageCircle, label: 'Chat', badge: 12 },
     { id: 'configuracion' as TabTypeMenu, icon: Settings, label: 'Configuración', badge: null },
     { id: 'resumen' as TabTypeMenu, icon: TrendingUp, label: 'Resumen', badge: null },

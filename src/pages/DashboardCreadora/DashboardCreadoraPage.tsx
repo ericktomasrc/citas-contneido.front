@@ -1,5 +1,7 @@
 // src/pages/DashboardCreadora/DashboardCreadoraPage.tsx
 // ✅ MEJORADO: Ajustado para navbar h-14 y sidebar w-16 más compactos
+// ✅ MODIFICADO: Agregado soporte para detectar cierre de dashboard durante transmisión
+// ✅ CORREGIDO: InvitacionesTab ocupa altura completa sin padding
 
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -9,6 +11,9 @@ import { ContenidoPage } from '../DashboardCreadora/ContenidoPage/ContenidoPage'
 import { PacksPage } from './PacksPage/PacksPage';
 import { RoleSwitcher } from '@/components/dev/RoleSwitcher';
 import { VideoCallModal } from '@/features/chat/components/VideoCall/VideoCallModal';
+
+// ========== CAMBIO 1: Importar hook de transmisión ==========
+import { useTransmision } from '../../contexts/TransmisionContext';
 
 // Chat
 import { MessagesContent } from '@/pages/Messages/MessagesContent';
@@ -23,8 +28,12 @@ import { SubTabsHeader } from './components/SubTabsHeader';
 
 // Configuración
 import { subTabsConfig } from './config/subtabs.config';
-import { invitacionesIniciales } from './data/invitaciones.data';
+
+// ========== CAMBIO: Import correcto de invitacionesIniciales ==========
+import { invitacionesIniciales } from './tabs/InvitacionesTab/data/invitaciones.data';
+
 import { TabTypeMenu } from './hooks/useTabs';
+import { TabPacks } from '@/components/DashboardCreadora/Tabs/Contenido/TabPacks';
 
 type SubTabId = 'invitaciones' | 'resumen';
 
@@ -32,12 +41,15 @@ export const DashboardCreadoraPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu) ;
+  const tabFromUrl = (searchParams.get('tab') as TabTypeMenu);
   const [activeTab, setActiveTab] = useState<TabTypeMenu>(tabFromUrl);
   const [activeSubTab, setActiveSubTab] = useState<SubTabId>('invitaciones');
 
   const [isVideoCallActive, setIsVideoCallActive] = useState(false);
   const [isVideoCallMinimized, setIsVideoCallMinimized] = useState(false);
+
+  // ========== CAMBIO 2: Obtener estado de transmisión ==========
+  const { enTransmision, detenerTransmisionExterna } = useTransmision();
 
   useEffect(() => {
     setSearchParams({ tab: activeTab }, { replace: true });
@@ -49,6 +61,37 @@ export const DashboardCreadoraPage = () => {
       setActiveTab(urlTab);
     }
   }, [searchParams]);
+
+  // ========== CAMBIO 3: Agregar useEffect para detectar cierre del dashboard ==========
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (enTransmision) {
+        // Mostrar alerta de confirmación
+        e.preventDefault();
+        e.returnValue = ''; // Chrome requiere esto
+        
+        // Mensaje personalizado (algunos navegadores lo muestran, otros no)
+        return '¿Estás segura/o de que deseas salir? Esto detendrá tu transmisión en vivo.';
+      }
+    };
+
+    const handleUnload = async () => {
+      if (enTransmision) {
+        // Intentar detener transmisión antes de cerrar
+        await detenerTransmisionExterna();
+      }
+    };
+
+    // Agregar listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    // Cleanup: remover listeners al desmontar
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [enTransmision, detenerTransmisionExterna]);
 
   const currentUser = {
     nombre: 'María Rodriguez',
@@ -112,53 +155,56 @@ export const DashboardCreadoraPage = () => {
               />
             )}
 
-            {/* ✅ Contenido con padding reducido */}
-            <div className="flex-1 overflow-y-auto bg-slate-50">
-              <div className="p-3 md:p-4"> {/* Reducido: p-3 en móvil, p-4 en desktop */}
-                {showSubTabs && (
-                  <> 
-                    {activeSubTab === 'resumen' && (
-                      <ResumenTab
-                        nombreUsuario={currentUser.nombre}
-                        gananciasMes={currentUser.gananciasMes}
-                      />
-                    )}
-                  </>
-                )}
-
-                {!showSubTabs && (
-                  <>
-                    {activeTab === 'contenido' && <ContenidoPage />}
-                    {activeTab === 'packs' && <PacksPage />}
-                    {activeTab === 'inicio' && <MiActividadTab />}
-                    {activeTab === 'invitaciones' && (
-                      <InvitacionesTab
-                        invitacionesIniciales={invitacionesIniciales}
-                        enabled={activeSubTab === 'invitaciones'}
-                      />
-                    )}
-                    {activeTab === 'donaciones' && (
-                      <div className="text-center py-12">
-                        <h2 className="text-lg font-semibold text-slate-800">Donaciones</h2>
-                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
-                      </div>
-                    )}
-                    {activeTab === 'configuracion' && (
-                      <div className="text-center py-12">
-                        <h2 className="text-lg font-semibold text-slate-800">Configuración</h2>
-                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
-                      </div>
-                    )}
-                    {activeTab === 'reportes' && (
-                      <div className="text-center py-12">
-                        <h2 className="text-lg font-semibold text-slate-800">Reportes y Estadísticas</h2>
-                        <p className="text-xs text-slate-500 mt-1">Próximamente</p>
-                      </div>
-                    )}
-                  </>
-                )}
+            {/* ✅ CORREGIDO: Invitaciones SIN padding ni scroll, ocupa altura completa */}
+            {activeTab === 'invitaciones' ? (
+              <div className="flex-1 overflow-hidden">
+                <InvitacionesTab
+                  invitacionesIniciales={invitacionesIniciales}
+                  enabled={activeTab === 'invitaciones'}
+                />
               </div>
-            </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto bg-slate-50">
+                <div className="p-3 md:p-4">
+                  {showSubTabs && (
+                    <>
+                      {activeSubTab === 'resumen' && (
+                        <ResumenTab
+                          nombreUsuario={currentUser.nombre}
+                          gananciasMes={currentUser.gananciasMes}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {!showSubTabs && (
+                    <>
+                      {activeTab === 'contenido' && <ContenidoPage />}
+                      {activeTab === 'packs' && <PacksPage />}
+                      {activeTab === 'inicio' && <MiActividadTab />}
+                      {activeTab === 'donaciones' && (
+                        <div className="text-center py-12">
+                          <h2 className="text-lg font-semibold text-slate-800">Donaciones</h2>
+                          <p className="text-xs text-slate-500 mt-1">Próximamente</p>
+                        </div>
+                      )}
+                      {activeTab === 'configuracion' && (
+                        <div className="text-center py-12">
+                          <h2 className="text-lg font-semibold text-slate-800">Configuración</h2>
+                          <p className="text-xs text-slate-500 mt-1">Próximamente</p>
+                        </div>
+                      )}
+                      {activeTab === 'reportes' && (
+                        <div className="text-center py-12">
+                          <h2 className="text-lg font-semibold text-slate-800">Reportes y Estadísticas</h2>
+                          <p className="text-xs text-slate-500 mt-1">Próximamente</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>

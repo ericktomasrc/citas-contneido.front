@@ -33,80 +33,80 @@ export const CatalogoRegalosModal = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-2xl border border-slate-700/50 shadow-2xl w-full max-w-2xl overflow-hidden">
+    <div className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl overflow-hidden border border-slate-200/50">
         {/* Header Premium */}
-        <div className="relative bg-gradient-to-r from-pink-600/10 via-rose-600/10 to-pink-600/10 border-b border-slate-700/50 px-6 py-4">
+        <div className="relative bg-gradient-to-r from-rose-50 via-pink-50 to-rose-50 border-b border-slate-100 px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/20">
-                <Gift className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
+                <Gift className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Catálogo de Regalos</h2>
-                <p className="text-xs text-slate-400">Envía regalos exclusivos a la creadora</p>
+                <h2 className="text-base font-bold text-slate-800">Catálogo de Regalos</h2>
+                <p className="text-[10px] text-slate-500">Envía regalos exclusivos a la creadora</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center transition text-slate-400 hover:text-white"
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center transition text-slate-400 hover:text-slate-600"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4">
           {regaloSeleccionado ? (
             /* Vista de Confirmación */
-            <div className="flex flex-col items-center justify-center py-8 animate-fade-in">
-              <div className="relative mb-6">
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-full blur-2xl"></div>
-                <div className="relative text-7xl filter drop-shadow-lg">{regaloSeleccionado.emoji}</div>
+            <div className="flex flex-col items-center justify-center py-6 animate-fade-in">
+              <div className="relative mb-4">
+                <div className="absolute inset-0 bg-gradient-to-r from-rose-100 to-pink-100 rounded-full blur-2xl opacity-60"></div>
+                <div className="relative text-5xl filter drop-shadow-xl">{regaloSeleccionado.emoji}</div>
               </div>
               
-              <h3 className="text-2xl font-bold text-white mb-2">{regaloSeleccionado.nombre}</h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-1.5">{regaloSeleccionado.nombre}</h3>
               
-              <div className="flex items-center gap-2 mb-8">
-                <DollarSign className="w-5 h-5 text-amber-500" />
-                <span className="text-xl font-bold text-white">{regaloSeleccionado.valor}</span>
-                <span className="text-sm text-slate-400">coins</span>
+              <div className="flex items-center gap-1.5 mb-6">
+                <DollarSign className="w-4 h-4 text-amber-500" />
+                <span className="text-base font-bold text-slate-800">{regaloSeleccionado.valor}</span>
+                <span className="text-xs text-slate-500">coins</span>
               </div>
 
-              <div className="flex gap-3 w-full max-w-md">
+              <div className="flex gap-2 w-full max-w-xs">
                 <button
                   onClick={() => setRegaloSeleccionado(null)}
-                  className="flex-1 py-3 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-medium transition-all hover:scale-[1.02]"
+                  className="flex-1 py-2 px-4 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all hover:scale-[1.02]"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => handleEnviar(regaloSeleccionado)}
-                  className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2"
+                  className="flex-1 py-2 px-4 rounded-lg bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold text-sm transition-all hover:scale-[1.02] shadow-lg shadow-rose-500/30 flex items-center justify-center gap-1.5"
                 >
-                  <Check className="w-4 h-4" />
-                  <span>Enviar Regalo</span>
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Enviar</span>
                 </button>
               </div>
             </div>
           ) : (
             /* Vista de Catálogo */
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto pr-2">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2 max-h-[320px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                 {catalogoRegalos.map((regalo) => (
                   <button
                     key={regalo.id}
                     onClick={() => setRegaloSeleccionado(regalo)}
-                    className="group relative rounded-xl bg-slate-900/50 border border-slate-700/50 hover:border-pink-500/50 p-4 transition-all hover:scale-105 hover:shadow-lg hover:shadow-pink-500/10"
+                    className="group relative rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200 hover:border-rose-300 hover:from-rose-50 hover:to-pink-50 p-3 transition-all hover:scale-105 hover:shadow-lg hover:shadow-rose-200"
                   >
-                    <div className="text-center space-y-2">
-                      <div className="text-4xl mb-1 filter group-hover:drop-shadow-lg transition">{regalo.emoji}</div>
-                      <p className="text-sm font-medium text-white group-hover:text-pink-400 transition truncate">
+                    <div className="text-center space-y-1.5">
+                      <div className="text-3xl mb-1 filter group-hover:drop-shadow-lg transition">{regalo.emoji}</div>
+                      <p className="text-xs font-semibold text-slate-700 group-hover:text-rose-700 transition truncate">
                         {regalo.nombre}
                       </p>
-                      <div className="flex items-center justify-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5 text-amber-500" />
-                        <span className="text-xs font-semibold text-amber-500">{regalo.valor}</span>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <DollarSign className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] font-bold text-amber-600">{regalo.valor}</span>
                       </div>
                     </div>
                   </button>
@@ -114,18 +114,18 @@ export const CatalogoRegalosModal = ({
               </div>
 
               {/* Balance y Recarga */}
-              <div className="rounded-xl bg-slate-800/50 border border-slate-700/50 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-slate-400">Balance actual</span>
-                  <div className="flex items-center gap-1.5">
-                    <DollarSign className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm font-bold text-white">{coinsBalance.toLocaleString()}</span>
-                    <span className="text-xs text-slate-400">coins</span>
+              <div className="rounded-lg bg-gradient-to-br from-slate-50 to-slate-100/50 border border-slate-200 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-semibold text-slate-600">Balance actual</span>
+                  <div className="flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-amber-500" />
+                    <span className="text-sm font-bold text-slate-800">{coinsBalance.toLocaleString()}</span>
+                    <span className="text-[10px] text-slate-500">coins</span>
                   </div>
                 </div>
                 <button
                   onClick={onRecargarCoins}
-                  className="w-full py-2.5 px-4 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-medium transition-all hover:scale-[1.02] shadow-lg shadow-emerald-600/20"
+                  className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-xs font-semibold transition-all hover:scale-[1.02] shadow-lg shadow-emerald-500/30"
                 >
                   Recargar Coins
                 </button>
@@ -137,17 +137,17 @@ export const CatalogoRegalosModal = ({
 
       {/* Notificación de Regalo Enviado */}
       {feedbackVisible && feedbackGift && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] animate-fade-in-down">
-          <div className="bg-gradient-to-r from-emerald-900/90 to-teal-900/90 backdrop-blur-lg border border-emerald-500/50 rounded-xl px-6 py-3.5 shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">{feedbackGift.emoji}</span>
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100001] animate-fade-in-down">
+          <div className="bg-white border-2 border-emerald-200 rounded-lg px-4 py-2.5 shadow-2xl shadow-emerald-200">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg flex items-center justify-center border border-emerald-200">
+                <span className="text-xl">{feedbackGift.emoji}</span>
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">Regalo enviado</p>
-                <p className="text-emerald-300 text-xs">{feedbackGift.nombre}</p>
+                <p className="text-slate-800 font-bold text-xs">Regalo enviado</p>
+                <p className="text-emerald-600 text-[10px] font-medium">{feedbackGift.nombre}</p>
               </div>
-              <Check className="w-5 h-5 text-emerald-400" />
+              <Check className="w-4 h-4 text-emerald-500" />
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { ComunidadVIPCard } from './ComunidadVIPCard';
 import { MomentosSection } from './MomentosSection';
 import { ComposerSection } from './ComposerSection';
 import { ModalProgramarTransmision } from './ModalProgramarTransmision';
+import { ConfirmDetenerTransmision } from '../../../Modals/ConfirmDetenerTransmision';
 
 interface Usuario { id: string; nombre: string; username: string; avatar: string; }
 interface Comentario { id: string; usuario: Usuario; texto: string; fecha: Date; }
@@ -17,7 +18,8 @@ interface Reto { id: string; descripcion: string; votos: number; estado: 'activo
 interface Programacion { id: string; titulo: string; fecha: Date; hora: string; tipo: 'gratis' | 'suscriptores' | 'ppv'; precio?: number; }
 
 export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () => void } = {}) => {
-  const { startTransmision, isTransmisionActive } = useTransmision();
+  const { enTransmision, iniciarTransmisionExterna, detenerTransmisionExterna } = useTransmision();
+
   const navigate = useNavigate();
   const [publicaciones, setPublicaciones] = useState<Publicacion[]>([]);
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
@@ -43,6 +45,8 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
   const [retosActivos, setRetosActivos] = useState(false);
   const [modoRetos, setModoRetos] = useState<'creadora' | 'suscriptores' | 'mixto'>('creadora');
   const [nuevoReto, setNuevoReto] = useState('');
+  const [showConfirmDetener, setShowConfirmDetener] = useState(false);
+
   const [retos, setRetos] = useState<Reto[]>([
     { id: '1', descripcion: 'Baila tu canción favorita en live', votos: 45, estado: 'activo', creadoPor: 'creadora', fechaCreacion: new Date() },
     { id: '2', descripcion: 'Haz un Q&A respondiendo preguntas picantes', votos: 38, estado: 'activo', creadoPor: 'creadora', fechaCreacion: new Date() },
@@ -80,7 +84,42 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
   ];
 
   const handleGuardarEvento = (evento: Omit<EventoCalendario, 'id'>) => { setEventos(prev => [...prev, { ...evento, id: Date.now().toString() }]); onProgramarEvento?.(); };
-  const handleConfirmarTransmision = () => { if (tipoSeleccionado === 'ppv' && (!precioEntrada || !descripcionEntrada.trim())) return; startTransmision(tipoSeleccionado, precioEntrada, descripcionEntrada); setShowTipoTransmisionModal(false); setTipoSeleccionado('gratis'); setPrecioEntrada(15); setDescripcionEntrada(''); };
+
+  const handleConfirmarTransmision = () => {
+    if (!tipoSeleccionado) return;
+
+    if (tipoSeleccionado === 'ppv') {
+      if (!precioEntrada || precioEntrada <= 0) {
+        alert('Ingresa un precio válido');
+        return;
+      }
+      if (!descripcionEntrada.trim()) {
+        alert('Ingresa una descripción');
+        return;
+      }
+    }
+
+    setShowTipoTransmisionModal(false);
+    iniciarTransmisionExterna(
+      tipoSeleccionado,
+      tipoSeleccionado === 'ppv' ? precioEntrada : 0,
+      tipoSeleccionado === 'ppv' ? descripcionEntrada : ''
+    );
+
+    setTipoSeleccionado('gratis');
+    setPrecioEntrada(15);
+    setDescripcionEntrada('');
+  };
+
+  const handleDetenerTransmision = () => {
+    setShowConfirmDetener(true);
+  };
+
+  const confirmarDetenerTransmision = async () => {
+    setShowConfirmDetener(false);
+    await detenerTransmisionExterna();
+  };
+
   const handleNuevaPublicacion = (pub: Publicacion) => setPublicaciones(prev => [pub, ...prev]);
   const handleOpenImageModal = (files: File[], index: number) => { setCurrentImageFiles(files); setCurrentImageIndex(index); setShowImageModal(true); };
   const simularInteracciones = (pubId: string) => { setPublicaciones(prev => prev.map(p => p.id === pubId && p.meGusta.length === 0 ? { ...p, meGusta: usuariosEjemplo.slice(0, 2), noMeGusta: usuariosEjemplo.slice(2, 3), vistas: usuariosEjemplo } : p)); };
@@ -117,7 +156,30 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
   const retosActuales = retos.filter(r => r.estado === 'activo').sort((a, b) => b.votos - a.votos);
   const retosCompletados = retos.filter(r => r.estado === 'completado');
 
-  const ListaUsuarios = ({ usuarios, titulo }: { usuarios: Usuario[], titulo: string }) => (<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={() => { setShowMeGustaModal(false); setShowNoMeGustaModal(false); setShowVistosModal(false); }}><div className="bg-white rounded-xl shadow-xl max-w-xs w-full max-h-[60vh] flex flex-col" onClick={e => e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between"><h3 className="text-[11px] font-semibold text-slate-700">{titulo} ({usuarios.length})</h3><button onClick={() => { setShowMeGustaModal(false); setShowNoMeGustaModal(false); setShowVistosModal(false); }} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button></div><div className="flex-1 overflow-y-auto p-3">{usuarios.length === 0 ? <p className="text-[10px] text-slate-400 text-center py-6">Nadie aún</p> : usuarios.map(u => (<button key={u.id} onClick={() => navigate('/perfil-usuario/' + u.username)} className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg text-left transition-all"><img src={u.avatar} alt="" className="w-8 h-8 rounded-full" /><p className="text-[10px] font-semibold text-slate-700">{u.nombre}</p></button>))}</div></div></div>);
+  const ListaUsuarios = ({ usuarios, titulo }: { usuarios: Usuario[], titulo: string }) => (
+    <div className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 flex items-center justify-center p-4" onClick={() => { setShowMeGustaModal(false); setShowNoMeGustaModal(false); setShowVistosModal(false); }}>
+      <div className="bg-white rounded-xl shadow-xl max-w-xs w-full max-h-[60vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-[11px] font-semibold text-slate-700">{titulo} ({usuarios.length})</h3>
+          <button onClick={() => { setShowMeGustaModal(false); setShowNoMeGustaModal(false); setShowVistosModal(false); }} className="text-slate-400 hover:text-slate-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          {usuarios.length === 0 ? (
+            <p className="text-[10px] text-slate-400 text-center py-6">Nadie aún</p>
+          ) : (
+            usuarios.map(u => (
+              <button key={u.id} onClick={() => navigate('/perfil-usuario/' + u.username)} className="w-full flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg text-left transition-all">
+                <img src={u.avatar} alt="" className="w-8 h-8 rounded-full" />
+                <p className="text-[10px] font-semibold text-slate-700">{u.nombre}</p>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50/50">
@@ -132,9 +194,152 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
             </div>
             <ComposerSection onPublicar={handleNuevaPublicacion} retosSugeridos={retos} retosActivos={retosActivos} />
             <div className="space-y-3">
-              {publicaciones.length === 0 ? (<div className="bg-white rounded-xl border border-dashed border-slate-200 p-10 text-center"><div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3"><Sparkles className="w-7 h-7 text-slate-300" /></div><h3 className="text-[11px] font-semibold text-slate-600">¡Tu comunidad te espera!</h3><p className="text-[10px] text-slate-400 mt-1">Comparte tu primer contenido</p></div>) : publicaciones.map(pub => (<div key={pub.id} className={'bg-white rounded-xl shadow-sm overflow-hidden border ' + (pub.visibilidad === 'publico' ? 'border-emerald-100' : (pub as any).esPPV ? 'border-amber-100' : 'border-fuchsia-100')}><div className="p-4"><div className="flex items-center justify-between mb-3"><div className="flex items-center gap-3"><img src="https://i.pravatar.cc/150?img=47" alt="" className="w-9 h-9 rounded-full" /><div><p className="text-[11px] font-semibold text-slate-700">Tú</p><p className="text-[9px] text-slate-400">Hace {Math.floor((Date.now() - pub.fechaPublicacion.getTime()) / 60000)} min</p></div></div><div className="flex items-center gap-2">{pub.meGusta.length === 0 && <button onClick={() => simularInteracciones(pub.id)} className="text-[8px] px-2 py-1 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-all">Simular</button>}{(pub as any).ideaSugerida && <span className="px-2 py-1 text-[8px] font-bold rounded-full bg-rose-100 text-rose-600 flex items-center gap-1">📣 Pedido por la comunidad</span>}<span className={'px-2.5 py-1 text-[8px] font-bold rounded-full flex items-center gap-1 ' + (pub.visibilidad === 'publico' ? 'bg-emerald-500 text-white' : (pub as any).esPPV ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' : 'bg-fuchsia-500 text-white')}>{pub.visibilidad === 'publico' ? <><Globe className="w-3 h-3" />PÚBLICO</> : (pub as any).esPPV ? <><Coins className="w-3 h-3" />PPV S/.{(pub as any).precioPPV}</> : <><Crown className="w-3 h-3" />SUSCRIPTORES</>}</span></div></div>
-                <p className="text-[11px] text-slate-600 mb-3 leading-relaxed whitespace-pre-line">{pub.contenido}</p>
-                {pub.archivos && pub.archivos.length > 0 && (<div className={'mb-3 ' + (pub.archivos.length === 1 ? '' : 'grid grid-cols-2 gap-2')}>{pub.archivos.map((file, i) => (<div key={i} className={'relative rounded-xl overflow-hidden cursor-pointer group ' + (pub.archivos!.length === 1 ? 'max-h-[280px]' : 'aspect-square')} onClick={() => handleOpenImageModal(pub.archivos!, i)}><div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10"><div className="w-6 h-6 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm"><Eye className="w-3 h-3 text-slate-600" /></div><button onClick={(e) => { e.stopPropagation(); setPublicacionAEliminar(pub.id); setFotoIndexAEliminar(i); setShowDeleteModal(true); }} className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-sm"><Trash2 className="w-3 h-3 text-white" /></button></div>{file.type.startsWith('image/') ? <img src={URL.createObjectURL(file)} alt="" className={pub.archivos!.length === 1 ? 'max-h-[280px] w-auto mx-auto' : 'w-full h-full object-cover'} /> : <div className="w-full h-full bg-slate-800 flex items-center justify-center"><Play className="w-8 h-8 text-white/60" /></div>}</div>))}</div>)}<div className="flex items-center gap-4 pt-3 border-t border-slate-100"><button onClick={() => { setPublicacionSeleccionada(pub); setShowMeGustaModal(true); }} className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-500 transition-colors"><ThumbsUp className="w-4 h-4" /><span className="text-[10px] font-medium">{pub.meGusta.length}</span></button><button onClick={() => { setPublicacionSeleccionada(pub); setShowNoMeGustaModal(true); }} className="flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition-colors"><ThumbsDown className="w-4 h-4" /><span className="text-[10px] font-medium">{pub.noMeGusta.length}</span></button><button onClick={() => { setPublicacionSeleccionada(pub); setShowVistosModal(true); }} className="flex items-center gap-1.5 text-slate-400 hover:text-blue-500 transition-colors"><Eye className="w-4 h-4" /><span className="text-[10px] font-medium">{pub.vistas.length}</span></button><button onClick={() => { setPublicacionSeleccionada(pub); setShowComentariosModal(true); }} className="flex items-center gap-1.5 text-slate-400 hover:text-violet-500 transition-colors"><MessageCircle className="w-4 h-4" /><span className="text-[10px] font-medium">{pub.comentarios.length}</span></button></div></div></div>))}
+              {publicaciones.length === 0 ? (
+                <div className="bg-gradient-to-br from-white via-rose-50/30 to-pink-50/30 rounded-2xl border-2 border-rose-200/50 p-12 text-center shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-rose-100/20 to-transparent rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-pink-100/20 to-transparent rounded-full blur-3xl"></div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-gradient-to-br from-rose-100 to-pink-100 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
+                      <Sparkles className="w-8 h-8 text-rose-400" />
+                    </div>
+                    <h3 className="text-sm font-bold text-gray-800 mb-2">¡Tu comunidad VIP te espera!</h3>
+                    <p className="text-[11px] text-gray-600 leading-relaxed max-w-xs mx-auto">
+                      Comparte contenido exclusivo y conecta con tus suscriptores más fieles
+                    </p>
+                    <div className="flex items-center justify-center gap-2 mt-4">
+                      <div className="w-2 h-2 rounded-full bg-rose-300"></div>
+                      <div className="w-2 h-2 rounded-full bg-pink-300"></div>
+                      <div className="w-2 h-2 rounded-full bg-rose-300"></div>
+                    </div>
+                  </div>
+                </div>
+              ) : publicaciones.map(pub => (
+                <div key={pub.id} className={'bg-white rounded-xl shadow-sm overflow-hidden border ' + (pub.visibilidad === 'publico' ? 'border-emerald-100' : (pub as any).esPPV ? 'border-amber-100' : 'border-fuchsia-100')}>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <img src="https://i.pravatar.cc/150?img=47" alt="" className="w-9 h-9 rounded-full" />
+                        <div>
+                          <p className="text-[11px] font-semibold text-slate-700">Tú</p>
+                          <p className="text-[9px] text-slate-400">Hace {Math.floor((Date.now() - pub.fechaPublicacion.getTime()) / 60000)} min</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {pub.meGusta.length === 0 && (
+                          <button onClick={() => simularInteracciones(pub.id)} className="text-[8px] px-2 py-1 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200 transition-all">
+                            Simular
+                          </button>
+                        )}
+                        {(pub as any).ideaSugerida && (
+                          <span className="px-2 py-1 text-[8px] font-bold rounded-full bg-rose-100 text-rose-600 flex items-center gap-1">
+                            📣 Pedido por la comunidad
+                          </span>
+                        )}
+                        <span className={'px-2.5 py-1 text-[8px] font-bold rounded-full flex items-center gap-1 ' + (pub.visibilidad === 'publico' ? 'bg-emerald-500 text-white' : (pub as any).esPPV ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' : 'bg-fuchsia-500 text-white')}>
+                          {pub.visibilidad === 'publico' ? (
+                            <>
+                              <Globe className="w-3 h-3" />
+                              PÚBLICO
+                            </>
+                          ) : (pub as any).esPPV ? (
+                            <>
+                              <Coins className="w-3 h-3" />
+                              PPV S/.{(pub as any).precioPPV}
+                            </>
+                          ) : (
+                            <>
+                              <Crown className="w-3 h-3" />
+                              SUSCRIPTORES
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mb-3 leading-relaxed whitespace-pre-line">{pub.contenido}</p>
+                    {pub.archivos && pub.archivos.length > 0 && (
+                      <div className={'mb-3 ' + (pub.archivos.length === 1 ? '' : 'grid grid-cols-2 gap-2')}>
+                        {pub.archivos.map((file, i) => (
+                          <div
+                            key={i}
+                            className={'relative rounded-xl overflow-hidden cursor-pointer group ' + (pub.archivos!.length === 1 ? 'max-h-[380px]' : 'h-[240px]')}
+                            onClick={() => handleOpenImageModal(pub.archivos!, i)}
+                          >
+                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all z-10">
+                              <div className="w-6 h-6 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm">
+                                <Eye className="w-3 h-3 text-slate-600" />
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPublicacionAEliminar(pub.id);
+                                  setFotoIndexAEliminar(i);
+                                  setShowDeleteModal(true);
+                                }}
+                                className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-sm"
+                              >
+                                <Trash2 className="w-3 h-3 text-white" />
+                              </button>
+                            </div>
+                            {file.type.startsWith('image/') ? (
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt=""
+                                className={pub.archivos!.length === 1 ? 'max-h-[380px] w-full object-cover rounded-xl' : 'w-full h-full object-cover'}
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                <Play className="w-8 h-8 text-white/60" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-4 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => {
+                          setPublicacionSeleccionada(pub);
+                          setShowMeGustaModal(true);
+                        }}
+                        className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-500 transition-colors"
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                        <span className="text-[10px] font-medium">{pub.meGusta.length}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPublicacionSeleccionada(pub);
+                          setShowNoMeGustaModal(true);
+                        }}
+                        className="flex items-center gap-1.5 text-slate-400 hover:text-red-500 transition-colors"
+                      >
+                        <ThumbsDown className="w-4 h-4" />
+                        <span className="text-[10px] font-medium">{pub.noMeGusta.length}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPublicacionSeleccionada(pub);
+                          setShowVistosModal(true);
+                        }}
+                        className="flex items-center gap-1.5 text-slate-400 hover:text-blue-500 transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span className="text-[10px] font-medium">{pub.vistas.length}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPublicacionSeleccionada(pub);
+                          setShowComentariosModal(true);
+                        }}
+                        className="flex items-center gap-1.5 text-slate-400 hover:text-violet-500 transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="text-[10px] font-medium">{pub.comentarios.length}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -150,7 +355,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
       {/* PANEL EN VIVO */}
       <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8999] ' + (panelProgramacionAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
         <div className="h-full flex flex-col">
-          {/* Header sin botón X */}
           <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
             <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
               <Radio className="w-5 h-5 text-red-500" />
@@ -158,9 +362,7 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
             </h3>
           </div>
 
-          {/* Contenido scrolleable */}
           <div className="flex-1 overflow-y-auto p-4">
-            {/* Título con botón X - PREMIUM */}
             <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-red-50/40 to-rose-50/40 rounded-xl border border-red-100/50">
               <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-red-500" />
@@ -182,21 +384,31 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
                 <CalendarIcon className="w-3.5 h-3.5" />
                 <span className="text-[9px]">Programar transmisión</span>
               </button>
-              <button
-                onClick={() => setShowTipoTransmisionModal(true)}
-                disabled={isTransmisionActive}
-                className={'px-2.5 py-2 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition-all shadow-sm ' + (isTransmisionActive ? 'bg-slate-200 text-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-rose-500 to-pink-600 text-white hover:from-rose-600 hover:to-pink-700')}
-              >
-                <Radio className="w-3.5 h-3.5" />
-                <span className="text-[9px]">Iniciar Transmisión</span>
-              </button>
+
+              {!enTransmision ? (
+                <button
+                  onClick={() => setShowTipoTransmisionModal(true)}
+                  className="px-2.5 py-2 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-lg text-[10px] font-bold hover:from-rose-600 hover:to-pink-700 transition-all flex flex-col items-center justify-center gap-1 shadow-sm"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span className="text-[9px]">Iniciar Transmisión</span>
+                </button>
+              ) : (
+                <button
+                  onClick={handleDetenerTransmision}
+                  className="px-2.5 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 shadow-sm animate-pulse"
+                >
+                  <Radio className="w-3.5 h-3.5 animate-pulse" />
+                  <span className="text-[9px]">🔴 Detener</span>
+                  <span className="text-[7px] opacity-90">(En vivo)</span>
+                </button>
+              )}
             </div>
 
             <p className="text-[10px] text-slate-500 font-semibold mb-3">
               📅 Próximas transmisiones ({programaciones.length})
             </p>
 
-            {/* Lista con scroll independiente */}
             <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
               {programaciones.length === 0 ? (
                 <p className="text-[10px] text-slate-400 text-center py-4">
@@ -239,7 +451,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
       {/* PANEL CONTENIDO SUGERIDO */}
       <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8998] ' + (panelRetosAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
         <div className="h-full flex flex-col">
-          {/* Header sin botón X */}
           <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
             <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
               <Lightbulb className="w-5 h-5 text-rose-400" />
@@ -247,9 +458,7 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
             </h3>
           </div>
 
-          {/* Contenido scrolleable */}
           <div className="flex-1 overflow-y-auto p-4">
-            {/* Título con botón X - PREMIUM */}
             <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-rose-50/40 to-pink-50/40 rounded-xl border border-rose-100/50">
               <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-rose-400" />
@@ -263,15 +472,12 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               </button>
             </div>
 
-            {/* Modo de sugerencias CON BOTÓN DE NOTIFICACIÓN */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] text-slate-500 font-medium">¿Quién sugiere el contenido?</p>
 
-                {/* BOTÓN DINÁMICO SEGÚN MODO */}
                 <button
                   onClick={() => {
-                    // Aquí envías la notificación a los suscriptores
                     if (modoRetos === 'creadora') {
                       console.log('Notificar: Solicitar votación');
                     } else if (modoRetos === 'suscriptores') {
@@ -331,7 +537,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               </div>
             </div>
 
-            {/* Input para crear reto - MÁS COMPACTO */}
             {(modoRetos === 'creadora' || modoRetos === 'mixto') && (
               <div className="flex gap-2 mb-4">
                 <input
@@ -363,7 +568,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               Ideas de la comunidad
             </h4>
 
-            {/* Lista con scroll independiente */}
             <div className="space-y-2">
               <p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between">
                 <span>💡 Ideas activas ({retosActuales.length})</span>
@@ -415,10 +619,9 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
         </div>
       </div>
 
-      {/* PANEL IDEAS PARA LIVE - MISMO PATRÓN */}
+      {/* PANEL IDEAS PARA LIVE */}
       <div className={'fixed top-0 right-0 h-full bg-white shadow-2xl border-l border-slate-200 transition-transform duration-300 ease-in-out z-[8997] ' + (panelIdeasLiveAbierto ? 'translate-x-0' : 'translate-x-full')} style={{ width: '340px' }}>
         <div className="h-full flex flex-col">
-          {/* Header sin botón X */}
           <div className="p-4 bg-white border-b border-slate-100 flex-shrink-0">
             <h3 className="text-base font-bold text-slate-700 flex items-center gap-2">
               <Radio className="w-5 h-5 text-amber-500" />
@@ -426,9 +629,7 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
             </h3>
           </div>
 
-          {/* Contenido scrolleable */}
           <div className="flex-1 overflow-y-auto p-4">
-            {/* Título con botón X - PREMIUM */}
             <div className="flex items-center justify-between mb-4 px-3 py-2.5 bg-gradient-to-r from-amber-50/40 to-orange-50/40 rounded-xl border border-amber-100/50">
               <h4 className="text-[11px] font-bold text-slate-700 flex items-center gap-2">
                 <Radio className="w-4 h-4 text-amber-500" />
@@ -442,15 +643,12 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               </button>
             </div>
 
-            {/* Modo de ideas CON BOTÓN DE NOTIFICACIÓN */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[10px] text-slate-500 font-medium">¿Quién sugiere ideas para live?</p>
 
-                {/* BOTÓN DINÁMICO SEGÚN MODO */}
                 <button
                   onClick={() => {
-                    // Aquí envías la notificación a los suscriptores
                     if (modoIdeasLive === 'creadora') {
                       console.log('Notificar: Solicitar votación de ideas live');
                     } else if (modoIdeasLive === 'suscriptores') {
@@ -510,7 +708,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               </div>
             </div>
 
-            {/* Input para crear idea - MÁS COMPACTO */}
             {(modoIdeasLive === 'creadora' || modoIdeasLive === 'mixto') && (
               <div className="flex gap-2 mb-4">
                 <input
@@ -542,7 +739,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
               Ideas de la comunidad
             </h4>
 
-            {/* Lista con scroll independiente */}
             <div className="space-y-2">
               <p className="text-[10px] text-slate-500 font-semibold flex items-center justify-between">
                 <span>🎯 Ideas activas ({ideasLive.filter(i => i.estado === 'activo').length})</span>
@@ -596,7 +792,6 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
 
       <CalendarioModal isOpen={showCalendarioModal} onClose={() => setShowCalendarioModal(false)} eventos={eventos} onGuardarEvento={handleGuardarEvento} onEliminarEvento={(id) => setEventos(prev => prev.filter(e => e.id !== id))} />
 
-      {/* MODAL PROGRAMAR TRANSMISIÓN - COMPONENTE SEPARADO */}
       <ModalProgramarTransmision
         isOpen={showModalProgramacion}
         onClose={() => setShowModalProgramacion(false)}
@@ -605,14 +800,208 @@ export const MiActividadTab = ({ onProgramarEvento }: { onProgramarEvento?: () =
         ideasLiveActivo={ideasLiveActivo}
       />
 
-      {showTipoTransmisionModal && createPortal(<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={() => setShowTipoTransmisionModal(false)}><div className="bg-white rounded-xl shadow-xl max-w-sm w-full" onClick={e => e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between"><div className="flex items-center gap-2"><div className="w-7 h-7 bg-gradient-to-r from-red-500 to-rose-500 rounded-lg flex items-center justify-center"><Radio className="w-4 h-4 text-white" /></div><h3 className="text-[12px] font-semibold text-slate-700">Iniciar Transmisión EN VIVO</h3></div><button onClick={() => setShowTipoTransmisionModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button></div><div className="p-4 space-y-2"><button onClick={() => setTipoSeleccionado('gratis')} className={'w-full p-3.5 rounded-xl text-left flex items-center gap-3 transition-all ' + (tipoSeleccionado === 'gratis' ? 'bg-emerald-50 border-2 border-emerald-300' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200')}><div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center ' + (tipoSeleccionado === 'gratis' ? 'border-emerald-500' : 'border-slate-300')}>{tipoSeleccionado === 'gratis' && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}</div><Globe className="w-5 h-5 text-slate-500" /><div><p className="text-[12px] font-semibold text-slate-700">Público (Gratis)</p><p className="text-[10px] text-slate-400">Cualquiera puede ver tu transmisión</p></div></button><button onClick={() => setTipoSeleccionado('suscriptores')} className={'w-full p-3.5 rounded-xl text-left flex items-center gap-3 transition-all ' + (tipoSeleccionado === 'suscriptores' ? 'bg-fuchsia-50 border-2 border-fuchsia-300' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200')}><div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center ' + (tipoSeleccionado === 'suscriptores' ? 'border-fuchsia-500' : 'border-slate-300')}>{tipoSeleccionado === 'suscriptores' && <div className="w-2.5 h-2.5 rounded-full bg-fuchsia-500" />}</div><Crown className="w-5 h-5 text-slate-500" /><div><p className="text-[12px] font-semibold text-slate-700">Solo Suscriptores</p><p className="text-[10px] text-slate-400">Requiere suscripción activa</p></div></button><button onClick={() => setTipoSeleccionado('ppv')} className={'w-full p-3.5 rounded-xl text-left flex items-center gap-3 transition-all ' + (tipoSeleccionado === 'ppv' ? 'bg-amber-50 border-2 border-amber-300' : 'bg-slate-50 hover:bg-slate-100 border border-slate-200')}><div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center ' + (tipoSeleccionado === 'ppv' ? 'border-amber-500' : 'border-slate-300')}>{tipoSeleccionado === 'ppv' && <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />}</div><Coins className="w-5 h-5 text-slate-500" /><div><p className="text-[12px] font-semibold text-slate-700">Pago por Entrada (PPV)</p><p className="text-[10px] text-slate-400">Cobro único por acceso</p></div></button>{tipoSeleccionado === 'ppv' && (<div className="mt-3 p-3 bg-amber-50/50 rounded-xl space-y-3 border border-amber-100"><div><label className="block text-[10px] font-semibold text-slate-600 mb-1">Precio (S/.)</label><input type="number" value={precioEntrada} onChange={(e) => setPrecioEntrada(parseInt(e.target.value) || 0)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] focus:outline-none focus:border-amber-300" min="1" /></div><div><label className="block text-[10px] font-semibold text-slate-600 mb-1">Descripción</label><textarea value={descripcionEntrada} onChange={(e) => setDescripcionEntrada(e.target.value)} placeholder="Ej: Show especial de viernes..." className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-[12px] resize-none focus:outline-none focus:border-amber-300" rows={2} maxLength={100} /></div></div>)}</div><div className="p-4 border-t border-slate-100 flex gap-2"><button onClick={() => setShowTipoTransmisionModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 text-[11px] font-semibold rounded-xl hover:bg-slate-200">Cancelar</button><button onClick={handleConfirmarTransmision} disabled={tipoSeleccionado === 'ppv' && (!precioEntrada || !descripcionEntrada.trim())} className={'flex-1 px-4 py-3 text-white text-[11px] font-semibold rounded-xl transition-all ' + (tipoSeleccionado === 'ppv' && (!precioEntrada || !descripcionEntrada.trim()) ? 'bg-slate-300 cursor-not-allowed' : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600')}>🔴 Iniciar EN VIVO</button></div></div></div>, document.body)}
+      {showConfirmDetener && (
+        <ConfirmDetenerTransmision
+          isOpen={showConfirmDetener}
+          onConfirm={confirmarDetenerTransmision}
+          onCancel={() => setShowConfirmDetener(false)}
+        />
+      )}
+
+{showTipoTransmisionModal && createPortal(
+  <div
+    className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 flex items-center justify-center p-4"
+    onClick={() => setShowTipoTransmisionModal(false)}
+  >
+    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-rose-100" onClick={e => e.stopPropagation()}>
+      <div className="px-5 py-4 bg-gradient-to-r from-rose-50 via-pink-50 to-violet-50 border-b border-rose-100 flex items-center justify-between rounded-t-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-rose-400 to-pink-500 rounded-xl flex items-center justify-center shadow-md">
+            <Radio className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-gray-800">Iniciar Transmisión</h3>
+            <p className="text-[10px] text-gray-500">Elige el tipo de acceso</p>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowTipoTransmisionModal(false)}
+          className="w-8 h-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-gray-400 hover:text-rose-600 transition-all"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      <div className="p-4 space-y-2">
+        <button
+          onClick={() => setTipoSeleccionado('gratis')}
+          className={'w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all border-2 ' +
+            (tipoSeleccionado === 'gratis'
+              ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-300 shadow-sm'
+              : 'bg-white border-gray-200 hover:border-emerald-200 hover:bg-emerald-50/30')}
+        >
+          <div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'gratis' ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300')}>
+            {tipoSeleccionado === 'gratis' && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+          </div>
+          <div className={'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'gratis' ? 'bg-emerald-100' : 'bg-gray-50')}>
+            <Globe className={'w-4.5 h-4.5 ' + (tipoSeleccionado === 'gratis' ? 'text-emerald-600' : 'text-gray-400')} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-gray-800">Público (Gratis)</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">Cualquiera puede ver tu transmisión</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setTipoSeleccionado('suscriptores')}
+          className={'w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all border-2 ' +
+            (tipoSeleccionado === 'suscriptores'
+              ? 'bg-gradient-to-br from-fuchsia-50 to-pink-50 border-fuchsia-300 shadow-sm'
+              : 'bg-white border-gray-200 hover:border-fuchsia-200 hover:bg-fuchsia-50/30')}
+        >
+          <div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'suscriptores' ? 'border-fuchsia-500 bg-fuchsia-500' : 'border-gray-300')}>
+            {tipoSeleccionado === 'suscriptores' && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+          </div>
+          <div className={'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'suscriptores' ? 'bg-fuchsia-100' : 'bg-gray-50')}>
+            <Crown className={'w-4.5 h-4.5 ' + (tipoSeleccionado === 'suscriptores' ? 'text-fuchsia-600' : 'text-gray-400')} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-gray-800">Solo Suscriptores</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">Requiere suscripción activa</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setTipoSeleccionado('ppv')}
+          className={'w-full p-3 rounded-xl text-left flex items-center gap-3 transition-all border-2 ' +
+            (tipoSeleccionado === 'ppv'
+              ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300 shadow-sm'
+              : 'bg-white border-gray-200 hover:border-amber-200 hover:bg-amber-50/30')}
+        >
+          <div className={'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'ppv' ? 'border-amber-500 bg-amber-500' : 'border-gray-300')}>
+            {tipoSeleccionado === 'ppv' && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+          </div>
+          <div className={'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ' +
+            (tipoSeleccionado === 'ppv' ? 'bg-amber-100' : 'bg-gray-50')}>
+            <Coins className={'w-4.5 h-4.5 ' + (tipoSeleccionado === 'ppv' ? 'text-amber-600' : 'text-gray-400')} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[11px] font-bold text-gray-800">Pago por Entrada (PPV)</p>
+            <p className="text-[9px] text-gray-500 mt-0.5">Cobro único por acceso</p>
+          </div>
+        </button>
+
+        {tipoSeleccionado === 'ppv' && (
+          <div className="mt-3 p-3 bg-amber-50/50 rounded-xl space-y-2.5 border border-amber-200">
+            <div>
+              <label className="block text-[9px] font-bold text-gray-700 mb-1.5">Precio de entrada (S/.)</label>
+              <input
+                type="number"
+                value={precioEntrada}
+                onChange={(e) => setPrecioEntrada(parseInt(e.target.value) || 0)}
+                className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-[11px] font-semibold text-gray-700 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                min="1"
+                placeholder="15"
+              />
+            </div>
+            <div>
+              <label className="block text-[9px] font-bold text-gray-700 mb-1.5">Descripción del evento</label>
+              <textarea
+                value={descripcionEntrada}
+                onChange={(e) => setDescripcionEntrada(e.target.value)}
+                placeholder="Ej: Show especial de viernes..."
+                className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-[10px] text-gray-700 resize-none focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                rows={2}
+                maxLength={100}
+              />
+              <p className="text-[8px] text-gray-400 mt-1 text-right">{descripcionEntrada.length}/100</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ✅ Footer VIP Premium */}
+      <div className="px-4 py-3.5 border-t border-rose-100 bg-gradient-to-r from-rose-50/30 via-pink-50/30 to-violet-50/30 flex gap-2.5">
+        <button
+          onClick={() => setShowTipoTransmisionModal(false)}
+          className="flex-1 px-4 py-2.5 bg-white border border-rose-200 text-gray-700 text-[11px] font-bold rounded-lg hover:bg-rose-50 hover:border-rose-300 transition-all"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={handleConfirmarTransmision}
+          disabled={tipoSeleccionado === 'ppv' && (!precioEntrada || !descripcionEntrada.trim())}
+          className={'flex-1 px-4 py-2.5 text-white text-[11px] font-bold rounded-lg transition-all shadow-sm flex items-center justify-center gap-1.5 ' +
+            (tipoSeleccionado === 'ppv' && (!precioEntrada || !descripcionEntrada.trim())
+              ? 'bg-rose-300 cursor-not-allowed'
+              : 'bg-gradient-to-r from-rose-400 to-pink-500 hover:from-rose-500 hover:to-pink-600')}
+        >
+          <Radio className="w-3.5 h-3.5" />
+          Iniciar EN VIVO
+        </button>
+      </div>
+    </div>
+  </div>,
+  document.body
+)}
+
 
       {showMeGustaModal && publicacionSeleccionada && createPortal(<ListaUsuarios usuarios={publicacionSeleccionada.meGusta} titulo="Me gusta" />, document.body)}
       {showNoMeGustaModal && publicacionSeleccionada && createPortal(<ListaUsuarios usuarios={publicacionSeleccionada.noMeGusta} titulo="No me gusta" />, document.body)}
       {showVistosModal && publicacionSeleccionada && createPortal(<ListaUsuarios usuarios={publicacionSeleccionada.vistas} titulo="Visto por" />, document.body)}
-      {showComentariosModal && publicacionSeleccionada && createPortal(<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={() => setShowComentariosModal(false)}><div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}><div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between"><h3 className="text-[12px] font-semibold text-slate-700">Comentarios ({publicacionSeleccionada.comentarios.length})</h3><button onClick={() => setShowComentariosModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button></div><div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50">{publicacionSeleccionada.comentarios.length === 0 ? <p className="text-[11px] text-slate-400 text-center py-8">Aún no hay comentarios</p> : publicacionSeleccionada.comentarios.map(c => (<div key={c.id} className="flex items-start gap-2"><img src={c.usuario.avatar} alt="" className="w-8 h-8 rounded-full" /><div className="bg-white rounded-xl px-3 py-2 shadow-sm"><p className="text-[10px] font-semibold text-slate-700">{c.usuario.nombre}</p><p className="text-[11px] text-slate-600">{c.texto}</p></div></div>))}</div><div className="p-3 border-t border-slate-100 flex items-center gap-2"><input type="text" value={nuevoComentario} onChange={(e) => setNuevoComentario(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleEnviarComentario()} placeholder="Escribe un comentario..." className="flex-1 px-3 py-2.5 bg-slate-50 rounded-xl text-[11px] focus:outline-none" /><button onClick={handleEnviarComentario} disabled={!nuevoComentario.trim()} className={'w-9 h-9 rounded-xl flex items-center justify-center transition-all ' + (nuevoComentario.trim() ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-300')}><Send className="w-4 h-4" /></button></div></div></div>, document.body)}
+      {showComentariosModal && publicacionSeleccionada && createPortal(
+        <div className="fixed inset-0 z-[100000] bg-gradient-to-br from-gray-900/50 via-gray-800/50 to-gray-900/50 flex items-center justify-center p-4" onClick={() => setShowComentariosModal(false)}>
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-[12px] font-semibold text-slate-700">Comentarios ({publicacionSeleccionada.comentarios.length})</h3>
+              <button onClick={() => setShowComentariosModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50">
+              {publicacionSeleccionada.comentarios.length === 0 ? (
+                <p className="text-[11px] text-slate-400 text-center py-8">Aún no hay comentarios</p>
+              ) : (
+                publicacionSeleccionada.comentarios.map(c => (
+                  <div key={c.id} className="flex items-start gap-2">
+                    <img src={c.usuario.avatar} alt="" className="w-8 h-8 rounded-full" />
+                    <div className="bg-white rounded-xl px-3 py-2 shadow-sm">
+                      <p className="text-[10px] font-semibold text-slate-700">{c.usuario.nombre}</p>
+                      <p className="text-[11px] text-slate-600">{c.texto}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-3 border-t border-slate-100 flex items-center gap-2">
+              <input
+                type="text"
+                value={nuevoComentario}
+                onChange={(e) => setNuevoComentario(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleEnviarComentario()}
+                placeholder="Escribe un comentario..."
+                className="flex-1 px-3 py-2.5 bg-slate-50 rounded-xl text-[11px] focus:outline-none"
+              />
+              <button
+                onClick={handleEnviarComentario}
+                disabled={!nuevoComentario.trim()}
+                className={'w-9 h-9 rounded-xl flex items-center justify-center transition-all ' + (nuevoComentario.trim() ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-300')}
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       {showImageModal && createPortal(<div className="fixed inset-0 bg-black/95 flex items-center justify-center p-4" style={{ zIndex: 99999 }} onClick={() => setShowImageModal(false)}><button onClick={() => setShowImageModal(false)} className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"><X className="w-5 h-5" /></button>{currentImageFiles.length > 1 && (<><button onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(p => (p - 1 + currentImageFiles.length) % currentImageFiles.length); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"><ChevronLeft className="w-5 h-5" /></button><button onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(p => (p + 1) % currentImageFiles.length); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all"><ChevronRight className="w-5 h-5" /></button></>)}<div className="max-w-5xl max-h-[85vh]" onClick={e => e.stopPropagation()}>{currentImageFiles[currentImageIndex]?.type.startsWith('image/') ? <img src={URL.createObjectURL(currentImageFiles[currentImageIndex])} alt="" className="max-w-full max-h-full object-contain rounded-xl" /> : <VideoIcon className="w-16 h-16 text-white/50" />}</div>{currentImageFiles.length > 1 && <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-full text-white text-[11px] font-medium">{currentImageIndex + 1} / {currentImageFiles.length}</div>}</div>, document.body)}
       {showDeleteModal && createPortal(<ConfirmDeleteModalFotoPublicacion onConfirm={handleConfirmarEliminar} onCancel={() => { setShowDeleteModal(false); setPublicacionAEliminar(null); setFotoIndexAEliminar(null); }} esEliminacionFoto={fotoIndexAEliminar !== null} />, document.body)}
+    
     </div>
   );
 };
